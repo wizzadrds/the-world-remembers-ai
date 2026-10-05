@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.util.UUID;
 
 import com.wizzadrds.theworldremembers.home.NpcHomeManager;
+import com.wizzadrds.theworldremembers.age.NpcAgeManager;
 import com.wizzadrds.theworldremembers.memory.MemoryEventType;
 import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
@@ -42,6 +43,10 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
             TheWorldRemembers.processWorld(context.getLevel());
             if (!NpcHomeManager.get(context.getLevel()).hasHome(villager.getUUID())) {
                 context.fail("Live villager did not receive persistent home state");
+                return;
+            }
+            if (!NpcAgeManager.get(context.getLevel().getServer()).hasAge(villager.getUUID())) {
+                context.fail("Live villager did not receive persistent age state");
                 return;
             }
             context.succeed();
