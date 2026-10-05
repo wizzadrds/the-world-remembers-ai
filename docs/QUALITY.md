@@ -33,3 +33,7 @@ The mod is not considered production-ready for a milestone until the following l
 - [ ] Client GameTest for the crossed-arm animation.
 - [ ] Stress/fatigue integration with live activity state.
 - [ ] Population-scale performance test.
+
+
+## CI validation
+A pull-request CI run must pass `gradle build` and the headless Fabric server smoke test before a milestone can be marked complete.
