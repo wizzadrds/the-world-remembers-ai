@@ -16,7 +16,7 @@ public final class RelationshipManager extends SavedData {
     private final Map<String, Relationship> relationships = new HashMap<>();
     private static final Codec<Map<String, Relationship>> MAP_CODEC = Codec.unboundedMap(Codec.STRING, Relationship.CODEC);
     private static final Codec<RelationshipManager> CODEC = MAP_CODEC.xmap(m -> { RelationshipManager x=new RelationshipManager(); x.relationships.putAll(m); return x; }, x -> x.relationships);
-    private static final SavedDataType<RelationshipManager> TYPE = new SavedDataType<>(net.minecraft.resources.Identifier.fromNamespaceAndPath("the_world_remembers"), "relationships", RelationshipManager::new, CODEC, null);
+    private static final SavedDataType<RelationshipManager> TYPE = new SavedDataType<>(net.minecraft.resources.Identifier.fromNamespaceAndPath("the_world_remembers", "relationships"), RelationshipManager::new, CODEC, null);
     private static String key(UUID npc, UUID player) { return npc + ":" + player; }
     public static RelationshipManager get(MinecraftServer server) { ServerLevel l=server.getLevel(ServerLevel.OVERWORLD); return l==null?new RelationshipManager():l.getDataStorage().computeIfAbsent(TYPE); }
     public Relationship get(UUID npc, UUID player) { return relationships.get(key(npc, player)); }
