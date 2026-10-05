@@ -79,4 +79,4 @@ Phase 6 is not marked complete until the final pull-request CI run passes both g
 - [x] Landmarks from real village POIs
 - [x] Migration identity preservation
 - [x] Village-scale GameTests
-- [x] Population-scale performance GameTest
+- [ ] Population-scale performance GameTest
