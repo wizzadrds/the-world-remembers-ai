@@ -5,6 +5,10 @@ import com.wizzadrds.theworldremembers.age.NpcAgeGenerator;
 import com.wizzadrds.theworldremembers.age.NpcAgeManager;
 import com.wizzadrds.theworldremembers.family.FamilyCourtshipManager;
 import com.wizzadrds.theworldremembers.family.FamilyManager;
+import com.wizzadrds.theworldremembers.family.FamilyProtectionManager;
+import com.wizzadrds.theworldremembers.behavior.NpcBehaviorEngine;
+import com.wizzadrds.theworldremembers.behavior.NpcDecision;
+import com.wizzadrds.theworldremembers.stress.NpcStress;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
 import com.wizzadrds.theworldremembers.inventory.NpcInventoryManager;
 import com.wizzadrds.theworldremembers.memory.*;
@@ -65,16 +69,21 @@ public class TheWorldRemembers implements ModInitializer {
         RelationshipManager relationships=RelationshipManager.get(world.getServer());
         FamilyManager families=FamilyManager.get(world.getServer());
         FamilyCourtshipManager courtship=FamilyCourtshipManager.get(world.getServer());
+        FamilyProtectionManager protection=FamilyProtectionManager.get(world.getServer());
 
         for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),villager -> villager.isAlive()&&!villager.isRemoved())) {
             ages.assignIfAbsent(villager.getUUID(), villager.isBaby() ? NpcAgeGenerator.generateChildAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())) : NpcAgeGenerator.generateAdultAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())));
             if (villager.isBaby() && !families.hasParents(villager.getUUID())) linkBabyToNearbyParents(world, villager, families, memories);
             if (!villager.isBaby() && ages.get(villager.getUUID()).isAdult() && !families.hasSpouse(villager.getUUID())) processCourtship(world, villager, families, courtship, memories, ages);
+            if (!villager.isBaby()) maintainFamilyProtection(villager, families, protection);
             NpcHome home=homes.get(villager.getUUID());
             if(home==null) {
                 BlockPos pos=villager.blockPosition();
                 home=homes.assignIfAbsent(villager.getUUID(),pos,null,pos);
             }
+            synchronizeFamilyHome(villager, families, homes);
+            home=homes.get(villager.getUUID());
+            applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress);
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
             for(ServerPlayer player:world.players()) {
                 if(player.blockPosition().distSqr(entrance)>HOME_RADIUS*HOME_RADIUS) continue;
@@ -90,11 +99,60 @@ public class TheWorldRemembers implements ModInitializer {
             }
             if(world.getGameTime()%200==0&&!world.getEntitiesOfClass(ServerPlayer.class,villager.getBoundingBox().inflate(8),p->true).iterator().hasNext()) stress.recover(villager.getUUID(),1);
         }
+
+        for (Villager villager : world.getEntitiesOfClass(Villager.class,
+                new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),
+                v -> v.isAlive() && !v.isRemoved())) {
+            synchronizeFamilyHome(villager, families, homes);
+        }
     }
+    private static void maintainFamilyProtection(Villager villager, FamilyManager families, FamilyProtectionManager protection) {
+        for (java.util.UUID child : families.childrenOf(villager.getUUID())) {
+            if (protection.protectorOf(child) == null) protection.protect(villager.getUUID(), child);
+        }
+    }
+
+    private static void synchronizeFamilyHome(Villager villager, FamilyManager families, NpcHomeManager homes) {
+        java.util.UUID anchor = families.spouseOf(villager.getUUID());
+        if (anchor == null) {
+            var parents = families.parentsOf(villager.getUUID());
+            if (!parents.isEmpty()) anchor = parents.get(0);
+        }
+        if (anchor == null) {
+            var children = families.childrenOf(villager.getUUID());
+            if (!children.isEmpty()) anchor = children.get(0);
+        }
+        if (anchor != null && homes.hasHome(anchor)) homes.assignFamilyHome(villager.getUUID(), anchor);
+    }
+
+    private static void applyFamilyProtectionBehavior(ServerLevel world, Villager villager, FamilyManager families,
+                                                       FamilyProtectionManager protection, NpcHomeManager homes,
+                                                       NpcStressManager stress) {
+        java.util.List<java.util.UUID> children = families.childrenOf(villager.getUUID());
+        if (children.isEmpty()) return;
+        NpcBehaviorEngine engine = new NpcBehaviorEngine();
+        NpcStress npcStress = new NpcStress(stress.value(villager.getUUID()));
+        for (java.util.UUID childId : children) {
+            if (!villager.getUUID().equals(protection.protectorOf(childId))) continue;
+            if (!(world.getEntity(childId) instanceof Villager child) || !child.isAlive()) continue;
+            boolean dangerPresent = !world.getEntitiesOfClass(LivingEntity.class, child.getBoundingBox().inflate(8),
+                entity -> entity.isAlive() && entity instanceof net.minecraft.world.entity.monster.Monster).isEmpty();
+            NpcDecision decision = engine.decideFamilyResponse(true, dangerPresent, npcStress);
+            if (decision == NpcDecision.FOLLOW || decision == NpcDecision.CALL_FOR_HELP) {
+                villager.getNavigation().moveTo(child, decision == NpcDecision.CALL_FOR_HELP ? 1.25 : 1.0);
+            } else if (decision == NpcDecision.RETURN_HOME) {
+                NpcHome home = homes.get(villager.getUUID());
+                if (home != null) villager.getNavigation().moveTo(home.homePos().getX(), home.homePos().getY(), home.homePos().getZ(), 1.0);
+            }
+        }
+    }
+
     private static void linkBabyToNearbyParents(ServerLevel world, Villager child, com.wizzadrds.theworldremembers.family.FamilyManager families, MemoryManager memories) {
         java.util.List<Villager> adults=world.getEntitiesOfClass(Villager.class, child.getBoundingBox().inflate(8), v -> v.isAlive() && !v.isBaby() && !v.getUUID().equals(child.getUUID()));
         if(adults.size()!=2) return;
-        if(families.addParentChild(adults.get(0).getUUID(), child.getUUID()) && families.addParentChild(adults.get(1).getUUID(), child.getUUID())) {
+        families.addParentChild(adults.get(0).getUUID(), child.getUUID());
+        families.addParentChild(adults.get(1).getUUID(), child.getUUID());
+        if (families.parentsOf(child.getUUID()).size() == 2) {
             long time=world.getGameTime();
             memories.rememberEvent(child.getUUID(), adults.get(0).getUUID(), MemoryEventType.NPC_BORN, time, MemoryImportance.IMPORTANT);
             memories.rememberEvent(child.getUUID(), adults.get(1).getUUID(), MemoryEventType.NPC_BORN, time, MemoryImportance.IMPORTANT);
@@ -135,6 +193,8 @@ public class TheWorldRemembers implements ModInitializer {
         if (!(entity instanceof Villager villager) || !(entity.level() instanceof ServerLevel world)) return;
         var families=FamilyManager.get(world.getServer());
         var memories=MemoryManager.get(world.getServer());
+        var protection=FamilyProtectionManager.get(world.getServer());
+        protection.clearProtector(villager.getUUID());
         var inventories=NpcInventoryManager.get(world.getServer());
         java.util.List<java.util.UUID> related = families.getRelations(villager.getUUID()).stream()
             .map(r -> r.npcId().equals(villager.getUUID()) ? r.relatedNpcId() : r.npcId()).distinct().toList();
@@ -143,7 +203,7 @@ public class TheWorldRemembers implements ModInitializer {
             memories.rememberEvent(id, villager.getUUID(), MemoryEventType.NPC_FAMILY_LOST, world.getGameTime(), MemoryImportance.IMPORTANT);
         }
         java.util.UUID heir = families.childrenOf(villager.getUUID()).stream().findFirst()
-            .orElseGet(() -> related.stream().filter(id -> families.hasSpouse(id)).findFirst().orElse(null));
+            .orElseGet(() -> families.spouseOf(villager.getUUID()));
         if (heir != null) {
             int inherited = inventories.inheritImportantItems(villager.getUUID(), heir);
             if (inherited > 0) {

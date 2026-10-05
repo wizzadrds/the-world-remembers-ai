@@ -39,3 +39,16 @@ The mod is not considered production-ready for a milestone until the following l
 
 ## CI validation
 A pull-request CI run must pass `gradle build` and the headless Fabric server smoke test before a milestone can be marked complete.
+
+## Phase 5 acceptance
+
+- [x] Persistent age progression and calendar state.
+- [x] Live parent/child linking with idempotent relation creation.
+- [x] Live sibling formation from shared parents.
+- [x] Live spouse/courtship linking.
+- [x] Generational memory inheritance without re-inheriting inherited memories.
+- [x] Important possessions inherited by children or the direct spouse.
+- [x] Family members converge on a shared persistent home state.
+- [x] Persistent family protector assignment and release after protector death.
+- [x] Family protection decisions drive live villager navigation.
+- [x] Dedicated Minecraft GameTests cover sibling formation, spouse inheritance, family homes and protection navigation.
