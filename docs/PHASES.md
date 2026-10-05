@@ -62,11 +62,19 @@ The project follows a staged implementation plan. Features are documented before
 - [x] Voice temperament model foundation
 
 ## Phase 5 — Families & Generations
-- [ ] Persistent age
-- [ ] Parents, siblings, spouses and children
-- [ ] Births and deaths
-- [ ] Generational memory
+- [x] Persistent age data model
+- [x] Persistent family relation model
+- [x] Parent, child, sibling and spouse relation types
+- [x] Family relation persistence
+- [x] Family relation integrity checks
+- [x] Birth/death/marriage/family-loss/inheritance event vocabulary
+- [ ] Live villager age assignment
+- [ ] Parents, siblings, spouses and children in live NPCs
+- [ ] Birth and death simulation
+- [ ] Generational memory propagation
 - [ ] Inherited and important possessions
+- [ ] Family-aware home assignment
+- [ ] Family-aware behavior and protection
 
 ## Phase 6 — Villages & Society
 - [ ] Village history
