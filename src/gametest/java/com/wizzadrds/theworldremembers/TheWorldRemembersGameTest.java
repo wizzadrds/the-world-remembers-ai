@@ -53,6 +53,9 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
                 context.fail("Live villager did not receive persistent age state");
                 return;
             }
+            int before = NpcAgeManager.get(context.getLevel().getServer()).get(villager.getUUID()).years();
+            NpcAgeManager.get(context.getLevel().getServer()).advanceIfDue(villager.getUUID(), 168_000L);
+            if (NpcAgeManager.get(context.getLevel().getServer()).get(villager.getUUID()).years() != before + 1) { context.fail("Persistent age did not advance by one year"); return; }
             context.succeed();
         });
     }
