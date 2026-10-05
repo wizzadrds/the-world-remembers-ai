@@ -6,12 +6,12 @@ Minecraft Java mod focused on persistent memory, relationships, emergent NPC beh
 
 ## Status
 
-**Current milestone:** v0.2.0-alpha — Phase 1 complete; Phase 2 in progress
+**Current milestone:** v0.3.0-alpha — Phase 2 complete; Phase 3 in progress
 
 ## Core pillars
 
 - Memory: meaningful events are stored and recalled. **[Phase 1 complete]**
-- Personality: NPCs react differently to the same event.
+- Personality: NPCs react differently to the same event. **[Phase 2 complete]**
 - Relationships: trust, fear, gratitude and resentment evolve.
 - Behavior: NPCs decide whether to talk, continue, leave, work or ignore.
 - Society: families, villages, rumors and generations evolve.
