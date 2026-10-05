@@ -1,69 +1,12 @@
 # Stress System
 
-Stress is a persistent simulation state between 0 and 100.
+Stress is persistent and clamped to 0..100.
 
-## Sources
-
-Stress can increase because of:
-
-- long distance from home;
-- long travel;
-- hostile mobs;
-- player threats;
-- witnessing attacks or deaths;
-- losing family;
-- losing a home;
-- theft;
-- hunger;
-- overwork;
-- crowded or unsafe situations;
-- high-risk combat.
+## Live sources
+Threats, witnessed deaths, family loss, unauthorized entry, dangerous travel, hunger/overwork and unsafe surroundings may increase stress when observed by the simulation.
 
 ## Recovery
-
-Stress can decrease through:
-
-- sleeping;
-- eating;
-- returning home;
-- being in a safe place;
-- spending time with trusted people;
-- family contact;
-- successful social interaction;
-- time without new threats.
-
-## Thresholds
-
-- 0-24: calm.
-- 25-49: mildly stressed.
-- 50-74: stressed.
-- 75-89: highly stressed.
-- 90-100: critical.
-
-These thresholds affect behavior but do not replace personality.
+Safe time, home proximity, eating, sleeping, trusted social contact and completed travel can reduce stress.
 
 ## Behavioral effects
-
-High stress can cause an NPC to:
-
-- speak less;
-- become irritable;
-- avoid dangerous travel;
-- refuse to follow the player;
-- ask to return home;
-- seek family or trusted people;
-- sleep poorly;
-- flee sooner;
-- call for help sooner.
-
-Critical stress should prioritize safety over ordinary conversation.
-
-## Voice
-
-Stress also affects delivery.
-
-The same voice profile can become quieter, shakier, faster, slower or more tense depending on stress and fear.
-
-## Grounding
-
-Stress is simulation state. Dialogue must only mention stress-related facts when the state supports them.
+75+ is highly stressed and 90+ critical. Critical stress prioritizes safety and can interrupt ordinary social/work behavior. Stress never overrides personality permanently; it modifies decision thresholds.
