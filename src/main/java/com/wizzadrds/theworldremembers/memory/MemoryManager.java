@@ -49,9 +49,22 @@ public final class MemoryManager extends PersistentState {
     }
 
     public Optional<Memory> findMostRecentMemory(UUID npcId, UUID playerId) {
+
         for (int i = memories.size() - 1; i >= 0; i--) {
             Memory memory = memories.get(i);
             if (memory.npcId().equals(npcId) && memory.playerId().equals(playerId)) return Optional.of(memory);
+        }
+        return Optional.empty();
+    }
+
+    public Optional<Memory> findMostRecentMemory(UUID npcId, UUID playerId, MemoryEventType type) {
+        for (int i = memories.size() - 1; i >= 0; i--) {
+            Memory memory = memories.get(i);
+            if (memory.npcId().equals(npcId)
+                    && memory.playerId().equals(playerId)
+                    && memory.type() == type) {
+                return Optional.of(memory);
+            }
         }
         return Optional.empty();
     }
