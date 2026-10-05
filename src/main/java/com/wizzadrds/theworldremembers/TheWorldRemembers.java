@@ -187,6 +187,8 @@ public class TheWorldRemembers implements ModInitializer {
         if (!(entity instanceof Villager villager) || !(entity.level() instanceof ServerLevel world)) return;
         var families=FamilyManager.get(world.getServer());
         var memories=MemoryManager.get(world.getServer());
+        var protection=FamilyProtectionManager.get(world.getServer());
+        protection.clearProtector(villager.getUUID());
         var inventories=NpcInventoryManager.get(world.getServer());
         java.util.List<java.util.UUID> related = families.getRelations(villager.getUUID()).stream()
             .map(r -> r.npcId().equals(villager.getUUID()) ? r.relatedNpcId() : r.npcId()).distinct().toList();
