@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.inventory; import com.mojang.serialization.Codec; public record NpcEquipmentState(String mainHand){public static final Codec<NpcEquipmentState> CODEC=Codec.STRING.xmap(NpcEquipmentState::new,NpcEquipmentState::mainHand); public NpcEquipmentState{if(mainHand==null)mainHand="minecraft:air";}}
