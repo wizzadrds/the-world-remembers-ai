@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "the_world_remembers",
+  "version": "${version}",
+  "name": "The World Remembers",
+  "description": "Minecraft remembers what you do.",
+  "authors": ["wizzadrds"],
+  "contact": {"sources": "https://github.com/wizzadrds/the-world-remembers-ai"},
+  "license": "All-Rights-Reserved",
+  "environment": "*",
+  "entrypoints": {"main": ["com.wizzadrds.theworldremembers.TheWorldRemembers"]},
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "~26.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
