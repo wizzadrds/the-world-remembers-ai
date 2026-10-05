@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "the_world_remembers_gametest",
+  "version": "1.0.0",
+  "name": "The World Remembers Game Tests",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": [
+      "com.wizzadrds.theworldremembers.TheWorldRemembersGameTest"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "~26.2",
+    "fabric-api": "*",
+    "the_world_remembers": "*"
+  }
+}
