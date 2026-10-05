@@ -12,7 +12,7 @@ public final class NpcInventoryManager extends SavedData {
     private final Map<UUID,NpcInventory> inventories=new HashMap<>();
     private static final Codec<NpcInventory> INVENTORY_CODEC=NpcItemStack.CODEC.listOf().xmap(NpcInventory::new,NpcInventory::items);
     private static final Codec<NpcInventoryManager> CODEC=Codec.unboundedMap(UUIDUtil.CODEC,INVENTORY_CODEC).xmap(m->{NpcInventoryManager x=new NpcInventoryManager();x.inventories.putAll(m);return x;},x->x.inventories);
-    private static final SavedDataType<NpcInventoryManager> TYPE=new SavedDataType<>(net.minecraft.resources.Identifier.fromNamespaceAndPath("the_world_remembers"), "inventories",NpcInventoryManager::new,CODEC,null);
+    private static final SavedDataType<NpcInventoryManager> TYPE=new SavedDataType<>(net.minecraft.resources.Identifier.fromNamespaceAndPath("the_world_remembers", "inventories"),NpcInventoryManager::new,CODEC,null);
     public static NpcInventoryManager get(MinecraftServer server){ServerLevel l=server.getLevel(ServerLevel.OVERWORLD);return l==null?new NpcInventoryManager():l.getDataStorage().computeIfAbsent(TYPE);}
     public NpcInventory getOrCreate(UUID id){return inventories.computeIfAbsent(id,k->new NpcInventory());}
     public void transferIn(UUID id,String item,int count){getOrCreate(id).add(item,count);setDirty();}
