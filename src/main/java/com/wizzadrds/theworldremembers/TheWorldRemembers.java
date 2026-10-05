@@ -43,7 +43,7 @@ public class TheWorldRemembers implements ModInitializer {
         LOGGER.info("The World Remembers v0.4.0-alpha initialized.");
     }
 
-    private static void tickWorld(ServerLevel world) {
+    static void tickWorld(ServerLevel world) {
         if(world.getGameTime()%TICK_INTERVAL!=0)return;
         NpcHomeManager homes=NpcHomeManager.get(world);
         NpcStressManager stress=NpcStressManager.get(world);
