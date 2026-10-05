@@ -18,9 +18,11 @@ The project follows a staged implementation plan. Features are documented before
 **Status: COMPLETE — v0.2.0-alpha**
 
 ## Phase 2 — Personality
-- [ ] Stable personality profiles
-- [ ] Personality affects decisions
-- [ ] Different reactions to identical events
+- [x] Stable personality profiles
+- [x] Personality affects decisions
+- [x] Different reactions to identical events
+
+**Status: COMPLETE — v0.3.0-alpha**
 
 ## Phase 3 — Relationships
 - [ ] Trust, gratitude, fear, respect, affection, resentment, suspicion
