@@ -26,6 +26,22 @@ public record Relationship(
         );
     }
 
+    public boolean isTrusted() {
+        return trust >= 40;
+    }
+
+    public boolean isAfraid() {
+        return fear >= 40;
+    }
+
+    public boolean isHostile() {
+        return resentment >= 40 || suspicion >= 50;
+    }
+
+    public boolean hasProtectiveBond() {
+        return affection >= 40 && gratitude >= 30 && fear < 50;
+    }
+
     private static int clamp(int value) {
         return Math.max(-100, Math.min(100, value));
     }
