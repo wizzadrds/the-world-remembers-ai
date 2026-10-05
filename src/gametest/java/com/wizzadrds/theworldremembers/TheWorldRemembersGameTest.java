@@ -11,6 +11,7 @@ import com.wizzadrds.theworldremembers.family.FamilyRelationType;
 import com.wizzadrds.theworldremembers.memory.MemoryEventType;
 import com.wizzadrds.theworldremembers.memory.MemoryManager;
 import com.wizzadrds.theworldremembers.memory.MemoryOrigin;
+import com.wizzadrds.theworldremembers.inventory.NpcInventoryManager;
 import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
 import net.fabricmc.fabric.api.gametest.v1.CustomTestMethodInvoker;
@@ -92,6 +93,11 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
             parentA.kill(context.getLevel());
             context.runAtTickTime(1, () -> {
                 if (MemoryManager.get(context.getLevel().getServer()).findMostRecentMemory(child.getUUID(), parentA.getUUID(), MemoryEventType.NPC_DIED).isEmpty()) { context.fail("Family member did not remember death"); return; }
+                NpcInventoryManager inventories = NpcInventoryManager.get(context.getLevel().getServer());
+                inventories.transferIn(parentA.getUUID(), "minecraft:diamond", 1);
+                parentA.kill(context.getLevel());
+                if (inventories.count(child.getUUID(), "minecraft:diamond") != 1) { context.fail("Important possession was not inherited"); return; }
+                if (MemoryManager.get(context.getLevel().getServer()).findMostRecentMemory(child.getUUID(), parentA.getUUID(), MemoryEventType.NPC_INHERITED_ITEM).isEmpty()) { context.fail("Inheritance memory was not recorded"); return; }
                 context.succeed();
             });
         });
