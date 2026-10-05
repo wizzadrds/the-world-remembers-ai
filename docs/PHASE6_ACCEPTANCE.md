@@ -5,3 +5,5 @@ A Phase 6 milestone is complete only when village identity, population, history,
 
 ## Final validation run
 This document is used as the final CI validation gate for Phase 6.
+
+<!-- final-ci-trigger -->
