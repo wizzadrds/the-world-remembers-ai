@@ -138,6 +138,7 @@ public class TheWorldRemembers implements ModInitializer {
             synchronizeFamilyHome(villager, families, homes);
             home=homes.get(villager.getUUID());
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress);
+            synchronizeLiveBehavior(world,villager,activities,relationships,stress,homes);
             updateLiveBehavior(world,villager,behaviorManager,behaviorState,home,stress);
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
             for(ServerPlayer player:world.players()) {
@@ -183,6 +184,13 @@ public class TheWorldRemembers implements ModInitializer {
                 v -> v.isAlive() && !v.isRemoved())) {
             synchronizeFamilyHome(villager, families, homes);
         }
+    }
+
+    private static void synchronizeLiveBehavior(ServerLevel world,Villager villager,NpcActivityManager activities,RelationshipManager relationships,NpcStressManager stress,NpcHomeManager homes){
+        long day=world.getDayTime()%24000L; NpcActivity activity=(day>=12500L||day<500L)?NpcActivity.SLEEPING:NpcActivity.IDLE;
+        var player=world.getEntitiesOfClass(ServerPlayer.class,villager.getBoundingBox().inflate(12),p->p.isAlive()).stream().min(java.util.Comparator.comparingDouble(villager::distanceToSqr)).orElse(null);
+        if(player!=null){var rel=relationships.get(villager.getUUID(),player.getUUID()); if(rel!=null){var decision=new NpcBehaviorEngine().decide(activity,rel,PersonalityGenerator.generate(villager.getUUID()),new NpcStress(stress.value(villager.getUUID()))); if(activity==NpcActivity.SLEEPING){villager.getNavigation().stop();activities.set(villager.getUUID(),NpcActivity.SLEEPING,null);return;} if(decision==NpcDecision.FOLLOW&&rel.hasProtectiveBond()){activities.set(villager.getUUID(),NpcActivity.FOLLOWING_PLAYER,player.getUUID());villager.getNavigation().moveTo(player,1.0);return;} if(decision==NpcDecision.LEAVE){activities.set(villager.getUUID(),NpcActivity.TRAVELLING,player.getUUID());double dx=villager.getX()-player.getX(),dz=villager.getZ()-player.getZ(),len=Math.max(0.1,Math.sqrt(dx*dx+dz*dz));villager.getNavigation().moveTo(villager.getX()+dx/len*16,villager.getY(),villager.getZ()+dz/len*16,1.0);return;} if(decision==NpcDecision.RETURN_HOME){activities.set(villager.getUUID(),NpcActivity.WALKING,null);var home=homes.get(villager.getUUID());if(home!=null)villager.getNavigation().moveTo(home.homePos().getX(),home.homePos().getY(),home.homePos().getZ(),1.0);return;}}}
+        activities.set(villager.getUUID(),activity,null);
     }
     private static void maintainFamilyProtection(Villager villager, FamilyManager families, FamilyProtectionManager protection) {
         for (java.util.UUID child : families.childrenOf(villager.getUUID())) {
