@@ -1,6 +1,8 @@
 package com.wizzadrds.theworldremembers;
 
 import com.wizzadrds.theworldremembers.home.*;
+import com.wizzadrds.theworldremembers.age.NpcAgeGenerator;
+import com.wizzadrds.theworldremembers.age.NpcAgeManager;
 import com.wizzadrds.theworldremembers.memory.*;
 import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
 import com.wizzadrds.theworldremembers.relationship.*;
@@ -50,11 +52,13 @@ public class TheWorldRemembers implements ModInitializer {
 
     static void processWorld(ServerLevel world) {
         NpcHomeManager homes=NpcHomeManager.get(world);
+        NpcAgeManager ages=NpcAgeManager.get(world.getServer());
         NpcStressManager stress=NpcStressManager.get(world);
         MemoryManager memories=MemoryManager.get(world.getServer());
         RelationshipManager relationships=RelationshipManager.get(world.getServer());
 
         for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),villager -> villager.isAlive()&&!villager.isRemoved())) {
+            ages.assignIfAbsent(villager.getUUID(), NpcAgeGenerator.generateAdultAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())));
             NpcHome home=homes.get(villager.getUUID());
             if(home==null) {
                 BlockPos pos=villager.blockPosition();
