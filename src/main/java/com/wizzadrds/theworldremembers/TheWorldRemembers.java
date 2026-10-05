@@ -29,7 +29,7 @@ import com.wizzadrds.theworldremembers.village.VillageEvent;
 import com.wizzadrds.theworldremembers.village.VillageState;
 import com.wizzadrds.theworldremembers.village.VillageStorageManager;
 import com.wizzadrds.theworldremembers.village.VillageStorage;
-import net.minecraft.world.entity.animal.IronGolem;
+import net.minecraft.world.entity.animal.golem.IronGolem;
 import net.minecraft.tags.PoiTypeTags;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -45,6 +45,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.core.BlockPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.UUID;
 
 public class TheWorldRemembers implements ModInitializer {
     public static final String MOD_ID="the_world_remembers";
