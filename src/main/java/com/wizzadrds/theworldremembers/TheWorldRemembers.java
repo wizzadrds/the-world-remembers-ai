@@ -91,17 +91,23 @@ public class TheWorldRemembers implements ModInitializer {
             if(world.getGameTime()%200==0&&!world.getEntitiesOfClass(ServerPlayer.class,villager.getBoundingBox().inflate(8),p->true).iterator().hasNext()) stress.recover(villager.getUUID(),1);
         }
     }
-    private static void linkBabyToNearbyParents(ServerLevel world, Villager child, com.wizzadrds.theworldremembers.family.FamilyManager families, MemoryManager memories) {
+
+    private static void linkBabyToNearbyParents(ServerLevel world, Villager child, FamilyManager families, MemoryManager memories) {
         java.util.List<Villager> adults=world.getEntitiesOfClass(Villager.class, child.getBoundingBox().inflate(8), v -> v.isAlive() && !v.isBaby() && !v.getUUID().equals(child.getUUID()));
         if(adults.size()!=2) return;
-        if(families.addParentChild(adults.get(0).getUUID(), child.getUUID()) && families.addParentChild(adults.get(1).getUUID(), child.getUUID())) {
-            long time=world.getGameTime();
-            memories.rememberEvent(child.getUUID(), adults.get(0).getUUID(), MemoryEventType.NPC_BORN, time, MemoryImportance.IMPORTANT);
-            memories.rememberEvent(child.getUUID(), adults.get(1).getUUID(), MemoryEventType.NPC_BORN, time, MemoryImportance.IMPORTANT);
-            memories.inheritFamilyHistory(adults.get(0).getUUID(), child.getUUID(), time);
-            memories.inheritFamilyHistory(adults.get(1).getUUID(), child.getUUID(), time);
+        java.util.UUID first = adults.get(0).getUUID();
+        java.util.UUID second = adults.get(1).getUUID();
+        families.addParentChild(first, child.getUUID());
+        families.addParentChild(second, child.getUUID());
+        java.util.List<java.util.UUID> parents = families.parentsOf(child.getUUID());
+        if (parents.size() != 2) return;
+        long time=world.getGameTime();
+        for (java.util.UUID parent : parents) {
+            memories.rememberEvent(child.getUUID(), parent, MemoryEventType.NPC_BORN, time, MemoryImportance.IMPORTANT);
+            memories.inheritFamilyHistory(parent, child.getUUID(), time);
         }
     }
+
     private static void processCourtship(ServerLevel world, Villager villager, FamilyManager families, FamilyCourtshipManager courtship, MemoryManager memories, NpcAgeManager ages) {
         java.util.List<Villager> candidates = world.getEntitiesOfClass(Villager.class, villager.getBoundingBox().inflate(4),
             other -> other.isAlive() && !other.isBaby() && !other.getUUID().equals(villager.getUUID())
@@ -130,6 +136,7 @@ public class TheWorldRemembers implements ModInitializer {
         boolean secondInterested = secondPersonality.strength(PersonalityTrait.SOCIAL) >= 50 || secondPersonality.strength(PersonalityTrait.FAMILY_ORIENTED) >= 50;
         return firstInterested && secondInterested;
     }
+
     private static void handleDeath(LivingEntity entity, net.minecraft.world.damagesource.DamageSource damageSource) {
         if (!(entity instanceof Villager villager) || !(entity.level() instanceof ServerLevel world)) return;
         var families=FamilyManager.get(world.getServer());
@@ -150,6 +157,7 @@ public class TheWorldRemembers implements ModInitializer {
             }
         }
     }
+
     private static boolean hasRecentIntrusion(MemoryManager memories,Villager villager,ServerPlayer player,long gameTime){
         return memories.findMostRecentMemory(villager.getUUID(),player.getUUID(),MemoryEventType.PLAYER_ENTERED_NPC_HOME).map(m->gameTime-m.gameTime()<INTRUSION_COOLDOWN).orElse(false);
     }
