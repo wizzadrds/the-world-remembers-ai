@@ -15,6 +15,7 @@ import com.wizzadrds.theworldremembers.memory.*;
 import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
 import com.wizzadrds.theworldremembers.relationship.*;
 import com.wizzadrds.theworldremembers.stress.NpcStressManager;
+import com.wizzadrds.theworldremembers.village.VillageManager;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
@@ -70,6 +71,9 @@ public class TheWorldRemembers implements ModInitializer {
         FamilyManager families=FamilyManager.get(world.getServer());
         FamilyCourtshipManager courtship=FamilyCourtshipManager.get(world.getServer());
         FamilyProtectionManager protection=FamilyProtectionManager.get(world.getServer());
+        VillageManager villages=VillageManager.get(world.getServer());
+
+        observeVillages(world, villages);
 
         for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),villager -> villager.isAlive()&&!villager.isRemoved())) {
             ages.assignIfAbsent(villager.getUUID(), villager.isBaby() ? NpcAgeGenerator.generateChildAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())) : NpcAgeGenerator.generateAdultAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())));
@@ -211,6 +215,26 @@ public class TheWorldRemembers implements ModInitializer {
             }
         }
     }
+    private static void observeVillages(ServerLevel world, VillageManager villages) {
+        java.util.Map<Long, java.util.List<Villager>> clusters = new java.util.HashMap<>();
+        for (Villager v : world.getEntitiesOfClass(Villager.class,
+                new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),
+                v -> v.isAlive() && !v.isRemoved())) {
+            long key = (((long)(v.blockPosition().getX() >> 5)) << 32) ^ ((v.blockPosition().getZ() >> 5) & 0xffffffffL);
+            clusters.computeIfAbsent(key, ignored -> new java.util.ArrayList<>()).add(v);
+        }
+        for (var entry : clusters.entrySet()) {
+            java.util.List<Villager> members = entry.getValue();
+            if (members.isEmpty()) continue;
+            long sx=0, sz=0;
+            for (Villager v : members) { sx += v.blockPosition().getX(); sz += v.blockPosition().getZ(); }
+            BlockPos center = new BlockPos((int)(sx / members.size()), members.get(0).blockPosition().getY(), (int)(sz / members.size()));
+            String identity = world.dimension().location() + ":" + (center.getX() >> 5) + ":" + (center.getZ() >> 5);
+            java.util.UUID villageId = java.util.UUID.nameUUIDFromBytes(identity.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            villages.observe(villageId, center, members.size(), world.getGameTime());
+        }
+    }
+
     private static boolean hasRecentIntrusion(MemoryManager memories,Villager villager,ServerPlayer player,long gameTime){
         return memories.findMostRecentMemory(villager.getUUID(),player.getUUID(),MemoryEventType.PLAYER_ENTERED_NPC_HOME).map(m->gameTime-m.gameTime()<INTRUSION_COOLDOWN).orElse(false);
     }
