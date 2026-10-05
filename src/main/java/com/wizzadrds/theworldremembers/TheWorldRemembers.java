@@ -8,6 +8,8 @@ import com.wizzadrds.theworldremembers.family.FamilyManager;
 import com.wizzadrds.theworldremembers.family.FamilyProtectionManager;
 import com.wizzadrds.theworldremembers.behavior.NpcBehaviorEngine;
 import com.wizzadrds.theworldremembers.behavior.NpcDecision;
+import com.wizzadrds.theworldremembers.behavior.NpcActivity;
+import com.wizzadrds.theworldremembers.behavior.NpcActivityManager;
 import com.wizzadrds.theworldremembers.stress.NpcStress;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
 import com.wizzadrds.theworldremembers.inventory.NpcInventoryManager;
@@ -67,6 +69,7 @@ public class TheWorldRemembers implements ModInitializer {
         NpcStressManager stress=NpcStressManager.get(world);
         MemoryManager memories=MemoryManager.get(world.getServer());
         RelationshipManager relationships=RelationshipManager.get(world.getServer());
+        NpcActivityManager activities=NpcActivityManager.get(world.getServer());
         FamilyManager families=FamilyManager.get(world.getServer());
         FamilyCourtshipManager courtship=FamilyCourtshipManager.get(world.getServer());
         FamilyProtectionManager protection=FamilyProtectionManager.get(world.getServer());
@@ -84,6 +87,7 @@ public class TheWorldRemembers implements ModInitializer {
             synchronizeFamilyHome(villager, families, homes);
             home=homes.get(villager.getUUID());
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress);
+            updateLiveBehavior(world,villager,activities,relationships,stress,homes);
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
             for(ServerPlayer player:world.players()) {
                 if(player.blockPosition().distSqr(entrance)>HOME_RADIUS*HOME_RADIUS) continue;
@@ -105,6 +109,20 @@ public class TheWorldRemembers implements ModInitializer {
                 v -> v.isAlive() && !v.isRemoved())) {
             synchronizeFamilyHome(villager, families, homes);
         }
+    }
+
+    private static void updateLiveBehavior(ServerLevel world,Villager villager,NpcActivityManager activities,RelationshipManager relationships,NpcStressManager stress,NpcHomeManager homes){
+        long day=world.getDayTime()%24000L;
+        if(day>=12500L||day<500L){villager.getNavigation().stop();activities.set(villager.getUUID(),NpcActivity.SLEEPING,null);return;}
+        var player=world.getEntitiesOfClass(ServerPlayer.class,villager.getBoundingBox().inflate(12),p->p.isAlive()).stream().min(java.util.Comparator.comparingDouble(villager::distanceToSqr)).orElse(null);
+        if(player==null){activities.set(villager.getUUID(),NpcActivity.IDLE,null);return;}
+        var relationship=relationships.get(villager.getUUID(),player.getUUID());
+        if(relationship==null){activities.set(villager.getUUID(),NpcActivity.IDLE,null);return;}
+        var decision=new NpcBehaviorEngine().decide(NpcActivity.IDLE,relationship,PersonalityGenerator.generate(villager.getUUID()),new NpcStress(stress.value(villager.getUUID())));
+        if(decision==NpcDecision.FOLLOW&&relationship.hasProtectiveBond()){activities.set(villager.getUUID(),NpcActivity.FOLLOWING_PLAYER,player.getUUID());villager.getNavigation().moveTo(player,1.0);return;}
+        if(decision==NpcDecision.LEAVE){activities.set(villager.getUUID(),NpcActivity.TRAVELLING,player.getUUID());double dx=villager.getX()-player.getX(),dz=villager.getZ()-player.getZ(),len=Math.max(0.1,Math.sqrt(dx*dx+dz*dz));villager.getNavigation().moveTo(villager.getX()+dx/len*16,villager.getY(),villager.getZ()+dz/len*16,1.0);return;}
+        if(decision==NpcDecision.RETURN_HOME){var home=homes.get(villager.getUUID());if(home!=null){activities.set(villager.getUUID(),NpcActivity.WALKING,null);villager.getNavigation().moveTo(home.homePos().getX(),home.homePos().getY(),home.homePos().getZ(),1.0);return;}}
+        activities.set(villager.getUUID(),NpcActivity.IDLE,null);
     }
     private static void maintainFamilyProtection(Villager villager, FamilyManager families, FamilyProtectionManager protection) {
         for (java.util.UUID child : families.childrenOf(villager.getUUID())) {
