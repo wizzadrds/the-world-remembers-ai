@@ -65,6 +65,8 @@ public class TheWorldRemembers implements ModInitializer {
             }
             Memory memory=memories.rememberBreadGift(serverPlayer,villager);
             RelationshipManager.get(serverPlayer.level().getServer()).apply(new MemoryEvent(memory.npcId(),memory.playerId(),memory.type(),memory.gameTime(),memory.importance()));
+            var behaviorDecision=com.wizzadrds.theworldremembers.behavior.NpcLiveBehaviorController.decide(villager,serverPlayer,RelationshipManager.get(serverPlayer.level().getServer()),NpcStressManager.get(serverPlayer.level()));
+            com.wizzadrds.theworldremembers.behavior.NpcLiveBehaviorController.apply(serverPlayer.level(),villager,serverPlayer,behaviorDecision,NpcHomeManager.get(serverPlayer.level()));
             serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" will remember this."));
             return InteractionResult.PASS;
         });
