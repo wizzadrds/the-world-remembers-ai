@@ -78,7 +78,7 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
             TheWorldRemembers.processWorld(context.getLevel());
             FamilyManager families=FamilyManager.get(context.getLevel().getServer());
             if (families.parentsOf(child.getUUID()).size()!=2) { context.fail("Live baby was not linked to exactly two nearby parents"); return; }
-            parentA.kill();
+            parentA.kill(context.getLevel());
             context.runAtTickTime(1, () -> {
                 if (MemoryManager.get(context.getLevel().getServer()).findMostRecentMemory(child.getUUID(), parentA.getUUID(), MemoryEventType.NPC_DIED).isEmpty()) { context.fail("Family member did not remember death"); return; }
                 context.succeed();
