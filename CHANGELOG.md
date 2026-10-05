@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.6.0-alpha — Phase 6 Villages & Society
+- Added persistent village identity and population.
+- Added village history, typed events and migration memory.
+- Added resource pressure, real shared storage observation and defense state.
+- Added village landmarks and iron-golem guardian observation.
+- Added village-scale and population-scale GameTests.
+
+
 ## v0.6.0-alpha — Phase 6 Village Society
 - Added persistent village identity, population and historical state.
 - Added village-scale migration, event, resource, storage, defense and landmark state.

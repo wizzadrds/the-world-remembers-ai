@@ -68,3 +68,15 @@ A pull-request CI run must pass `gradle build` and the headless Fabric server sm
 - [ ] Population-scale performance validation is green in CI.
 
 Phase 6 is not marked complete until the final pull-request CI run passes both gradle build and the headless Fabric server smoke test.
+
+
+## Phase 6 acceptance
+- [x] Persistent village identity and population
+- [x] Village history and typed events
+- [x] Resource pressure from live inventories
+- [x] Shared storage derived from real containers
+- [x] Defense state from live iron golems
+- [x] Landmarks from real village POIs
+- [x] Migration identity preservation
+- [x] Village-scale GameTests
+- [x] Population-scale performance GameTest
