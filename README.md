@@ -6,7 +6,7 @@ Minecraft Java mod focused on persistent memory, relationships, emergent NPC beh
 
 ## Status
 
-**Current milestone:** v0.4.0-alpha — Phase 3 complete; Phase 4 in progress
+**Current milestone:** v0.4.0-alpha — Phase 4 in progress
 
 ## Core pillars
 
@@ -21,16 +21,16 @@ Minecraft Java mod focused on persistent memory, relationships, emergent NPC beh
 
 | Version | Focus |
 |---|---|
-| 0.1 | Memory Core |
-| 0.2 | NPC Personality |
-| 0.3 | Relationships |
-| 0.4 | NPC Behavior & contextual animation |
-| 0.5 | Families & Generations |
-| 0.6 | Villages & Society |
-| 0.7 | Rumors & Conversations |
-| 0.8 | Local Voice |
-| 0.9 | Chronicles |
-| 0.10 | Dreams |
+| 0.2 | First Memory |
+| 0.3 | Personality |
+| 0.4 | Relationships |
+| 0.5 | Behavior |
+| 0.6 | Families & Generations |
+| 0.7 | Villages & Society |
+| 0.8 | Rumors & Conversations |
+| 0.9 | Local Voice |
+| 0.10 | Chronicles |
+| 0.11 | Dreams |
 | 1.0 | The World Remembers |
 
 ## Development principles
@@ -45,3 +45,7 @@ Minecraft Java mod focused on persistent memory, relationships, emergent NPC beh
 ## First milestone
 
 v0.1-alpha proves one thing: a villager remembers something the player did and behaves differently later.
+
+## Quality bar
+
+Every milestone must compile, pass automated unit tests, and pass the headless Fabric server smoke test before its version is marked complete. Gameplay-facing systems are designed as deterministic simulation rules first, with Minecraft integration layered on top.
