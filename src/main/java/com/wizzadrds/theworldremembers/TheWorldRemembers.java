@@ -29,7 +29,7 @@ import com.wizzadrds.theworldremembers.village.VillageEvent;
 import com.wizzadrds.theworldremembers.village.VillageState;
 import com.wizzadrds.theworldremembers.village.VillageStorageManager;
 import com.wizzadrds.theworldremembers.village.VillageStorage;
-import net.minecraft.world.entity.animal.IronGolem;
+import net.minecraft.world.entity.animal.golem.IronGolem;
 import net.minecraft.tags.PoiTypeTags;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -45,6 +45,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.core.BlockPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.UUID;
 
 public class TheWorldRemembers implements ModInitializer {
     public static final String MOD_ID="the_world_remembers";
@@ -264,7 +265,7 @@ public class TheWorldRemembers implements ModInitializer {
             UUID villageId=state.villageId();
             history.observe(villageId,members.size(),world.getGameTime());
             if(previousCenter!=null&&previousCenter.distSqr(center)>32*32){
-                migrations.record(villageId,previousCenter,center,world.getGameTime(),members.size());
+                migrations.record(new com.wizzadrds.theworldremembers.village.VillageMigration(villageId,previousCenter,center,world.getGameTime(),members.size()));
                 villageEvents.record(villageId,new VillageEvent("migration",world.getGameTime(),villageId,center));
             }
             int food=members.stream().mapToInt(v->v.getInventory().countItem(Items.BREAD)).sum();
