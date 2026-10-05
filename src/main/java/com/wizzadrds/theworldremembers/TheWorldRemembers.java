@@ -52,6 +52,6 @@ public class TheWorldRemembers implements ModInitializer {
             }
             return ActionResult.PASS;
         });
-        LOGGER.info("The World Remembers v0.2.0-alpha initialized.");
+        LOGGER.info("The World Remembers v0.4.0-alpha initialized.");
     }
 }
