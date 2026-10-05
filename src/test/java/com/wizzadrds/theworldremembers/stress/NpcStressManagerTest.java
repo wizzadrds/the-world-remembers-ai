@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.stress; import org.junit.jupiter.api.Test; import java.util.UUID; import static org.junit.jupiter.api.Assertions.*; class NpcStressManagerTest{@Test void stressClampsAndRecovers(){var s=new NpcStressManager();var id=UUID.randomUUID();s.increase(id,150);assertEquals(100,s.value(id));s.decrease(id,250);assertEquals(0,s.value(id));}}
