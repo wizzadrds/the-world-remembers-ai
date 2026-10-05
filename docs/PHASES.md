@@ -79,6 +79,8 @@ The project follows a staged implementation plan. Features are documented before
 - [x] Family-aware home assignment
 - [x] Family-aware behavior and protection
 
+**[Phase 5 complete]**
+
 **Status: COMPLETE — v0.5.0-alpha**\n\n## Phase 6 — Villages & Society
 - [ ] Village identity and persistent village state
 - [ ] Population tracking
