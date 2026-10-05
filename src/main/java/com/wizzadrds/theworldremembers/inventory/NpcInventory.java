@@ -5,6 +5,8 @@ import java.util.List;
 
 public final class NpcInventory {
     private final List<NpcItemStack> items = new ArrayList<>();
+    public NpcInventory() {}
+    public NpcInventory(List<NpcItemStack> initial) { items.addAll(initial); }
     public List<NpcItemStack> items() { return List.copyOf(items); }
     public int count(String itemId) { return items.stream().filter(s -> s.itemId().equals(itemId)).mapToInt(NpcItemStack::count).sum(); }
     public void add(String itemId, int count) {
