@@ -34,6 +34,7 @@ import com.wizzadrds.theworldremembers.village.VillageStorage;
 import net.minecraft.world.entity.animal.golem.IronGolem;
 import java.util.UUID;
 import net.minecraft.tags.PoiTypeTags;
+import net.minecraft.tags.BlockTags;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
@@ -109,7 +110,7 @@ public class TheWorldRemembers implements ModInitializer {
             NpcHome home=homes.get(villager.getUUID());
             if(home==null) {
                 BlockPos pos=villager.blockPosition();
-                home=homes.assignIfAbsent(villager.getUUID(),pos,null,pos);
+                home=homes.assignIfAbsent(villager.getUUID(),pos,findNearbyHomePoi(world,pos),findNearbyDoor(world,pos));
             }
             synchronizeFamilyHome(villager, families, homes);
             home=homes.get(villager.getUUID());
@@ -138,6 +139,9 @@ public class TheWorldRemembers implements ModInitializer {
         }
     }
 
+
+    private static BlockPos findNearbyDoor(ServerLevel world,BlockPos origin){for(BlockPos p:BlockPos.betweenClosed(origin.offset(-8,-2,-8),origin.offset(8,3,8)))if(world.getBlockState(p).is(BlockTags.DOORS))return p.immutable();return null;}
+    private static BlockPos findNearbyHomePoi(ServerLevel world,BlockPos origin){for(BlockPos p:BlockPos.betweenClosed(origin.offset(-8,-2,-8),origin.offset(8,3,8)))if(world.getBlockState(p).is(BlockTags.BEDS))return p.immutable();return null;}
     private static void updateLiveBehavior(ServerLevel world,Villager villager,NpcActivityManager activities,RelationshipManager relationships,NpcStressManager stress,NpcHomeManager homes){
         long day=world.getDayTime()%24000L;
         if(day>=12500L||day<500L){villager.getNavigation().stop();activities.set(villager.getUUID(),NpcActivity.SLEEPING,null);return;}
