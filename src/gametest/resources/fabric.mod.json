@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "id": "the_world_remembers_gametest",
-  "version": "1.0.0",
+  "id": "the-world-remembers-gametest",
+  "version": "0.4.0-alpha",
   "name": "The World Remembers Game Tests",
   "environment": "*",
   "entrypoints": {
