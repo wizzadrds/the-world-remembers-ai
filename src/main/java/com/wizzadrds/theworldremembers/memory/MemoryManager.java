@@ -33,10 +33,12 @@ public final class MemoryManager extends PersistentState {
         return overworld.getPersistentStateManager().getOrCreate(TYPE);
     }
 
-    public void rememberBreadGift(ServerPlayerEntity player, VillagerEntity villager) {
-        memories.add(new Memory(villager.getUuid(), player.getUuid(), MemoryEventType.PLAYER_GAVE_BREAD,
-                villager.getEntityWorld().getTime(), MemoryImportance.INTERESTING));
+    public Memory rememberBreadGift(ServerPlayerEntity player, VillagerEntity villager) {
+        Memory memory = new Memory(villager.getUuid(), player.getUuid(), MemoryEventType.PLAYER_GAVE_BREAD,
+                villager.getEntityWorld().getTime(), MemoryImportance.INTERESTING);
+        memories.add(memory);
         markDirty();
+        return memory;
     }
 
     public Optional<Memory> findMostRecentMemory(UUID npcId, UUID playerId) {
