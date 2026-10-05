@@ -7,6 +7,9 @@ import com.wizzadrds.theworldremembers.family.FamilyCourtshipManager;
 import com.wizzadrds.theworldremembers.family.FamilyManager;
 import com.wizzadrds.theworldremembers.family.FamilyProtectionManager;
 import com.wizzadrds.theworldremembers.behavior.NpcBehaviorEngine;
+import com.wizzadrds.theworldremembers.behavior.NpcBehaviorManager;
+import com.wizzadrds.theworldremembers.behavior.NpcBehaviorState;
+import com.wizzadrds.theworldremembers.behavior.NpcActivity;
 import com.wizzadrds.theworldremembers.behavior.NpcDecision;
 import com.wizzadrds.theworldremembers.stress.NpcStress;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
@@ -58,6 +61,9 @@ public class TheWorldRemembers implements ModInitializer {
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             if (world.isClientSide() || !(player instanceof ServerPlayer serverPlayer) || !(entity instanceof Villager villager)) return InteractionResult.PASS;
             if (!serverPlayer.getItemInHand(hand).is(Items.BREAD)) return InteractionResult.PASS;
+            NpcBehaviorManager behavior=NpcBehaviorManager.get(serverPlayer.level());
+            var existing=behavior.getOrCreate(villager.getUUID(),serverPlayer.level().getGameTime());
+            if(serverPlayer.isCrouching() && existing.followTarget()!=null){ behavior.set(villager.getUUID(),existing.stop(serverPlayer.level().getGameTime())); villager.getNavigation().stop(); serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" stops following you.")); return InteractionResult.PASS; }
             MemoryManager memories=MemoryManager.get(serverPlayer.level().getServer());
             if (memories.findMostRecentMemory(villager.getUUID(),serverPlayer.getUUID(),MemoryEventType.PLAYER_GAVE_BREAD).isPresent()) {
                 serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" remembers you: you gave me bread."));
@@ -66,6 +72,9 @@ public class TheWorldRemembers implements ModInitializer {
             Memory memory=memories.rememberBreadGift(serverPlayer,villager);
             RelationshipManager.get(serverPlayer.level().getServer()).apply(new MemoryEvent(memory.npcId(),memory.playerId(),memory.type(),memory.gameTime(),memory.importance()));
             serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" will remember this."));
+            var relationship=RelationshipManager.get(serverPlayer.level().getServer()).get(villager.getUUID(),serverPlayer.getUUID());
+            var stressState=NpcStressManager.get(serverPlayer.level()).value(villager.getUUID());
+            if(relationship!=null && relationship.trust()>=40 && relationship.affection()>=20 && relationship.resentment()<40 && stressState<75){ behavior.set(villager.getUUID(),behavior.getOrCreate(villager.getUUID(),serverPlayer.level().getGameTime()).follow(serverPlayer.getUUID(),serverPlayer.level().getGameTime())); }
             return InteractionResult.PASS;
         });
         ServerTickEvents.END_LEVEL_TICK.register(TheWorldRemembers::tickWorld);
@@ -103,14 +112,17 @@ public class TheWorldRemembers implements ModInitializer {
             if (villager.isBaby() && !families.hasParents(villager.getUUID())) linkBabyToNearbyParents(world, villager, families, memories);
             if (!villager.isBaby() && ages.get(villager.getUUID()).isAdult() && !families.hasSpouse(villager.getUUID())) processCourtship(world, villager, families, courtship, memories, ages);
             if (!villager.isBaby()) maintainFamilyProtection(villager, families, protection);
+            NpcBehaviorManager behaviorManager=NpcBehaviorManager.get(world);
+            var behaviorState=behaviorManager.getOrCreate(villager.getUUID(),world.getGameTime());
             NpcHome home=homes.get(villager.getUUID());
             if(home==null) {
                 BlockPos pos=villager.blockPosition();
-                home=homes.assignIfAbsent(villager.getUUID(),pos,null,pos);
+                home=homes.assignIfAbsent(villager.getUUID(),pos,findNearbyHomePoi(world,pos),findNearbyDoor(world,pos));
             }
             synchronizeFamilyHome(villager, families, homes);
             home=homes.get(villager.getUUID());
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress);
+            updateLiveBehavior(world,villager,behaviorManager,behaviorState,home,stress);
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
             for(ServerPlayer player:world.players()) {
                 if(player.blockPosition().distSqr(entrance)>HOME_RADIUS*HOME_RADIUS) continue;
@@ -275,6 +287,19 @@ public class TheWorldRemembers implements ModInitializer {
             defense.observe(villageId,new VillageDefense(golems,0,0));
             for(var pos:world.getPoiManager().findAllWithType(type->type.is(PoiTypeTags.VILLAGE),pos->true,center,32,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).map(pair->pair.getSecond()).toList()) landmarks.add(villageId,new VillageLandmark("village_poi",pos,world.getGameTime()));
         }
+    }
+    private static BlockPos findNearbyHomePoi(ServerLevel world, BlockPos pos){return world.getPoiManager().findClosest(type->type.is(net.minecraft.tags.PoiTypeTags.HOME),pos,16,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).orElse(null);}
+    private static BlockPos findNearbyDoor(ServerLevel world, BlockPos pos){BlockPos best=null;double d=257;for(BlockPos p:BlockPos.betweenClosed(pos.offset(-8,-2,-8),pos.offset(8,4,8)))if(world.getBlockState(p).is(net.minecraft.tags.BlockTags.DOORS)){double x=p.distSqr(pos);if(x<d){d=x;best=p.immutable();}}return best;}
+    private static void updateLiveBehavior(ServerLevel world,Villager villager,NpcBehaviorManager manager,NpcBehaviorState state,NpcHome home,NpcStressManager stress){
+        long tick=world.getGameTime();
+        if(villager.isSleeping()){manager.set(villager.getUUID(),state.withActivity(NpcActivity.SLEEPING,100,tick));return;}
+        if(state.followTarget()!=null && world.getEntity(state.followTarget()) instanceof ServerPlayer target && target.isAlive() && stress.value(villager.getUUID())<75){
+            villager.getNavigation().moveTo(target,1.0); manager.set(villager.getUUID(),state.withActivity(NpcActivity.FOLLOWING_PLAYER,50,tick).fatigue(1,tick)); return;
+        }
+        if(stress.value(villager.getUUID())>=90 && home!=null){
+            villager.getNavigation().moveTo(home.homePos().getX(),home.homePos().getY(),home.homePos().getZ(),1.0); manager.set(villager.getUUID(),state.withActivity(NpcActivity.TRAVELLING,90,tick).fatigue(1,tick)); return;
+        }
+        if(villager.getNavigation().isDone()) manager.set(villager.getUUID(),state.stop(tick).fatigue(-1,tick));
     }
     private static boolean hasRecentIntrusion(MemoryManager memories,Villager villager,ServerPlayer player,long gameTime){
         return memories.findMostRecentMemory(villager.getUUID(),player.getUUID(),MemoryEventType.PLAYER_ENTERED_NPC_HOME).map(m->gameTime-m.gameTime()<INTRUSION_COOLDOWN).orElse(false);
