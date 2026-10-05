@@ -98,6 +98,25 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void liveFamilyProtectionIsEstablished(GameTestHelper context) {
+        Villager parent = context.spawn(EntityTypes.VILLAGER, 2, 1, 2);
+        Villager child = context.spawn(EntityTypes.VILLAGER, 3, 1, 2);
+        child.setBaby(true);
+        FamilyManager families = FamilyManager.get(context.getLevel().getServer());
+        families.addParentChild(parent.getUUID(), child.getUUID());
+
+        context.runAtTickTime(1, () -> {
+            TheWorldRemembers.processWorld(context.getLevel());
+            UUID protector = FamilyProtectionManager.get(context.getLevel().getServer()).protectorOf(child.getUUID());
+            if (!parent.getUUID().equals(protector)) {
+                context.fail("Parent protection bond was not established");
+                return;
+            }
+            context.succeed();
+        });
+    }
+
+    @GameTest
     public void liveVillagersCanFormPersistentMarriage(GameTestHelper context) {
         Villager first = context.spawn(EntityTypes.VILLAGER, 2, 1, 2);
         Villager second = context.spawn(EntityTypes.VILLAGER, 3, 1, 2);
