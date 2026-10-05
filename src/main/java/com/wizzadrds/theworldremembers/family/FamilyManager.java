@@ -47,5 +47,6 @@ public final class FamilyManager extends SavedData {
     public List<UUID> childrenOf(UUID parent) { return relations.stream().filter(r -> r.npcId().equals(parent) && r.type() == FamilyRelationType.PARENT).map(FamilyRelation::relatedNpcId).toList(); }
     public boolean hasParents(UUID child) { return !parentsOf(child).isEmpty(); }
     public boolean hasSpouse(UUID npcId) { return relations.stream().anyMatch(r -> r.npcId().equals(npcId) && r.type() == FamilyRelationType.SPOUSE); }
+    public UUID spouseOf(UUID npcId) { return relations.stream().filter(r -> r.npcId().equals(npcId) && r.type() == FamilyRelationType.SPOUSE).map(FamilyRelation::relatedNpcId).findFirst().orElse(null); }
     public boolean areRelated(UUID a,UUID b){return relations.stream().anyMatch(r->(r.npcId().equals(a)&&r.relatedNpcId().equals(b))||(r.npcId().equals(b)&&r.relatedNpcId().equals(a)));}
 }
