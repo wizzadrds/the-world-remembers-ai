@@ -13,7 +13,7 @@ import java.util.UUID;
 public final class NpcHomeManager extends SavedData {
     private final Map<UUID,NpcHome> homes=new HashMap<>();
     private static final Codec<NpcHomeManager> CODEC=Codec.unboundedMap(UUIDUtil.CODEC,NpcHome.CODEC).xmap(m->{NpcHomeManager x=new NpcHomeManager();x.homes.putAll(m);return x;},x->x.homes);
-    private static final SavedDataType<NpcHomeManager> TYPE=new SavedDataType<>(net.minecraft.resources.Identifier.fromNamespaceAndPath("the_world_remembers"), "homes",NpcHomeManager::new,CODEC,null);
+    private static final SavedDataType<NpcHomeManager> TYPE=new SavedDataType<>(net.minecraft.resources.Identifier.fromNamespaceAndPath("the_world_remembers", "homes"),NpcHomeManager::new,CODEC,null);
     public static NpcHomeManager get(ServerLevel world){return world.getDataStorage().computeIfAbsent(TYPE);}
     public NpcHome get(UUID id){return homes.get(id);}
     public boolean hasHome(UUID id){return homes.containsKey(id);}
