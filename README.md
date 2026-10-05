@@ -25,13 +25,12 @@ Minecraft Java mod focused on persistent memory, relationships, emergent NPC beh
 | 0.2 | First Memory |
 | 0.3 | Personality |
 | 0.4 | Relationships |
-| 0.5 | Behavior |
-| 0.6 | Families & Generations |
-| 0.7 | Villages & Society |
-| 0.8 | Rumors & Conversations |
-| 0.9 | Local Voice |
-| 0.10 | Chronicles |
-| 0.11 | Dreams |
+| 0.5 | Families & Generations |
+| 0.6 | Villages & Society |
+| 0.7 | Rumors & Conversations |
+| 0.8 | Local Voice |
+| 0.9 | Chronicles |
+| 0.10 | Dreams |
 | 1.0 | The World Remembers |
 
 ## Development principles
