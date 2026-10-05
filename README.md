@@ -6,7 +6,7 @@ Minecraft Java mod focused on persistent memory, relationships, emergent NPC beh
 
 ## Status
 
-**Current milestone:** v0.6.0-alpha — Phase 6 implementation complete; final CI validation pending
+**Current milestone:** v0.6.0-alpha — Phase 6 complete and CI-validated
 
 ## Core pillars
 
