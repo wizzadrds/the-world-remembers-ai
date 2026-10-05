@@ -6,6 +6,7 @@ import java.util.UUID;
 import com.wizzadrds.theworldremembers.home.NpcHomeManager;
 import com.wizzadrds.theworldremembers.age.NpcAgeManager;
 import com.wizzadrds.theworldremembers.family.FamilyManager;
+import com.wizzadrds.theworldremembers.family.FamilyProtectionManager;
 import com.wizzadrds.theworldremembers.family.FamilyRelation;
 import com.wizzadrds.theworldremembers.family.FamilyRelationType;
 import com.wizzadrds.theworldremembers.memory.MemoryEventType;
