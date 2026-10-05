@@ -5,5 +5,8 @@ public enum NpcDecision {
     ACKNOWLEDGE_PLAYER,
     TALK,
     LEAVE,
-    FOLLOW
+    FOLLOW,
+    SURRENDER_ITEMS,
+    RESIST,
+    CALL_FOR_HELP
 }
