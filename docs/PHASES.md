@@ -40,6 +40,10 @@ The project follows a staged implementation plan. Features are documented before
 - [ ] Busy vs available NPCs
 - [ ] Leaving when annoyed
 - [ ] Following when appropriate
+- [ ] Follow-me trust/permission rules
+- [ ] Travel distance awareness
+- [ ] Stress and fatigue affecting decisions
+- [ ] Persistent home assignment and access rules
 - [ ] Interruptions and priority
 - [ ] Contextual animations
 - [x] NPC inventory and real item state
@@ -47,6 +51,8 @@ The project follows a staged implementation plan. Features are documented before
 - [ ] Chest/home storage links
 - [ ] Economic decisions
 - [ ] Threat responses and calls for help
+- [ ] Role-aware behavior (farmer, merchant, warrior, guardian)
+- [ ] NPC equipment and armor synchronization
 
 ## Phase 5 — Families & Generations
 - [ ] Persistent age
@@ -76,9 +82,11 @@ The project follows a staged implementation plan. Features are documented before
 ## Phase 8 — Local Voice
 - [ ] Local STT
 - [ ] Local TTS
-- [ ] Voice profiles
+- [x] Voice profile model foundation
+- [x] Personality-driven voice temperament model
 - [ ] Spatial audio
 - [ ] Voice scheduling
+- [ ] State-driven delivery (timid, nervous, tired, angry, excited)
 
 ## Phase 9 — Chronicles
 - [ ] Timeline UI
