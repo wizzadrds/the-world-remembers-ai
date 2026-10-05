@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.5.0-alpha — Phase 5 Families & Generations
+- Completed live parent, sibling, spouse and child relationships.
+- Added idempotent family linking and sibling formation from shared parents.
+- Added generational memory propagation and important-item inheritance.
+- Added direct-spouse inheritance fallback.
+- Added family-aware shared homes for spouses, parents and children.
+- Added persistent family protection with live navigation behavior.
+- Added GameTests covering sibling formation, spouse inheritance, family homes and protection.
+
 ## Unreleased — Phase 5 foundation
 - Added persistent NPC age state keyed by villager UUID.
 - Added persistent parent/child/sibling/spouse relationship primitives.
