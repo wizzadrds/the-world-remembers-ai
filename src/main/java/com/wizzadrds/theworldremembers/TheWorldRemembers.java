@@ -8,7 +8,7 @@ import com.wizzadrds.theworldremembers.stress.NpcStressManager;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
-import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.item.Items;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -29,7 +29,7 @@ public class TheWorldRemembers implements ModInitializer {
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             if (world.isClientSide() || !(player instanceof ServerPlayer serverPlayer) || !(entity instanceof Villager villager)) return InteractionResult.PASS;
             if (!serverPlayer.getItemInHand(hand).is(Items.BREAD)) return InteractionResult.PASS;
-            MemoryManager memories=MemoryManager.get(serverPlayer.server);
+            MemoryManager memories=MemoryManager.get(serverPlayer.getServer());
             if (memories.findMostRecentMemory(villager.getUUID(),serverPlayer.getUUID(),MemoryEventType.PLAYER_GAVE_BREAD).isPresent()) {
                 serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" remembers you: you gave me bread."));
                 return InteractionResult.PASS;
@@ -39,7 +39,7 @@ public class TheWorldRemembers implements ModInitializer {
             serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" will remember this."));
             return InteractionResult.PASS;
         });
-        ServerTickEvents.END_WORLD_TICK.register(TheWorldRemembers::tickWorld);
+        ServerTickEvents.END_LEVEL_TICK.register(TheWorldRemembers::tickWorld);
         LOGGER.info("The World Remembers v0.4.0-alpha initialized.");
     }
 
@@ -50,7 +50,7 @@ public class TheWorldRemembers implements ModInitializer {
         MemoryManager memories=MemoryManager.get(world.getServer());
         RelationshipManager relationships=RelationshipManager.get(world.getServer());
 
-        for(Villager villager:world.getEntitiesOfClass(Villager.class,villager -> villager.isAlive()&&!villager.isRemoved())) {
+        for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),villager -> villager.isAlive()&&!villager.isRemoved())) {
             NpcHome home=homes.get(villager.getUUID());
             if(home==null) {
                 BlockPos pos=villager.blockPosition();
