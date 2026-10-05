@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.village; import org.junit.jupiter.api.Test; import static org.junit.jupiter.api.Assertions.*; class VillageStorageTest{@Test void freeSlotsAreDerived(){var s=new VillageStorage(2,10,54);assertEquals(44,s.freeSlots());}}
