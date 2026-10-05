@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — Phase 5 foundation
+- Added persistent NPC age state keyed by villager UUID.
+- Added persistent parent/child/sibling/spouse relationship primitives.
+- Added integrity validation preventing self-family relations.
+- Added birth, death, marriage, family-loss and inheritance memory event types.
+- Added unit coverage for age and family invariants.
+- Phase 4 remains intentionally unmarked until real Minecraft build/GameTest validation passes.
+
 ## v0.4.0-alpha
 
 ### Phase 3 — Relationships
