@@ -87,7 +87,7 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
             FamilyManager families=FamilyManager.get(context.getLevel().getServer());
             if (families.parentsOf(child.getUUID()).size()!=2) { context.fail("Live baby was not linked to exactly two nearby parents"); return; }
             if (memories.memoriesOf(child.getUUID()).stream().noneMatch(m -> m.origin() == MemoryOrigin.INHERITED && m.type() == MemoryEventType.NPC_MARRIED)) {
-                context.fail("Child did not inherit an important family memory; parentA memories="+memories.memoriesOf(parentA.getUUID()).size()+" directMarriage="+memories.memoriesOf(parentA.getUUID()).stream().filter(m -> m.type()==MemoryEventType.NPC_MARRIED && m.origin()==MemoryOrigin.DIRECT).count()+" childMemories="+memories.memoriesOf(child.getUUID()).size());
+                context.fail("Child did not inherit an important family memory");
                 return;
             }
             NpcInventoryManager inventories = NpcInventoryManager.get(context.getLevel().getServer());
