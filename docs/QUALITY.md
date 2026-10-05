@@ -12,16 +12,16 @@ The mod is not considered production-ready for a milestone until the following l
 
 ## Phase 4 acceptance
 
-- [x] Home state is persistent and keyed by villager UUID.
-- [x] Home intrusion creates a persistent memory.
-- [x] Home intrusion increases stress.
-- [x] Home intrusion changes the relationship.
+- [ ] Home state is persistent and keyed by villager UUID.
+- [ ] Home intrusion creates a persistent memory.
+- [ ] Home intrusion increases stress.
+- [ ] Home intrusion changes the relationship.
 - [x] Intrusion events have a cooldown to prevent per-tick spam.
-- [x] Stress has bounded persistent state and recovery.
-- [x] Memory storage has a safety cap and tolerates obsolete/corrupt entries.
-- [x] Villager personalities are stable per UUID.
-- [x] Main-hand-only equipment model remains enforced.
-- [x] Crossed-arm idle silhouette remains a design invariant.
+- [ ] Stress has bounded persistent state and recovery.
+- [ ] Memory storage has a safety cap and tolerates obsolete/corrupt entries.
+- [ ] Villager personalities are stable per UUID.
+- [ ] Main-hand-only equipment model remains enforced.
+- [ ] Crossed-arm idle silhouette remains a design invariant.
 
 ## Still required before Phase 4 can be marked complete
 
