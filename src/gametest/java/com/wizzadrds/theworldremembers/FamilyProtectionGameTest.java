@@ -16,4 +16,26 @@ public final class FamilyProtectionGameTest {
    context.runAtTickTime(20,()->{if(parent.distanceToSqr(child)>=before)context.fail("Protector did not move toward child");else context.succeed();});
   });
  }
+ @GameTest public void deadProtectorIsReleasedAndReplacementAssigned(GameTestHelper context) {
+  Villager parentA=context.spawn(EntityTypes.VILLAGER,1,1,1), parentB=context.spawn(EntityTypes.VILLAGER,4,1,1), child=context.spawn(EntityTypes.VILLAGER,7,1,1);
+  child.setBaby(true);
+  context.runAtTickTime(1,()->{
+   FamilyManager f=FamilyManager.get(context.getLevel().getServer());
+   f.addParentChild(parentA.getUUID(),child.getUUID());
+   f.addParentChild(parentB.getUUID(),child.getUUID());
+   TheWorldRemembers.processWorld(context.getLevel());
+   FamilyProtectionManager p=FamilyProtectionManager.get(context.getLevel().getServer());
+   java.util.UUID protector=p.protectorOf(child.getUUID());
+   if(protector==null){context.fail("First protector was not assigned");return;}
+   Villager currentProtector=protector.equals(parentA.getUUID())?parentA:parentB;
+   Villager replacement=protector.equals(parentA.getUUID())?parentB:parentA;
+   currentProtector.kill(context.getLevel());
+   context.runAtTickTime(1,()->{
+    if(parentA.getUUID().equals(p.protectorOf(child.getUUID()))){context.fail("Dead protector was not released");return;}
+    TheWorldRemembers.processWorld(context.getLevel());
+    if(!replacement.getUUID().equals(p.protectorOf(child.getUUID()))){context.fail("Replacement protector was not assigned");return;}
+    context.succeed();
+   });
+  });
+ }
 }
