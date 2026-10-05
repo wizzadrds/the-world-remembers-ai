@@ -95,7 +95,11 @@ public class TheWorldRemembers implements ModInitializer {
                         false
                 );
 
-                if (access == com.wizzadrds.theworldremembers.home.HomeAccess.DENIED) {
+                if (access == com.wizzadrds.theworldremembers.home.HomeAccess.DENIED
+                        && memories.findMostRecentMemory(
+                                villager.getUuid(), player.getUuid(),
+                                MemoryEventType.PLAYER_ENTERED_NPC_HOME).map(
+                                memory -> world.getTime() - memory.gameTime() < 200).orElse(false) == false) {
                     stress.increase(villager.getUuid(), 3);
 
                     Memory memory = memories.rememberEvent(
