@@ -13,10 +13,41 @@ NPC behavior is contextual rather than scripted around dialogue alone.
 - SOCIALIZING
 - WALKING
 - TRAVELLING
+- FOLLOWING_PLAYER
 - FLEEING
 - FAMILY
 
 Each activity exposes whether it can be interrupted and its current priority.
+
+## Following the player
+
+A trusted NPC can eventually accept a direct “follow me” request.
+
+Acceptance depends on:
+
+- trust and affection;
+- resentment and suspicion;
+- personality;
+- current activity;
+- stress and fatigue;
+- danger;
+- distance from home;
+- family or work obligations.
+
+Following is a real activity, not teleportation. The NPC keeps a reasonable distance, navigates terrain, reacts to danger and can ask to stop or return home.
+
+## Travel awareness
+
+Long journeys are measured using real distance/time.
+
+A villager can react to the journey:
+
+- “Are we there yet?”
+- “We're still far from home.”
+- “I think we should turn back.”
+- “This place is strange...”
+
+The exact line depends on personality, stress, distance and current events. Dialogue cannot invent those facts.
 
 ## Conversation availability
 
@@ -29,10 +60,18 @@ A villager may give a short answer while busy, remain with the player when avail
 - personality
 - relationship with player
 - recent memories
+- stress and fatigue
+- home and distance from home
 - time of day
 - social context
 - conversation history
+- role/archetype
+- equipment
+
+## Role-aware behavior
+
+A warrior may prioritize defending a friend or village. A farmer may prioritize crops. A merchant may protect valuable stock. The role never overrides personality, relationships or immediate survival automatically.
 
 ## Animation principle
 
-Animation is a consequence of a behavioral decision. An NPC that accepts a conversation can turn toward the player and stop working. An annoyed NPC can turn away and leave.
+Animation is a consequence of a behavioral decision. An NPC that accepts a conversation can turn toward the player and stop working. An annoyed NPC can turn away and leave. A following NPC can look toward the player while travelling.
