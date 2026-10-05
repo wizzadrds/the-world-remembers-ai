@@ -86,7 +86,7 @@ public class TheWorldRemembers implements ModInitializer {
         }
     }
     private static void linkBabyToNearbyParents(ServerLevel world, Villager child, com.wizzadrds.theworldremembers.family.FamilyManager families, MemoryManager memories) {
-        java.util.List<Villager> adults=world.getEntitiesOfClass(Villager.class, child.getBoundingBox().inflate(8), v -> v.isAlive() && v.isAdult() && !v.getUUID().equals(child.getUUID()));
+        java.util.List<Villager> adults=world.getEntitiesOfClass(Villager.class, child.getBoundingBox().inflate(8), v -> v.isAlive() && !v.isBaby() && !v.getUUID().equals(child.getUUID()));
         if(adults.size()!=2) return;
         if(families.addParentChild(adults.get(0).getUUID(), child.getUUID()) && families.addParentChild(adults.get(1).getUUID(), child.getUUID())) {
             long time=world.getGameTime();
