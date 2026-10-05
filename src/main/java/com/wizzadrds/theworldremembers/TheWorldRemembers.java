@@ -11,6 +11,8 @@ import com.wizzadrds.theworldremembers.behavior.NpcBehaviorManager;
 import com.wizzadrds.theworldremembers.behavior.NpcBehaviorState;
 import com.wizzadrds.theworldremembers.behavior.NpcActivity;
 import com.wizzadrds.theworldremembers.behavior.NpcDecision;
+import com.wizzadrds.theworldremembers.behavior.NpcActivity;
+import com.wizzadrds.theworldremembers.behavior.NpcActivityManager;
 import com.wizzadrds.theworldremembers.behavior.NpcActivityManager;
 import com.wizzadrds.theworldremembers.stress.NpcStress;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
@@ -106,6 +108,7 @@ public class TheWorldRemembers implements ModInitializer {
         NpcHomeManager homes=NpcHomeManager.get(world);
         NpcAgeManager ages=NpcAgeManager.get(world.getServer());
         NpcStressManager stress=NpcStressManager.get(world);
+        NpcActivityManager activities=NpcActivityManager.get(world);
         NpcActivityManager activities=NpcActivityManager.get(world.getServer());
         MemoryManager memories=MemoryManager.get(world.getServer());
         RelationshipManager relationships=RelationshipManager.get(world.getServer());
@@ -137,6 +140,7 @@ public class TheWorldRemembers implements ModInitializer {
             }
             synchronizeFamilyHome(villager, families, homes);
             home=homes.get(villager.getUUID());
+            updateActivityAndBehavior(world, villager, activities, relationships, homes, stress);
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress);
             synchronizeLiveBehavior(world,villager,activities,relationships,stress,homes);
             updateLiveBehavior(world,villager,behaviorManager,behaviorState,home,stress);
@@ -192,6 +196,28 @@ public class TheWorldRemembers implements ModInitializer {
         if(player!=null){var rel=relationships.get(villager.getUUID(),player.getUUID()); if(rel!=null){var decision=new NpcBehaviorEngine().decide(activity,rel,PersonalityGenerator.generate(villager.getUUID()),new NpcStress(stress.value(villager.getUUID()))); if(activity==NpcActivity.SLEEPING){villager.getNavigation().stop();activities.set(villager.getUUID(),NpcActivity.SLEEPING,null);return;} if(decision==NpcDecision.FOLLOW&&rel.hasProtectiveBond()){activities.set(villager.getUUID(),NpcActivity.FOLLOWING_PLAYER,player.getUUID());villager.getNavigation().moveTo(player,1.0);return;} if(decision==NpcDecision.LEAVE){activities.set(villager.getUUID(),NpcActivity.TRAVELLING,player.getUUID());double dx=villager.getX()-player.getX(),dz=villager.getZ()-player.getZ(),len=Math.max(0.1,Math.sqrt(dx*dx+dz*dz));villager.getNavigation().moveTo(villager.getX()+dx/len*16,villager.getY(),villager.getZ()+dz/len*16,1.0);return;} if(decision==NpcDecision.RETURN_HOME){activities.set(villager.getUUID(),NpcActivity.WALKING,null);var home=homes.get(villager.getUUID());if(home!=null)villager.getNavigation().moveTo(home.homePos().getX(),home.homePos().getY(),home.homePos().getZ(),1.0);return;}}}
         activities.set(villager.getUUID(),activity,null);
     }
+    private static void updateActivityAndBehavior(ServerLevel world, Villager villager, NpcActivityManager activities, RelationshipManager relationships, NpcHomeManager homes, NpcStressManager stress) {
+        NpcActivity activity;
+        if (villager.isSleeping()) activity=NpcActivity.SLEEPING;
+        else if (villager.isTrading()) activity=NpcActivity.TRADING;
+        else if (villager.getNavigation().isInProgress()) activity=NpcActivity.WALKING;
+        else if (villager.getAge()<0) activity=NpcActivity.FAMILY;
+        else activity=NpcActivity.IDLE;
+        activities.set(villager.getUUID(),activity,world.getGameTime());
+        if (!activity.interruptible()) return;
+        ServerPlayer nearest=world.getNearestPlayer(villager,8.0);
+        if(nearest==null) return;
+        var relationship=relationships.get(villager.getUUID(),nearest.getUUID());
+        if(relationship==null) return;
+        var decision=new NpcBehaviorEngine().decide(activity,relationship,PersonalityGenerator.generate(villager.getUUID()),new NpcStress(stress.value(villager.getUUID())));
+        if(decision==NpcDecision.LEAVE){
+            var home=homes.get(villager.getUUID());
+            if(home!=null) villager.getNavigation().moveTo(home.homePos().getX(),home.homePos().getY(),home.homePos().getZ(),1.0);
+        } else if(decision==NpcDecision.FOLLOW){
+            villager.getNavigation().moveTo(nearest,1.05);
+        }
+    }
+
     private static void maintainFamilyProtection(Villager villager, FamilyManager families, FamilyProtectionManager protection) {
         for (java.util.UUID child : families.childrenOf(villager.getUUID())) {
             if (protection.protectorOf(child) == null) protection.protect(villager.getUUID(), child);
