@@ -77,7 +77,7 @@ The project follows a staged implementation plan. Features are documented before
 - [x] Generational memory propagation
 - [x] Inherited and important possessions
 - [ ] Family-aware home assignment
-- [x] Family-aware behavior and protection (decision layer; live pathfinding/combat still pending)
+- [ ] Family-aware behavior and protection
 
 ## Phase 6 — Villages & Society
 - [ ] Village history
