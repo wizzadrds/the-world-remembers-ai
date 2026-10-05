@@ -5,7 +5,6 @@ import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.PersistentStateType;
@@ -45,11 +44,16 @@ public final class RelationshipManager extends PersistentState {
                 });
     }
 
+    public Relationship get(UUID npcId, UUID playerId) {
+        return relationships.stream()
+                .filter(r -> r.npcId().equals(npcId) && r.playerId().equals(playerId))
+                .findFirst()
+                .orElse(null);
+    }
+
     public void apply(MemoryEvent event) {
         Relationship current = getOrCreate(event.npcId(), event.playerId());
-        RelationshipDelta delta = switch (event.type()) {
-            case PLAYER_GAVE_BREAD -> RelationshipDelta.breadGift();
-        };
+        RelationshipDelta delta = RelationshipDelta.forEvent(event.type());
 
         Relationship updated = new Relationship(
                 current.npcId(), current.playerId(),
