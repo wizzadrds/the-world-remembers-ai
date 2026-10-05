@@ -41,6 +41,13 @@ public final class MemoryManager extends PersistentState {
         return memory;
     }
 
+    public Memory rememberEvent(UUID npcId, UUID playerId, MemoryEventType type, long gameTime, MemoryImportance importance) {
+        Memory memory = new Memory(npcId, playerId, type, gameTime, importance);
+        memories.add(memory);
+        markDirty();
+        return memory;
+    }
+
     public Optional<Memory> findMostRecentMemory(UUID npcId, UUID playerId) {
         for (int i = memories.size() - 1; i >= 0; i--) {
             Memory memory = memories.get(i);
