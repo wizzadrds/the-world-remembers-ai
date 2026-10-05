@@ -32,3 +32,14 @@ Voice is an adapter around the simulation, not the simulation itself.
 ## Persistence
 
 Persistent systems should use stable IDs and versioned serialized data so saves can migrate between mod versions.
+
+
+## Character composition
+
+An NPC is composed from several independent layers:
+
+Personality + Role + Voice + Relationship + Memory + Stress + Activity + Home + Inventory + Equipment -> Decision -> Dialogue/Animation
+
+Role defines capabilities and responsibilities. Personality defines tendencies. Voice defines delivery. Memory and relationships define history. Stress and activity define current condition. Home and equipment provide persistent physical context.
+
+No single layer should impersonate another layer. For example, a warrior role does not automatically mean bravery, and a timid voice does not automatically mean low trust.
