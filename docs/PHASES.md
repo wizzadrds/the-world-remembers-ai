@@ -42,7 +42,7 @@ The project follows a staged implementation plan. Features are documented before
 - [ ] Following when appropriate
 - [ ] Interruptions and priority
 - [ ] Contextual animations
-- [ ] NPC inventory and real item state
+- [x] NPC inventory and real item state
 - [ ] Gathering, carrying and storage
 - [ ] Chest/home storage links
 - [ ] Economic decisions
