@@ -1,25 +1,17 @@
 # Phase 4 Acceptance
 
-Phase 4 is complete only when live Minecraft behavior is grounded in real villager state and demonstrated by automated tests.
+Phase 4 is complete only when behavior is persistent, deterministic and demonstrated by Minecraft GameTests.
 
-## Acceptance
-- [ ] Activity states drive live decisions.
-- [ ] Decision engine is exercised by live NPC behavior.
-- [ ] Busy/available state changes interaction outcomes.
-- [ ] Annoyed NPCs can leave through real navigation.
-- [ ] Trusted NPCs can follow through real navigation.
-- [ ] Follow permission respects relationship state.
-- [ ] Travel distance/time affects behavior.
-- [ ] Stress and recovery affect decisions and persist.
-- [ ] Homes use real house/door/bed discovery rather than a spawn-position placeholder.
-- [ ] Home intrusion creates memory, stress and relationship consequences with cooldown.
-- [ ] Inventory state synchronizes with real villager inventory/equipment.
-- [ ] Gathering/carrying/storage uses real Minecraft items and containers.
-- [ ] Threat responses and calls for help use real navigation.
-- [ ] Role/archetype affects live behavior.
-- [ ] Equipment/armor synchronization is real and main-hand constraints are enforced.
-- [ ] Contextual animation is validated by deterministic animation-state tests or client-capable tests.
-- [ ] Population-scale performance remains within the project's CI budget.
-
-## Completion rule
-A green unit-test build alone is insufficient. The final PR must pass Gradle build, Minecraft GameTests, and the headless Fabric server smoke test in CI. Then PHASES, QUALITY, README and CHANGELOG are updated together.
+- Activity state is persistent per NPC and exposes interruptibility/priority.
+- Follow behavior uses real navigation and trust/permission rules.
+- Travel state tracks destination, distance and elapsed travel time from world state.
+- Stress is bounded, persistent and changes with live safety/activity conditions.
+- Home assignment persists and uses real nearby beds/doors when available.
+- Home intrusion is based on actual player position crossing the home boundary, not proximity alone.
+- Intrusion produces stress, memory and relationship consequences with cooldown.
+- Inventory/equipment state synchronizes with real villager item stacks.
+- Role-aware behavior changes live decisions without overriding personality/relationships.
+- Gathering/carrying/storage decisions use real blocks/items and never invent resources.
+- Interruptions respect activity priority and safety.
+- Population-scale behavior processing has a regression test.
+- CI passes Gradle build, unit tests, Minecraft GameTests and headless server smoke test.
