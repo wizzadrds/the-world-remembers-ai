@@ -5,6 +5,7 @@ import com.wizzadrds.theworldremembers.age.NpcAgeGenerator;
 import com.wizzadrds.theworldremembers.age.NpcAgeManager;
 import com.wizzadrds.theworldremembers.family.FamilyCourtshipManager;
 import com.wizzadrds.theworldremembers.family.FamilyManager;
+import com.wizzadrds.theworldremembers.family.FamilyProtectionManager;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
 import com.wizzadrds.theworldremembers.memory.*;
 import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
@@ -64,11 +65,13 @@ public class TheWorldRemembers implements ModInitializer {
         RelationshipManager relationships=RelationshipManager.get(world.getServer());
         FamilyManager families=FamilyManager.get(world.getServer());
         FamilyCourtshipManager courtship=FamilyCourtshipManager.get(world.getServer());
+        FamilyProtectionManager protection=FamilyProtectionManager.get(world.getServer());
 
         for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),villager -> villager.isAlive()&&!villager.isRemoved())) {
             ages.assignIfAbsent(villager.getUUID(), villager.isBaby() ? NpcAgeGenerator.generateChildAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())) : NpcAgeGenerator.generateAdultAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())));
             if (villager.isBaby() && !families.hasParents(villager.getUUID())) linkBabyToNearbyParents(world, villager, families, memories);
             if (!villager.isBaby() && ages.get(villager.getUUID()).isAdult() && !families.hasSpouse(villager.getUUID())) processCourtship(world, villager, families, courtship, memories, ages);
+            if (!villager.isBaby()) maintainFamilyProtection(villager, families, protection);
             NpcHome home=homes.get(villager.getUUID());
             if(home==null) {
                 BlockPos pos=villager.blockPosition();
@@ -101,6 +104,15 @@ public class TheWorldRemembers implements ModInitializer {
             memories.inheritFamilyHistory(adults.get(1).getUUID(), child.getUUID(), time);
         }
     }
+    private static void maintainFamilyProtection(Villager villager, FamilyManager families, FamilyProtectionManager protection) {
+        java.util.List<java.util.UUID> children = families.childrenOf(villager.getUUID());
+        if (children.isEmpty()) return;
+        for (java.util.UUID child : children) {
+            if (protection.protectorOf(child) != null) continue;
+            protection.protect(villager.getUUID(), child);
+        }
+    }
+
     private static void processCourtship(ServerLevel world, Villager villager, FamilyManager families, FamilyCourtshipManager courtship, MemoryManager memories, NpcAgeManager ages) {
         java.util.List<Villager> candidates = world.getEntitiesOfClass(Villager.class, villager.getBoundingBox().inflate(4),
             other -> other.isAlive() && !other.isBaby() && !other.getUUID().equals(villager.getUUID())
