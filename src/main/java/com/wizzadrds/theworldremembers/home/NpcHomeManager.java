@@ -1,7 +1,7 @@
 package com.wizzadrds.theworldremembers.home;
 
 import com.mojang.serialization.Codec;
-import net.minecraft.core.UUIDUtil;
+
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
@@ -12,7 +12,7 @@ import java.util.UUID;
 
 public final class NpcHomeManager extends SavedData {
     private final Map<UUID,NpcHome> homes=new HashMap<>();
-    private static final Codec<NpcHomeManager> CODEC=Codec.unboundedMap(UUIDUtil.CODEC,NpcHome.CODEC).xmap(m->{NpcHomeManager x=new NpcHomeManager();x.homes.putAll(m);return x;},x->x.homes);
+    private static final Codec<NpcHomeManager> CODEC=Codec.unboundedMap(Codec.STRING.xmap(UUID::fromString, UUID::toString),NpcHome.CODEC).xmap(m->{NpcHomeManager x=new NpcHomeManager();x.homes.putAll(m);return x;},x->x.homes);
     private static final SavedDataType<NpcHomeManager> TYPE=new SavedDataType<>(net.minecraft.resources.Identifier.fromNamespaceAndPath("the_world_remembers", "homes"),NpcHomeManager::new,CODEC,null);
     public static NpcHomeManager get(ServerLevel world){return world.getDataStorage().computeIfAbsent(TYPE);}
     public NpcHome get(UUID id){return homes.get(id);}
