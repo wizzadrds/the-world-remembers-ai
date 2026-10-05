@@ -5,14 +5,17 @@ public record NpcEquipment(
         String chestplate,
         String leggings,
         String boots,
-        String mainHand,
-        String offHand
+        String mainHand
 ) {
     public static NpcEquipment empty() {
-        return new NpcEquipment(null, null, null, null, null, null);
+        return new NpcEquipment(null, null, null, null, null);
     }
 
     public boolean hasArmor() {
         return helmet != null || chestplate != null || leggings != null || boots != null;
+    }
+
+    public boolean hasMainHandItem() {
+        return mainHand != null;
     }
 }
