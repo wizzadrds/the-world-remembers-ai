@@ -252,6 +252,7 @@ public class TheWorldRemembers implements ModInitializer {
             int golems = 0;
             for (IronGolem golem : world.getEntitiesOfClass(IronGolem.class, new net.minecraft.world.phys.AABB(center).inflate(32), g -> g.isAlive())) golems++;
             defense.observe(villageId, new VillageDefense(golems, 0, 0));
+            int containers=0, occupied=0, capacity=0; for(BlockPos p: BlockPos.betweenClosed(center.offset(-16,-4,-16),center.offset(16,8,16))){ var be=world.getBlockEntity(p); if(be instanceof net.minecraft.world.Container container){containers++; capacity+=container.getContainerSize(); for(int slot=0;slot<container.getContainerSize();slot++) if(!container.getItem(slot).isEmpty()) occupied++;}} villageStorage.observe(villageId,new VillageStorage(containers,occupied,capacity));
             for (var bell : world.getPoiManager().findAllWithType(type -> type.is(PoiTypeTags.VILLAGE), pos -> true, center, 32, net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).map(pair -> pair.getSecond()).toList()) landmarks.add(villageId, new VillageLandmark("village_poi", bell, world.getGameTime()));
         }
     }
