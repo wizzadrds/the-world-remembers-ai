@@ -6,6 +6,16 @@ import com.wizzadrds.theworldremembers.relationship.Relationship;
 import com.wizzadrds.theworldremembers.stress.NpcStress;
 
 public final class NpcBehaviorEngine {
+    public boolean canFollow(Relationship relationship, NpcStress stress) {
+        if (stress.isCritical()) return false;
+        if (relationship.resentment() >= 40 || relationship.suspicion() >= 60 || relationship.fear() >= 70) return false;
+        return relationship.trust() >= 40 || relationship.affection() >= 45;
+    }
+
+    public boolean shouldInterrupt(NpcActivity current, int currentPriority, NpcActivity incoming, int incomingPriority) {
+        if (current == NpcActivity.FLEEING || current == NpcActivity.SLEEPING) return incomingPriority > currentPriority;
+        return current.interruptible() && incomingPriority >= currentPriority || incomingPriority > currentPriority;
+    }
     public NpcDecision decideFamilyResponse(boolean protectingFamily, boolean dangerPresent, NpcStress stress) {
         if (!protectingFamily) return NpcDecision.IGNORE_PLAYER;
         if (dangerPresent) return NpcDecision.CALL_FOR_HELP;
