@@ -6,6 +6,9 @@ import com.wizzadrds.theworldremembers.age.NpcAgeManager;
 import com.wizzadrds.theworldremembers.family.FamilyCourtshipManager;
 import com.wizzadrds.theworldremembers.family.FamilyManager;
 import com.wizzadrds.theworldremembers.family.FamilyProtectionManager;
+import com.wizzadrds.theworldremembers.behavior.NpcBehaviorEngine;
+import com.wizzadrds.theworldremembers.behavior.NpcDecision;
+import com.wizzadrds.theworldremembers.stress.NpcStress;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
 import com.wizzadrds.theworldremembers.memory.*;
 import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
@@ -77,6 +80,7 @@ public class TheWorldRemembers implements ModInitializer {
                 BlockPos pos=villager.blockPosition();
                 home=homes.assignIfAbsent(villager.getUUID(),pos,null,pos);
             }
+            applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress);
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
             for(ServerPlayer player:world.players()) {
                 if(player.blockPosition().distSqr(entrance)>HOME_RADIUS*HOME_RADIUS) continue;
@@ -110,6 +114,32 @@ public class TheWorldRemembers implements ModInitializer {
         for (java.util.UUID child : children) {
             if (protection.protectorOf(child) != null) continue;
             protection.protect(villager.getUUID(), child);
+        }
+    }
+
+    private static void applyFamilyProtectionBehavior(ServerLevel world, Villager villager, FamilyManager families,
+                                                        FamilyProtectionManager protection, NpcHomeManager homes,
+                                                        NpcStressManager stress) {
+        java.util.List<java.util.UUID> children = families.childrenOf(villager.getUUID());
+        if (children.isEmpty()) return;
+
+        NpcBehaviorEngine engine = new NpcBehaviorEngine();
+        NpcStress npcStress = new NpcStress(stress.value(villager.getUUID()));
+        for (java.util.UUID childId : children) {
+            if (!villager.getUUID().equals(protection.protectorOf(childId))) continue;
+            if (!(world.getEntity(childId) instanceof Villager child) || !child.isAlive()) continue;
+
+            boolean dangerPresent = !world.getEntitiesOfClass(LivingEntity.class,
+                child.getBoundingBox().inflate(8),
+                entity -> entity.isAlive() && entity instanceof net.minecraft.world.entity.monster.Monster).isEmpty();
+
+            NpcDecision decision = engine.decideFamilyResponse(true, dangerPresent, npcStress);
+            if (decision == NpcDecision.FOLLOW || decision == NpcDecision.CALL_FOR_HELP) {
+                villager.getNavigation().moveTo(child, decision == NpcDecision.CALL_FOR_HELP ? 1.25 : 1.0);
+            } else if (decision == NpcDecision.RETURN_HOME) {
+                NpcHome home = homes.get(villager.getUUID());
+                if (home != null) villager.getNavigation().moveTo(home.homePos().getX(), home.homePos().getY(), home.homePos().getZ(), 1.0);
+            }
         }
     }
 
