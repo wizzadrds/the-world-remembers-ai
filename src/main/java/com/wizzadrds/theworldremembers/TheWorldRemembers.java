@@ -112,7 +112,8 @@ public class TheWorldRemembers implements ModInitializer {
             if(home==null) {
                 BlockPos pos=findNearestBed(world,villager.blockPosition(),16);
                 if(pos==null) pos=villager.blockPosition();
-                BlockPos entrance=pos;
+                BlockPos entrance=findNearestDoor(world,pos,8);
+                if(entrance==null) entrance=pos;
                 home=homes.assignIfAbsent(villager.getUUID(),pos,pos,entrance);
             }
             synchronizeFamilyHome(villager, families, homes);
@@ -287,6 +288,16 @@ public class TheWorldRemembers implements ModInitializer {
         BlockPos best=null; double bestDistance=Double.MAX_VALUE;
         for(BlockPos p:BlockPos.betweenClosed(center.offset(-radius,-4,-radius),center.offset(radius,4,radius))) {
             if(world.getBlockState(p).is(BlockTags.BEDS)) {
+                double d=p.distSqr(center); if(d<bestDistance){bestDistance=d;best=p.immutable();}
+            }
+        }
+        return best;
+    }
+
+    private static BlockPos findNearestDoor(ServerLevel world, BlockPos center, int radius) {
+        BlockPos best=null; double bestDistance=Double.MAX_VALUE;
+        for(BlockPos p:BlockPos.betweenClosed(center.offset(-radius,-2,-radius),center.offset(radius,2,radius))) {
+            if(world.getBlockState(p).is(BlockTags.DOORS)) {
                 double d=p.distSqr(center); if(d<bestDistance){bestDistance=d;best=p.immutable();}
             }
         }
