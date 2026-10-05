@@ -9,6 +9,7 @@ import com.wizzadrds.theworldremembers.memory.MemoryEvent;
 import com.wizzadrds.theworldremembers.memory.MemoryEventType;
 import com.wizzadrds.theworldremembers.memory.MemoryImportance;
 import com.wizzadrds.theworldremembers.memory.MemoryManager;
+import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
 import com.wizzadrds.theworldremembers.personality.PersonalityProfile;
 import com.wizzadrds.theworldremembers.relationship.Relationship;
 import com.wizzadrds.theworldremembers.relationship.RelationshipManager;
@@ -112,7 +113,7 @@ public class TheWorldRemembers implements ModInitializer {
 
                 HomeAccess access = HomeAccessPolicy.evaluate(
                         relationship,
-                        new PersonalityProfile(villager.getUuid()),
+                        PersonalityGenerator.generate(villager.getUuid()),
                         false
                 );
 
