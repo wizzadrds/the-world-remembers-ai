@@ -75,6 +75,8 @@ public class TheWorldRemembers implements ModInitializer {
                 BlockPos pos=villager.blockPosition();
                 home=homes.assignIfAbsent(villager.getUUID(),pos,null,pos);
             }
+            synchronizeFamilyHome(villager, families, homes);
+            home=homes.get(villager.getUUID());
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
             for(ServerPlayer player:world.players()) {
                 if(player.blockPosition().distSqr(entrance)>HOME_RADIUS*HOME_RADIUS) continue;
@@ -91,6 +93,19 @@ public class TheWorldRemembers implements ModInitializer {
             if(world.getGameTime()%200==0&&!world.getEntitiesOfClass(ServerPlayer.class,villager.getBoundingBox().inflate(8),p->true).iterator().hasNext()) stress.recover(villager.getUUID(),1);
         }
     }
+    private static void synchronizeFamilyHome(Villager villager, FamilyManager families, NpcHomeManager homes) {
+        java.util.UUID anchor = families.spouseOf(villager.getUUID());
+        if (anchor == null) {
+            var parents = families.parentsOf(villager.getUUID());
+            if (!parents.isEmpty()) anchor = parents.get(0);
+        }
+        if (anchor == null) {
+            var children = families.childrenOf(villager.getUUID());
+            if (!children.isEmpty()) anchor = children.get(0);
+        }
+        if (anchor != null && homes.hasHome(anchor)) homes.assignFamilyHome(villager.getUUID(), anchor);
+    }
+
     private static void linkBabyToNearbyParents(ServerLevel world, Villager child, com.wizzadrds.theworldremembers.family.FamilyManager families, MemoryManager memories) {
         java.util.List<Villager> adults=world.getEntitiesOfClass(Villager.class, child.getBoundingBox().inflate(8), v -> v.isAlive() && !v.isBaby() && !v.getUUID().equals(child.getUUID()));
         if(adults.size()!=2) return;
