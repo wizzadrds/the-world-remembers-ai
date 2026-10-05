@@ -20,4 +20,10 @@ public final class NpcHomeManager extends SavedData {
     public NpcHome assignIfAbsent(UUID id, net.minecraft.core.BlockPos home, net.minecraft.core.BlockPos bed, net.minecraft.core.BlockPos entrance){
         NpcHome h=homes.computeIfAbsent(id,k->new NpcHome(id,home,bed,entrance));setDirty();return h;
     }
+    public void assignFamilyHome(UUID member, UUID familyMember){
+        NpcHome familyHome = homes.get(familyMember);
+        if (familyHome == null) return;
+        homes.putIfAbsent(member, new NpcHome(member, familyHome.homePos(), familyHome.bedPos(), familyHome.entrancePos()));
+        setDirty();
+    }
 }
