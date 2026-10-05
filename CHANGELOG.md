@@ -10,6 +10,14 @@
 - Development phases now use checked acceptance items.
 - Added the persistent NPC age data model and documented its Phase 5 integration.
 
+## v0.3.0-alpha
+
+### Phase 2 — Personality
+- Personality profiles now expose reusable decision helpers.
+- NPC behavior uses social, brave, cowardly, hot-tempered, suspicious and protective traits.
+- Personality can produce different decisions from the same relationship state.
+- Phase checklist updated.
+
 ## Unreleased
 
 ### Project bootstrap
