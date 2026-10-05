@@ -11,7 +11,7 @@ import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.level.block.Blocks;
 import java.util.UUID;
 
