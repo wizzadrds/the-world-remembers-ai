@@ -8,6 +8,7 @@ import com.wizzadrds.theworldremembers.family.FamilyManager;
 import com.wizzadrds.theworldremembers.family.FamilyProtectionManager;
 import com.wizzadrds.theworldremembers.behavior.NpcBehaviorEngine;
 import com.wizzadrds.theworldremembers.behavior.NpcDecision;
+import com.wizzadrds.theworldremembers.behavior.NpcActivity;
 import com.wizzadrds.theworldremembers.stress.NpcStress;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
 import com.wizzadrds.theworldremembers.inventory.NpcInventoryManager;
@@ -82,6 +83,7 @@ public class TheWorldRemembers implements ModInitializer {
         NpcHomeManager homes=NpcHomeManager.get(world);
         NpcAgeManager ages=NpcAgeManager.get(world.getServer());
         NpcStressManager stress=NpcStressManager.get(world);
+        NpcBehaviorEngine behavior=new NpcBehaviorEngine();
         MemoryManager memories=MemoryManager.get(world.getServer());
         RelationshipManager relationships=RelationshipManager.get(world.getServer());
         FamilyManager families=FamilyManager.get(world.getServer());
@@ -111,6 +113,7 @@ public class TheWorldRemembers implements ModInitializer {
             synchronizeFamilyHome(villager, families, homes);
             home=homes.get(villager.getUUID());
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress);
+            applyLiveSocialBehavior(world, villager, relationships, stress, behavior, homes);
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
             for(ServerPlayer player:world.players()) {
                 if(player.blockPosition().distSqr(entrance)>HOME_RADIUS*HOME_RADIUS) continue;
@@ -133,6 +136,22 @@ public class TheWorldRemembers implements ModInitializer {
             synchronizeFamilyHome(villager, families, homes);
         }
     }
+    private static void applyLiveSocialBehavior(ServerLevel world, Villager villager, RelationshipManager relationships, NpcStressManager stress, NpcBehaviorEngine behavior, NpcHomeManager homes) {
+        if (!villager.getNavigation().isDone() && !villager.isTrading()) return;
+        for (ServerPlayer player : world.getEntitiesOfClass(ServerPlayer.class, villager.getBoundingBox().inflate(12), p -> p.isAlive())) {
+            Relationship relationship=relationships.get(villager.getUUID(),player.getUUID());
+            if(relationship==null) continue;
+            NpcActivity activity=villager.isSleeping()?NpcActivity.SLEEPING:(villager.isTrading()?NpcActivity.TRADING:NpcActivity.IDLE);
+            NpcDecision decision=behavior.decide(activity,relationship,PersonalityGenerator.generate(villager.getUUID()),new NpcStress(stress.value(villager.getUUID())));
+            if(decision==NpcDecision.FOLLOW && relationship.trust()>=30) villager.getNavigation().moveTo(player,1.0);
+            else if(decision==NpcDecision.LEAVE) {
+                NpcHome home=homes.get(villager.getUUID());
+                if(home!=null) villager.getNavigation().moveTo(home.homePos().getX(),home.homePos().getY(),home.homePos().getZ(),1.0);
+            }
+            break;
+        }
+    }
+
     private static void maintainFamilyProtection(Villager villager, FamilyManager families, FamilyProtectionManager protection) {
         for (java.util.UUID child : families.childrenOf(villager.getUUID())) {
             if (protection.protectorOf(child) == null) protection.protect(villager.getUUID(), child);
