@@ -9,6 +9,8 @@ The mod is not considered production-ready for a milestone until the following l
 - [x] Real Minecraft GameTest smoke coverage.
 - [x] Headless Fabric server smoke test in GitHub Actions.
 - [x] CI artifact upload for reports/logs on failure.
+- [x] Full CI validation confirmed on PR #1.
+- [x] Performance cadence regression test confirmed on PR #2.
 
 ## Phase 4 acceptance
 
