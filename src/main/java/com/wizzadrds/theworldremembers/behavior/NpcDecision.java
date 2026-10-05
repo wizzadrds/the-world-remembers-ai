@@ -6,6 +6,7 @@ public enum NpcDecision {
     TALK,
     LEAVE,
     FOLLOW,
+    RETURN_HOME,
     SURRENDER_ITEMS,
     RESIST,
     CALL_FOR_HELP
