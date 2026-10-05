@@ -26,23 +26,24 @@ The project follows a staged implementation plan. Features are documented before
 
 ## Phase 3 — Relationships
 - [ ] Trust, gratitude, fear, respect, affection, resentment, suspicion
+- [ ] Threat reactions and protective bonds
 - Relationship persistence
 - Relationship consequences from events
 
 ## Phase 4 — Behavior
-- Activity states
+- [ ] Activity states
 - Decision engine
-- Busy vs available NPCs
-- Leaving when annoyed
-- Following when appropriate
-- Interruptions and priority
-- Contextual animations
+- [ ] Busy vs available NPCs
+- [ ] Leaving when annoyed
+- [ ] Following when appropriate
+- [ ] Interruptions and priority
+- [ ] Contextual animations
 
 ## Phase 5 — Families & Generations
-- Persistent age
-- Parents, siblings, spouses and children
-- Births and deaths
-- Generational memory
+- [ ] Persistent age
+- [ ] Parents, siblings, spouses and children
+- [ ] Births and deaths
+- [ ] Generational memory
 
 ## Phase 6 — Villages & Society
 - Village history
