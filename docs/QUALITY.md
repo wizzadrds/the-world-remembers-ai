@@ -52,3 +52,19 @@ A pull-request CI run must pass `gradle build` and the headless Fabric server sm
 - [x] Persistent family protector assignment and release after protector death.
 - [x] Family protection decisions drive live villager navigation.
 - [x] Dedicated Minecraft GameTests cover sibling formation, spouse inheritance, family homes and protection navigation.
+
+
+## Phase 6 acceptance
+
+- [x] Persistent village identity and population state.
+- [x] Village history tracks first/last observation and population peak.
+- [x] Village-scale events persist for migration and resident/guardian deaths.
+- [x] Live bread inventory drives derived resource pressure.
+- [x] Real container inventories drive shared storage state.
+- [x] Nearby iron golems drive village defense state.
+- [x] Real village POIs are persisted as landmarks.
+- [x] Settlement movement preserves village identity and records migration.
+- [x] Dedicated GameTests cover history, resources, defense, landmarks, storage, migration and events.
+- [ ] Population-scale performance validation is green in CI.
+
+Phase 6 is not marked complete until the final pull-request CI run passes both gradle build and the headless Fabric server smoke test.
