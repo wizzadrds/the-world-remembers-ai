@@ -14,6 +14,9 @@ import com.wizzadrds.theworldremembers.behavior.NpcDecision;
 import com.wizzadrds.theworldremembers.stress.NpcStress;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
 import com.wizzadrds.theworldremembers.inventory.NpcInventoryManager;
+import com.wizzadrds.theworldremembers.inventory.NpcEquipmentManager;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.wizzadrds.theworldremembers.memory.*;
 import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
 import com.wizzadrds.theworldremembers.relationship.*;
@@ -123,6 +126,7 @@ public class TheWorldRemembers implements ModInitializer {
             home=homes.get(villager.getUUID());
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress);
             updateLiveBehavior(world,villager,behaviorManager,behaviorState,home,stress);
+            equipment.sync(villager.getUUID(),BuiltInRegistries.ITEM.getKey(villager.getItemBySlot(EquipmentSlot.MAINHAND).getItem()).toString());
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
             for(ServerPlayer player:world.players()) {
                 if(player.blockPosition().distSqr(entrance)>HOME_RADIUS*HOME_RADIUS) continue;
