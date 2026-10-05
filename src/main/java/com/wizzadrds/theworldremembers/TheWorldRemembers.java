@@ -8,6 +8,8 @@ import com.wizzadrds.theworldremembers.family.FamilyManager;
 import com.wizzadrds.theworldremembers.family.FamilyProtectionManager;
 import com.wizzadrds.theworldremembers.behavior.NpcBehaviorEngine;
 import com.wizzadrds.theworldremembers.behavior.NpcDecision;
+import com.wizzadrds.theworldremembers.behavior.NpcActivityManager;
+import com.wizzadrds.theworldremembers.behavior.NpcTravelManager;
 import com.wizzadrds.theworldremembers.stress.NpcStress;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
 import com.wizzadrds.theworldremembers.inventory.NpcInventoryManager;
@@ -85,6 +87,8 @@ public class TheWorldRemembers implements ModInitializer {
         NpcHomeManager homes=NpcHomeManager.get(world);
         NpcAgeManager ages=NpcAgeManager.get(world.getServer());
         NpcStressManager stress=NpcStressManager.get(world);
+        NpcActivityManager activities=NpcActivityManager.get(world.getServer());
+        NpcTravelManager travel=NpcTravelManager.get(world.getServer());
         NpcInventoryManager inventories=NpcInventoryManager.get(world.getServer());
         MemoryManager memories=MemoryManager.get(world.getServer());
         RelationshipManager relationships=RelationshipManager.get(world.getServer());
@@ -119,6 +123,7 @@ public class TheWorldRemembers implements ModInitializer {
             synchronizeFamilyHome(villager, families, homes);
             home=homes.get(villager.getUUID());
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress);
+            activities.set(villager.getUUID(), villager.getNavigation().isDone() ? com.wizzadrds.theworldremembers.behavior.NpcActivity.IDLE : com.wizzadrds.theworldremembers.behavior.NpcActivity.WALKING, 10, villager.blockPosition(), world.getGameTime());
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
             for(ServerPlayer player:world.players()) {
                 if(player.blockPosition().distSqr(entrance)>HOME_RADIUS*HOME_RADIUS) continue;
