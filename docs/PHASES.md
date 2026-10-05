@@ -3,25 +3,27 @@
 The project follows a staged implementation plan. Features are documented before implementation and integrated only when their phase is ready.
 
 ## Phase 0 — Foundation
-- Fabric project
-- Stable package structure
-- Persistent world state
-- Core event and memory models
+- [x] Fabric project
+- [x] Stable package structure
+- [x] Persistent world state
+- [x] Core event and memory models
 
 ## Phase 1 — The First Memory
-- Important event detection
-- NPC memories
-- Memory importance
-- Player/NPC relationships
-- First remembered interaction
+- [x] Important event detection
+- [x] NPC memories
+- [x] Memory importance
+- [x] Player/NPC relationships
+- [x] First remembered interaction
+
+**Status: COMPLETE — v0.2.0-alpha**
 
 ## Phase 2 — Personality
-- Stable personality profiles
-- Personality affects decisions
-- Different reactions to identical events
+- [ ] Stable personality profiles
+- [ ] Personality affects decisions
+- [ ] Different reactions to identical events
 
 ## Phase 3 — Relationships
-- Trust, gratitude, fear, respect, affection, resentment, suspicion
+- [ ] Trust, gratitude, fear, respect, affection, resentment, suspicion
 - Relationship persistence
 - Relationship consequences from events
 
