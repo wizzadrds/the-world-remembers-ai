@@ -80,8 +80,8 @@ The project follows a staged implementation plan. Features are documented before
 - [x] Family-aware behavior and protection
 
 **Status: COMPLETE — v0.5.0-alpha**\n\n## Phase 6 — Villages & Society
-- [ ] Village identity and persistent village state
-- [ ] Population tracking
+- [x] Village identity and persistent village state
+- [x] Population tracking
 - [ ] Village history and important events
 - [ ] Wealth and resource pressure
 - [ ] Shared village resources and storage
@@ -89,7 +89,7 @@ The project follows a staged implementation plan. Features are documented before
 - [ ] Migration and settlement change
 - [ ] Important buildings and landmarks
 - [ ] Iron golems as social guardians
-- [ ] Village-scale GameTests
+- [x] Village-scale GameTests
 - [ ] Population-scale performance validation
 
 ## Phase 7 — Rumors & Conversations
