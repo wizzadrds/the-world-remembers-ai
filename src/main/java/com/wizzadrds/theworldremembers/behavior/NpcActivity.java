@@ -10,6 +10,7 @@ public enum NpcActivity {
     SOCIALIZING(false),
     WALKING(true),
     TRAVELLING(true),
+    FOLLOWING_PLAYER(true),
     FLEEING(false),
     FAMILY(false);
 
