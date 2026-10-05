@@ -21,3 +21,29 @@ jobs:
           gradle-version: '9.1'
       - name: Compile and test
         run: gradle build
+      - name: Prepare server EULA
+        run: |
+          mkdir -p run
+          printf 'eula=true\n' > run/eula.txt
+      - name: Start Fabric server smoke test
+        shell: bash
+        run: |
+          set -e
+          rm -f server.log
+          gradle runServer > server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in {1..120}; do
+            if grep -q "The World Remembers" server.log; then
+              echo "Mod initialization detected."
+              exit 0
+            fi
+            if ! kill -0 $SERVER_PID 2>/dev/null; then
+              cat server.log
+              exit 1
+            fi
+            sleep 2
+          done
+          cat server.log
+          echo "Fabric server did not initialize the mod within the smoke-test window."
+          exit 1
