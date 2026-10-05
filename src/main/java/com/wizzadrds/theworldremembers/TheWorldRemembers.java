@@ -154,10 +154,10 @@ public class TheWorldRemembers implements ModInitializer {
         families.addParentChild(adults.get(1).getUUID(), child.getUUID());
         if (families.parentsOf(child.getUUID()).size() == 2) {
             long time=world.getGameTime();
-            memories.rememberEvent(child.getUUID(), adults.get(0).getUUID(), MemoryEventType.NPC_BORN, time, MemoryImportance.IMPORTANT);
-            memories.rememberEvent(child.getUUID(), adults.get(1).getUUID(), MemoryEventType.NPC_BORN, time, MemoryImportance.IMPORTANT);
             memories.inheritFamilyHistory(adults.get(0).getUUID(), child.getUUID(), time);
             memories.inheritFamilyHistory(adults.get(1).getUUID(), child.getUUID(), time);
+            memories.rememberEvent(child.getUUID(), adults.get(0).getUUID(), MemoryEventType.NPC_BORN, time, MemoryImportance.IMPORTANT);
+            memories.rememberEvent(child.getUUID(), adults.get(1).getUUID(), MemoryEventType.NPC_BORN, time, MemoryImportance.IMPORTANT);
             families.linkSiblingsFromSharedParent(child.getUUID());
         }
     }
