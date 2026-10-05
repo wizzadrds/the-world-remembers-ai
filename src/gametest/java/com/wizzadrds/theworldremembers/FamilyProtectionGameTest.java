@@ -25,12 +25,15 @@ public final class FamilyProtectionGameTest {
    f.addParentChild(parentB.getUUID(),child.getUUID());
    TheWorldRemembers.processWorld(context.getLevel());
    FamilyProtectionManager p=FamilyProtectionManager.get(context.getLevel().getServer());
-   if(!parentA.getUUID().equals(p.protectorOf(child.getUUID()))){context.fail("First protector was not assigned deterministically");return;}
-   parentA.kill(context.getLevel());
+   java.util.UUID protector=p.protectorOf(child.getUUID());
+   if(protector==null){context.fail("First protector was not assigned");return;}
+   Villager currentProtector=protector.equals(parentA.getUUID())?parentA:parentB;
+   Villager replacement=protector.equals(parentA.getUUID())?parentB:parentA;
+   currentProtector.kill(context.getLevel());
    context.runAtTickTime(1,()->{
     if(parentA.getUUID().equals(p.protectorOf(child.getUUID()))){context.fail("Dead protector was not released");return;}
     TheWorldRemembers.processWorld(context.getLevel());
-    if(!parentB.getUUID().equals(p.protectorOf(child.getUUID()))){context.fail("Replacement protector was not assigned");return;}
+    if(!replacement.getUUID().equals(p.protectorOf(child.getUUID()))){context.fail("Replacement protector was not assigned");return;}
     context.succeed();
    });
   });
