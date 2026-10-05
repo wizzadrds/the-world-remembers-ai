@@ -39,7 +39,7 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
     public void villagerReceivesPersistentHome(GameTestHelper context) {
         Villager villager = context.spawn(EntityTypes.VILLAGER, 2, 1, 2);
         context.runAtTickTime(1, () -> {
-            TheWorldRemembers.tickWorld(context.getLevel());
+            TheWorldRemembers.processWorld(context.getLevel());
             if (!NpcHomeManager.get(context.getLevel()).hasHome(villager.getUUID())) {
                 context.fail("Live villager did not receive persistent home state");
                 return;
