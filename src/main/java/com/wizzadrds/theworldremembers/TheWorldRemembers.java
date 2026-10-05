@@ -100,6 +100,7 @@ public class TheWorldRemembers implements ModInitializer {
             memories.rememberEvent(child.getUUID(), adults.get(1).getUUID(), MemoryEventType.NPC_BORN, time, MemoryImportance.IMPORTANT);
             memories.inheritFamilyHistory(adults.get(0).getUUID(), child.getUUID(), time);
             memories.inheritFamilyHistory(adults.get(1).getUUID(), child.getUUID(), time);
+            families.linkSiblingsFromSharedParent(child.getUUID());
         }
     }
     private static void processCourtship(ServerLevel world, Villager villager, FamilyManager families, FamilyCourtshipManager courtship, MemoryManager memories, NpcAgeManager ages) {
