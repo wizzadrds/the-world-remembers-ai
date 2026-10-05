@@ -1,6 +1,8 @@
 # Changelog
 
 ## v0.6.0-alpha — Phase 6 Villages & Society
+
+Final CI validation after migration and GameTest fixes.
 - Added persistent village identity and population.
 - Added village history, typed events and migration memory.
 - Added resource pressure, real shared storage observation and defense state.
