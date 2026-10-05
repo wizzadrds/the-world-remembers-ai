@@ -5,7 +5,7 @@ import java.util.List;
 
 public final class NpcInventory {
     private final List<NpcItemStack> items = new ArrayList<>();
-    public List<NpcItemStack> items() { return List.copyOf(items); }
+    public NpcInventory() {}\n    public NpcInventory(List<NpcItemStack> initial) { items.addAll(initial); }\n    public List<NpcItemStack> items() { return List.copyOf(items); }
     public int count(String itemId) { return items.stream().filter(s -> s.itemId().equals(itemId)).mapToInt(NpcItemStack::count).sum(); }
     public void add(String itemId, int count) {
         if (count < 1) throw new IllegalArgumentException("count must be positive");
