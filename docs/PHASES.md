@@ -35,6 +35,8 @@ The project follows a staged implementation plan. Features are documented before
 **Status: COMPLETE — v0.4.0-alpha**
 
 ## Phase 4 — Behavior
+
+Acceptance criteria: see `docs/PHASE4_ACCEPTANCE.md`.
 - [ ] Activity states
 - [ ] Decision engine
 - [ ] Busy vs available NPCs
