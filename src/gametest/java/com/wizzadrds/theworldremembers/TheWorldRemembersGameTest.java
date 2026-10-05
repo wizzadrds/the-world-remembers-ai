@@ -61,9 +61,9 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
         UUID parent = UUID.randomUUID();
         UUID child = UUID.randomUUID();
         FamilyManager families = FamilyManager.get(context.getLevel().getServer());
-        if (!families.add(new FamilyRelation(parent, child, FamilyRelationType.PARENT))) { context.fail("Family relation was not added"); return; }
+        if (!families.addParentChild(parent, child)) { context.fail("Parent-child relation was not added"); return; }
         if (!families.areRelated(parent, child)) { context.fail("Family relation cannot be queried"); return; }
-        if (families.getRelations(parent).isEmpty()) { context.fail("Family relation was not indexed"); return; }
+        if (families.getRelations(parent).size() != 2) { context.fail("Symmetric family relation was not persisted"); return; }
         context.succeed();
     }
 
