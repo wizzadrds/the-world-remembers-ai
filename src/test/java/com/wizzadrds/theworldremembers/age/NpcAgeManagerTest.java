@@ -1,6 +1,7 @@
 package com.wizzadrds.theworldremembers.age;
 
 import org.junit.jupiter.api.Test;
+import com.mojang.serialization.JsonOps;
 import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -23,6 +24,22 @@ class NpcAgeManagerTest {
         assertEquals(20, manager.get(id).years());
         assertTrue(manager.advanceIfDue(id, 168_000L));
         assertEquals(21, manager.get(id).years());
+    }
+
+    @Test
+    void agingCalendarRoundTripsThroughCodec() {
+        NpcAgeManager manager = new NpcAgeManager();
+        UUID id = UUID.randomUUID();
+        manager.assignIfAbsent(id, 20);
+        assertTrue(manager.advanceIfDue(id, 168_000L));
+
+        var encoded = NpcAgeManager.CODEC.encodeStart(JsonOps.INSTANCE, manager).getOrThrow();
+        NpcAgeManager restored = NpcAgeManager.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow();
+
+        assertEquals(21, restored.get(id).years());
+        assertFalse(restored.advanceIfDue(id, 168_001L));
+        assertTrue(restored.advanceIfDue(id, 336_000L));
+        assertEquals(22, restored.get(id).years());
     }
 
     @Test
