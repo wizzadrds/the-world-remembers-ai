@@ -10,6 +10,7 @@ import com.wizzadrds.theworldremembers.family.FamilyRelation;
 import com.wizzadrds.theworldremembers.family.FamilyRelationType;
 import com.wizzadrds.theworldremembers.memory.MemoryEventType;
 import com.wizzadrds.theworldremembers.memory.MemoryManager;
+import com.wizzadrds.theworldremembers.memory.MemoryOrigin;
 import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
 import net.fabricmc.fabric.api.gametest.v1.CustomTestMethodInvoker;
@@ -78,9 +79,16 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
         Villager child = context.spawn(EntityTypes.VILLAGER, 3, 1, 3);
         child.setBaby(true);
         context.runAtTickTime(1, () -> {
+            MemoryManager memories = MemoryManager.get(context.getLevel().getServer());
+            memories.rememberEvent(parentA.getUUID(), parentB.getUUID(), MemoryEventType.NPC_MARRIED,
+                context.getLevel().getGameTime(), com.wizzadrds.theworldremembers.memory.MemoryImportance.IMPORTANT);
             TheWorldRemembers.processWorld(context.getLevel());
             FamilyManager families=FamilyManager.get(context.getLevel().getServer());
             if (families.parentsOf(child.getUUID()).size()!=2) { context.fail("Live baby was not linked to exactly two nearby parents"); return; }
+            if (memories.memoriesOf(child.getUUID()).stream().noneMatch(m -> m.origin() == MemoryOrigin.INHERITED && m.type() == MemoryEventType.NPC_MARRIED)) {
+                context.fail("Child did not inherit an important family memory");
+                return;
+            }
             parentA.kill(context.getLevel());
             context.runAtTickTime(1, () -> {
                 if (MemoryManager.get(context.getLevel().getServer()).findMostRecentMemory(child.getUUID(), parentA.getUUID(), MemoryEventType.NPC_DIED).isEmpty()) { context.fail("Family member did not remember death"); return; }
