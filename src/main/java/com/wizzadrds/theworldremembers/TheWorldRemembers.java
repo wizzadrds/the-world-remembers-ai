@@ -213,7 +213,17 @@ public class TheWorldRemembers implements ModInitializer {
         return firstInterested && secondInterested;
     }
     private static void handleDeath(LivingEntity entity, net.minecraft.world.damagesource.DamageSource damageSource) {
-        if (!(entity instanceof Villager villager) || !(entity.level() instanceof ServerLevel world)) return;
+        if (!(entity.level() instanceof ServerLevel world)) return;
+        VillageManager villages=VillageManager.get(world.getServer());
+        VillageEventManager villageEvents=VillageEventManager.get(world.getServer());
+        VillageHistoryManager villageHistory=VillageHistoryManager.get(world.getServer());
+        for(var vs:villages.all()) if(vs.center().distSqr(entity.blockPosition())<=32*32){
+            String type=entity instanceof IronGolem ? "golem_died" : entity instanceof Villager ? "npc_died" : null;
+            if(type!=null){ villageEvents.record(vs.villageId(),new VillageEvent(type,world.getGameTime(),entity.getUUID(),entity.blockPosition())); villageHistory.recordImportantEvent(vs.villageId()); }
+            break;
+        }
+        if(entity instanceof IronGolem) return;
+        if (!(entity instanceof Villager villager)) return;
         var families=FamilyManager.get(world.getServer());
         var memories=MemoryManager.get(world.getServer());
         var protection=FamilyProtectionManager.get(world.getServer());
@@ -223,7 +233,6 @@ public class TheWorldRemembers implements ModInitializer {
             .map(r -> r.npcId().equals(villager.getUUID()) ? r.relatedNpcId() : r.npcId()).distinct().toList();
         for(java.util.UUID id : related) {
             memories.rememberEvent(id, villager.getUUID(), MemoryEventType.NPC_DIED, world.getGameTime(), MemoryImportance.IMPORTANT);
-            VillageManager vm=VillageManager.get(world.getServer()); for(var vs:vm.all()) if(vs.center().distSqr(villager.blockPosition())<=32*32) { VillageEventManager.get(world.getServer()).record(vs.villageId(),new VillageEvent("npc_died",world.getGameTime(),villager.getUUID(),villager.blockPosition())); break; }
             memories.rememberEvent(id, villager.getUUID(), MemoryEventType.NPC_FAMILY_LOST, world.getGameTime(), MemoryImportance.IMPORTANT);
         }
         java.util.UUID heir = families.childrenOf(villager.getUUID()).stream().findFirst()
