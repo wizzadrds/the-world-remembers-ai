@@ -75,3 +75,10 @@ A warrior may prioritize defending a friend or village. A farmer may prioritize 
 ## Animation principle
 
 Animation is a consequence of a behavioral decision. An NPC that accepts a conversation can turn toward the player and stop working. An annoyed NPC can turn away and leave. A following NPC can look toward the player while travelling.
+
+
+## Travel dialogue foundation
+
+Travel dialogue is selected from measured simulation state. Distance, travel time, stress and personality determine whether a line such as “Are we there yet?” is appropriate.
+
+A line is not allowed to invent distance, danger, family concerns or exhaustion. If the corresponding state is absent, the dialogue layer must remain silent or choose a grounded alternative.
