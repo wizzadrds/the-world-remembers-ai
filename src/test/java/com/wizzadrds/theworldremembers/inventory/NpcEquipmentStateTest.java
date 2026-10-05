@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.inventory; import org.junit.jupiter.api.Test; import static org.junit.jupiter.api.Assertions.*; class NpcEquipmentStateTest{@Test void nullNormalizesToAir(){assertEquals("minecraft:air",new NpcEquipmentState(null).mainHand());}}
