@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.village; import org.junit.jupiter.api.Test; import static org.junit.jupiter.api.Assertions.*; class VillageDefenseTest{@Test void scoreRewardsGolemsAndPenalizesDeaths(){assertEquals(4,new VillageDefense(2,2,2).score());}}
