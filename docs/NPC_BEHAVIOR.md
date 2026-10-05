@@ -82,3 +82,8 @@ Animation is a consequence of a behavioral decision. An NPC that accepts a conve
 Travel dialogue is selected from measured simulation state. Distance, travel time, stress and personality determine whether a line such as “Are we there yet?” is appropriate.
 
 A line is not allowed to invent distance, danger, family concerns or exhaustion. If the corresponding state is absent, the dialogue layer must remain silent or choose a grounded alternative.
+
+
+## Stress-aware return-home behavior
+
+Critical stress can force an NPC to leave the current interaction. High stress reduces willingness to follow the player unless trust is strong. RETURN_HOME is reserved for future pathfinding integration and represents an explicit intent to return to the persistent home rather than simply leaving the player.
