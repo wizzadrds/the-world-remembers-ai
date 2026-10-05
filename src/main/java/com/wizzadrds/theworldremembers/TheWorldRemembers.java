@@ -11,7 +11,6 @@ import com.wizzadrds.theworldremembers.behavior.NpcBehaviorManager;
 import com.wizzadrds.theworldremembers.behavior.NpcBehaviorState;
 import com.wizzadrds.theworldremembers.behavior.NpcActivity;
 import com.wizzadrds.theworldremembers.behavior.NpcDecision;
-import com.wizzadrds.theworldremembers.behavior.NpcActivity;
 import com.wizzadrds.theworldremembers.behavior.NpcActivityManager;
 import com.wizzadrds.theworldremembers.stress.NpcStress;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
