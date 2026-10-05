@@ -5,6 +5,9 @@ import java.util.UUID;
 
 import com.wizzadrds.theworldremembers.home.NpcHomeManager;
 import com.wizzadrds.theworldremembers.age.NpcAgeManager;
+import com.wizzadrds.theworldremembers.family.FamilyManager;
+import com.wizzadrds.theworldremembers.family.FamilyRelation;
+import com.wizzadrds.theworldremembers.family.FamilyRelationType;
 import com.wizzadrds.theworldremembers.memory.MemoryEventType;
 import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
@@ -51,6 +54,17 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
             }
             context.succeed();
         });
+    }
+
+    @GameTest
+    public void familyRelationsPersist(GameTestHelper context) {
+        UUID parent = UUID.randomUUID();
+        UUID child = UUID.randomUUID();
+        FamilyManager families = FamilyManager.get(context.getLevel().getServer());
+        if (!families.add(new FamilyRelation(parent, child, FamilyRelationType.PARENT))) { context.fail("Family relation was not added"); return; }
+        if (!families.areRelated(parent, child)) { context.fail("Family relation cannot be queried"); return; }
+        if (families.getRelations(parent).isEmpty()) { context.fail("Family relation was not indexed"); return; }
+        context.succeed();
     }
 
     @Override
