@@ -44,7 +44,6 @@ public class TheWorldRemembers implements ModInitializer {
     }
 
     static void tickWorld(ServerLevel world) {
-        if(world.getGameTime()%TICK_INTERVAL!=0)return;
         NpcHomeManager homes=NpcHomeManager.get(world);
         NpcStressManager stress=NpcStressManager.get(world);
         MemoryManager memories=MemoryManager.get(world.getServer());
