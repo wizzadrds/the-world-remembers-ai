@@ -145,6 +145,30 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
         });
     }
 
+    @GameTest
+    public void liveProtectorFollowsFamilyMember(GameTestHelper context) {
+        Villager protector = context.spawn(EntityTypes.VILLAGER, 1, 1, 1);
+        Villager child = context.spawn(EntityTypes.VILLAGER, 8, 1, 1);
+        child.setBaby(true);
+
+        context.runAtTickTime(1, () -> {
+            FamilyManager families = FamilyManager.get(context.getLevel().getServer());
+            families.addParentChild(protector.getUUID(), child.getUUID());
+
+            TheWorldRemembers.processWorld(context.getLevel());
+            double before = protector.distanceToSqr(child);
+
+            context.runAtTickTime(20, () -> {
+                double after = protector.distanceToSqr(child);
+                if (after >= before) {
+                    context.fail("Family protector did not move toward the protected child");
+                    return;
+                }
+                context.succeed();
+            });
+        });
+    }
+
     @Override
     public void invokeTestMethod(GameTestHelper context, Method method) throws ReflectiveOperationException {
         method.invoke(this, context);
