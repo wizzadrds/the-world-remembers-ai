@@ -217,6 +217,7 @@ public class TheWorldRemembers implements ModInitializer {
             .map(r -> r.npcId().equals(villager.getUUID()) ? r.relatedNpcId() : r.npcId()).distinct().toList();
         for(java.util.UUID id : related) {
             memories.rememberEvent(id, villager.getUUID(), MemoryEventType.NPC_DIED, world.getGameTime(), MemoryImportance.IMPORTANT);
+            VillageManager vm=VillageManager.get(world.getServer()); for(var vs:vm.all()) if(vs.center().distSqr(villager.blockPosition())<=32*32) { VillageEventManager.get(world.getServer()).record(vs.villageId(),new VillageEvent("npc_died",world.getGameTime(),villager.getUUID(),villager.blockPosition())); break; }
             memories.rememberEvent(id, villager.getUUID(), MemoryEventType.NPC_FAMILY_LOST, world.getGameTime(), MemoryImportance.IMPORTANT);
         }
         java.util.UUID heir = families.childrenOf(villager.getUUID()).stream().findFirst()
