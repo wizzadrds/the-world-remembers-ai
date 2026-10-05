@@ -46,6 +46,9 @@ The project follows a staged implementation plan. Features are documented before
 - [ ] Persistent home assignment and access rules
 - [ ] Home intrusion detection and consequences
 - [ ] Home storage links
+- [x] Persistent home data model
+- [x] Persistent stress data model
+- [x] Travel state model
 - [ ] Interruptions and priority
 - [ ] Contextual animations
 - [x] NPC inventory and real item state
