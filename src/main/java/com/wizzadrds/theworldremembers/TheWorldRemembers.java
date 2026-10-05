@@ -26,6 +26,8 @@ import com.wizzadrds.theworldremembers.village.VillageLandmark;
 import com.wizzadrds.theworldremembers.village.VillageMigrationManager;
 import com.wizzadrds.theworldremembers.village.VillageEventManager;
 import com.wizzadrds.theworldremembers.village.VillageEvent;
+import com.wizzadrds.theworldremembers.village.VillageStorageManager;
+import com.wizzadrds.theworldremembers.village.VillageStorage;
 import com.wizzadrds.theworldremembers.village.VillageState;
 import net.minecraft.world.entity.animal.IronGolem;
 import net.minecraft.tags.PoiTypeTags;
@@ -91,8 +93,9 @@ public class TheWorldRemembers implements ModInitializer {
         VillageLandmarkManager landmarks=VillageLandmarkManager.get(world.getServer());
         VillageMigrationManager migrations=VillageMigrationManager.get(world.getServer());
         VillageEventManager villageEvents=VillageEventManager.get(world.getServer());
+        VillageStorageManager villageStorage=VillageStorageManager.get(world.getServer());
 
-        observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks, migrations, villageEvents);
+        observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks, migrations, villageEvents, villageStorage);
 
         for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),villager -> villager.isAlive()&&!villager.isRemoved())) {
             ages.assignIfAbsent(villager.getUUID(), villager.isBaby() ? NpcAgeGenerator.generateChildAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())) : NpcAgeGenerator.generateAdultAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())));
@@ -235,7 +238,7 @@ public class TheWorldRemembers implements ModInitializer {
             }
         }
     }
-    private static void observeVillages(ServerLevel world, VillageManager villages, VillageHistoryManager history, VillageResourceManager resources, VillageDefenseManager defense, VillageLandmarkManager landmarks, VillageMigrationManager migrations, VillageEventManager villageEvents) {
+    private static void observeVillages(ServerLevel world, VillageManager villages, VillageHistoryManager history, VillageResourceManager resources, VillageDefenseManager defense, VillageLandmarkManager landmarks, VillageMigrationManager migrations, VillageEventManager villageEvents, VillageStorageManager villageStorage) {
         java.util.Map<Long, java.util.List<Villager>> clusters = new java.util.HashMap<>();
         for (Villager v : world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),v -> v.isAlive()&&!v.isRemoved())) {
             long key=(((long)(v.blockPosition().getX()>>5))<<32)^((v.blockPosition().getZ()>>5)&0xffffffffL);
@@ -255,6 +258,15 @@ public class TheWorldRemembers implements ModInitializer {
                 migrations.record(villageId,previousCenter,center,world.getGameTime(),members.size());
                 villageEvents.record(villageId,new VillageEvent("migration",world.getGameTime(),null,center));
             }
+            int containers=0,occupied=0,capacity=0;
+            for(BlockPos p:BlockPos.betweenClosed(center.offset(-16,-4,-16),center.offset(16,8,16))){
+                var be=world.getBlockEntity(p);
+                if(be instanceof net.minecraft.world.Container container){
+                    containers++; capacity+=container.getContainerSize();
+                    for(int slot=0;slot<container.getContainerSize();slot++) if(!container.getItem(slot).isEmpty()) occupied++;
+                }
+            }
+            villageStorage.observe(villageId,new VillageStorage(containers,occupied,capacity));
             int food=members.stream().mapToInt(v->v.getInventory().countItem(Items.BREAD)).sum();
             resources.observe(villageId,new VillageResources(food,0,0,Math.max(1,members.size()*8)));
             int golems=world.getEntitiesOfClass(IronGolem.class,new net.minecraft.world.phys.AABB(center).inflate(32),g->g.isAlive()).size();
