@@ -6,6 +6,7 @@ import com.wizzadrds.theworldremembers.age.NpcAgeManager;
 import com.wizzadrds.theworldremembers.family.FamilyCourtshipManager;
 import com.wizzadrds.theworldremembers.family.FamilyManager;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
+import com.wizzadrds.theworldremembers.inventory.NpcInventoryManager;
 import com.wizzadrds.theworldremembers.memory.*;
 import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
 import com.wizzadrds.theworldremembers.relationship.*;
@@ -131,11 +132,22 @@ public class TheWorldRemembers implements ModInitializer {
     }
     private static void handleDeath(LivingEntity entity, net.minecraft.world.damagesource.DamageSource damageSource) {
         if (!(entity instanceof Villager villager) || !(entity.level() instanceof ServerLevel world)) return;
-        var families=com.wizzadrds.theworldremembers.family.FamilyManager.get(world.getServer());
+        var families=FamilyManager.get(world.getServer());
         var memories=MemoryManager.get(world.getServer());
-        for(java.util.UUID related : families.getRelations(villager.getUUID()).stream().map(r -> r.npcId().equals(villager.getUUID()) ? r.relatedNpcId() : r.npcId()).distinct().toList()) {
-            memories.rememberEvent(related, villager.getUUID(), MemoryEventType.NPC_DIED, world.getGameTime(), MemoryImportance.IMPORTANT);
-            memories.rememberEvent(related, villager.getUUID(), MemoryEventType.NPC_FAMILY_LOST, world.getGameTime(), MemoryImportance.IMPORTANT);
+        var inventories=NpcInventoryManager.get(world.getServer());
+        java.util.List<java.util.UUID> related = families.getRelations(villager.getUUID()).stream()
+            .map(r -> r.npcId().equals(villager.getUUID()) ? r.relatedNpcId() : r.npcId()).distinct().toList();
+        for(java.util.UUID id : related) {
+            memories.rememberEvent(id, villager.getUUID(), MemoryEventType.NPC_DIED, world.getGameTime(), MemoryImportance.IMPORTANT);
+            memories.rememberEvent(id, villager.getUUID(), MemoryEventType.NPC_FAMILY_LOST, world.getGameTime(), MemoryImportance.IMPORTANT);
+        }
+        java.util.UUID heir = families.childrenOf(villager.getUUID()).stream().findFirst()
+            .orElseGet(() -> related.stream().filter(id -> families.hasSpouse(id)).findFirst().orElse(null));
+        if (heir != null) {
+            int inherited = inventories.inheritImportantItems(villager.getUUID(), heir);
+            if (inherited > 0) {
+                memories.rememberEvent(heir, villager.getUUID(), MemoryEventType.NPC_INHERITED_ITEM, world.getGameTime(), MemoryImportance.HISTORICAL);
+            }
         }
     }
     private static boolean hasRecentIntrusion(MemoryManager memories,Villager villager,ServerPlayer player,long gameTime){
