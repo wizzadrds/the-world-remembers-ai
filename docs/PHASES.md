@@ -44,6 +44,8 @@ The project follows a staged implementation plan. Features are documented before
 - [ ] Travel distance awareness
 - [ ] Stress and fatigue affecting decisions
 - [ ] Persistent home assignment and access rules
+- [ ] Home intrusion detection and consequences
+- [ ] Home storage links
 - [ ] Interruptions and priority
 - [ ] Contextual animations
 - [x] NPC inventory and real item state
@@ -53,6 +55,8 @@ The project follows a staged implementation plan. Features are documented before
 - [ ] Threat responses and calls for help
 - [ ] Role-aware behavior (farmer, merchant, warrior, guardian)
 - [ ] NPC equipment and armor synchronization
+- [x] NPC role/archetype model
+- [x] Voice temperament model foundation
 
 ## Phase 5 — Families & Generations
 - [ ] Persistent age
