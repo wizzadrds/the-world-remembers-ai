@@ -1,80 +1,28 @@
 package com.wizzadrds.theworldremembers.family;
 
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.PersistentState;
-
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public final class FamilyManager extends PersistentState {
-    private static final String KEY = "npcFamilies";
-    private final List<FamilyRelation> relations = new ArrayList<>();
-
-    public static FamilyManager get(ServerWorld world) {
-        return world.getPersistentStateManager().getOrCreate(
-                new Type<>(FamilyManager::new, FamilyManager::fromNbt, null), KEY);
-    }
-
-    public boolean add(FamilyRelation relation) {
-        if (relations.contains(relation)) return false;
-        relations.add(relation);
-        markDirty();
-        return true;
-    }
-
-    public boolean remove(FamilyRelation relation) {
-        boolean removed = relations.remove(relation);
-        if (removed) markDirty();
-        return removed;
-    }
-
-    public List<FamilyRelation> getRelations(UUID npcId) {
-        return relations.stream()
-                .filter(r -> r.npcId().equals(npcId) || r.relatedNpcId().equals(npcId))
-                .toList();
-    }
-
-    public boolean areRelated(UUID first, UUID second) {
-        return relations.stream().anyMatch(r ->
-                (r.npcId().equals(first) && r.relatedNpcId().equals(second))
-                        || (r.npcId().equals(second) && r.relatedNpcId().equals(first)));
-    }
-
-    @Override
-    public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
-        NbtList list = new NbtList();
-        for (FamilyRelation relation : relations) {
-            NbtCompound entry = new NbtCompound();
-            entry.putUuid("npc", relation.npcId());
-            entry.putUuid("related", relation.relatedNpcId());
-            entry.putString("type", relation.type().name());
-            list.add(entry);
-        }
-        nbt.put(KEY, list);
-        return nbt;
-    }
-
-    private static FamilyManager fromNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
-        FamilyManager manager = new FamilyManager();
-        if (!nbt.contains(KEY, NbtElement.LIST_TYPE)) return manager;
-        NbtList list = nbt.getList(KEY, NbtElement.COMPOUND_TYPE);
-        for (int i = 0; i < list.size(); i++) {
-            NbtCompound entry = list.getCompound(i);
-            try {
-                manager.relations.add(new FamilyRelation(
-                        entry.getUuid("npc"),
-                        entry.getUuid("related"),
-                        FamilyRelationType.valueOf(entry.getString("type"))
-                ));
-            } catch (IllegalArgumentException ignored) {
-                // Ignore one invalid relation instead of breaking the whole world.
-            }
-        }
-        return manager;
-    }
+public final class FamilyManager extends SavedData {
+    private final List<FamilyRelation> relations=new ArrayList<>();
+    private static final Codec<FamilyRelation> RELATION_CODEC=RecordCodecBuilder.create(i->i.group(
+        UUIDUtil.CODEC.fieldOf("npc").forGetter(FamilyRelation::npcId),
+        UUIDUtil.CODEC.fieldOf("related").forGetter(FamilyRelation::relatedNpcId),
+        Codec.STRING.xmap(FamilyRelationType::valueOf,FamilyRelationType::name).fieldOf("type").forGetter(FamilyRelation::type)
+    ).apply(i,FamilyRelation::new));
+    private static final Codec<FamilyManager> CODEC=RELATION_CODEC.listOf().xmap(list->{FamilyManager m=new FamilyManager();m.relations.addAll(list);return m;},m->m.relations);
+    private static final SavedDataType<FamilyManager> TYPE=new SavedDataType<>(net.minecraft.resources.Identifier.fromNamespaceAndPath("the_world_remembers","families"),FamilyManager::new,CODEC,null);
+    public static FamilyManager get(MinecraftServer server){ServerLevel l=server.getLevel(ServerLevel.OVERWORLD);return l==null?new FamilyManager():l.getDataStorage().computeIfAbsent(TYPE);}
+    public boolean add(FamilyRelation r){if(relations.contains(r))return false;relations.add(r);setDirty();return true;}
+    public boolean remove(FamilyRelation r){boolean x=relations.remove(r);if(x)setDirty();return x;}
+    public List<FamilyRelation> getRelations(UUID id){return relations.stream().filter(r->r.npcId().equals(id)||r.relatedNpcId().equals(id)).toList();}
+    public boolean areRelated(UUID a,UUID b){return relations.stream().anyMatch(r->(r.npcId().equals(a)&&r.relatedNpcId().equals(b))||(r.npcId().equals(b)&&r.relatedNpcId().equals(a)));}
 }
