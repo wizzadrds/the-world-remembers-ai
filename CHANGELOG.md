@@ -30,6 +30,13 @@
 
 ## Unreleased
 
+### Phase 4 — Behavior foundation
+- Added persistent NPC inventory state with item counts.
+- Added real inventory add/remove/count transaction primitives.
+- Expanded event vocabulary for item lifecycle, theft and guardian interactions.
+- Added surrender, resist and call-for-help behavior decisions for upcoming threat simulation.
+
+
 ### Project bootstrap
 - Added project vision and design principles.
 - Added roadmap from v0.1-alpha to v1.0.
