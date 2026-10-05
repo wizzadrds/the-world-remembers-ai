@@ -6,6 +6,9 @@ NPC equipment is persistent simulation state.
 
 - Items cannot appear from dialogue.
 - Equipping consumes an existing item.
+- NPCs have only one active main-hand item.
+- There is deliberately no off-hand equipment slot for villagers.
+- Villagers keep their classic crossed-arms visual when they are not actively using an item.
 - Unequipping returns the item to inventory.
 - Theft removes the item from its rightful owner/storage.
 - Breaking or losing an item creates a real event.
@@ -14,7 +17,7 @@ NPC equipment is persistent simulation state.
 
 ## Combat equipment
 
-Warriors can eventually use swords, axes, shields, bows/crossbows and armor pieces.
+Warriors can eventually use swords, axes, bows/crossbows and armor pieces.
 
 Equipment changes behavior. A well-equipped brave warrior may defend a friend, while a poorly equipped or frightened warrior may retreat and call for help.
 
