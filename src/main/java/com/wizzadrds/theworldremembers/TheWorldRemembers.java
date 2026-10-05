@@ -14,6 +14,9 @@ import com.wizzadrds.theworldremembers.behavior.NpcDecision;
 import com.wizzadrds.theworldremembers.stress.NpcStress;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
 import com.wizzadrds.theworldremembers.inventory.NpcInventoryManager;
+import com.wizzadrds.theworldremembers.inventory.NpcEquipmentManager;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.core.registries.BuiltInRegistries;
 import com.wizzadrds.theworldremembers.memory.*;
 import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
 import com.wizzadrds.theworldremembers.relationship.*;
@@ -91,6 +94,7 @@ public class TheWorldRemembers implements ModInitializer {
         NpcHomeManager homes=NpcHomeManager.get(world);
         NpcAgeManager ages=NpcAgeManager.get(world.getServer());
         NpcStressManager stress=NpcStressManager.get(world);
+        NpcEquipmentManager equipment=NpcEquipmentManager.get(world);
         MemoryManager memories=MemoryManager.get(world.getServer());
         RelationshipManager relationships=RelationshipManager.get(world.getServer());
         FamilyManager families=FamilyManager.get(world.getServer());
@@ -123,6 +127,7 @@ public class TheWorldRemembers implements ModInitializer {
             home=homes.get(villager.getUUID());
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress);
             updateLiveBehavior(world,villager,behaviorManager,behaviorState,home,stress);
+            equipment.sync(villager.getUUID(),BuiltInRegistries.ITEM.getKey(villager.getItemBySlot(EquipmentSlot.MAINHAND).getItem()).toString());
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
             for(ServerPlayer player:world.players()) {
                 if(player.blockPosition().distSqr(entrance)>HOME_RADIUS*HOME_RADIUS) continue;
@@ -288,7 +293,7 @@ public class TheWorldRemembers implements ModInitializer {
             for(var pos:world.getPoiManager().findAllWithType(type->type.is(PoiTypeTags.VILLAGE),pos->true,center,32,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).map(pair->pair.getSecond()).toList()) landmarks.add(villageId,new VillageLandmark("village_poi",pos,world.getGameTime()));
         }
     }
-    private static BlockPos findNearbyHomePoi(ServerLevel world, BlockPos pos){return world.getPoiManager().findClosest(type->type.is(net.minecraft.tags.PoiTypeTags.HOME),pos,16,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).orElse(null);}
+    private static BlockPos findNearbyHomePoi(ServerLevel world, BlockPos pos){return world.getPoiManager().findClosest(type->type.is(net.minecraft.world.entity.ai.village.poi.PoiTypes.HOME),pos,16,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).orElse(null);}
     private static BlockPos findNearbyDoor(ServerLevel world, BlockPos pos){BlockPos best=null;double d=257;for(BlockPos p:BlockPos.betweenClosed(pos.offset(-8,-2,-8),pos.offset(8,4,8)))if(world.getBlockState(p).is(net.minecraft.tags.BlockTags.DOORS)){double x=p.distSqr(pos);if(x<d){d=x;best=p.immutable();}}return best;}
     private static void updateLiveBehavior(ServerLevel world,Villager villager,NpcBehaviorManager manager,NpcBehaviorState state,NpcHome home,NpcStressManager stress){
         long tick=world.getGameTime();
