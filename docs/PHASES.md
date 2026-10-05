@@ -69,17 +69,17 @@ The project follows a staged implementation plan. Features are documented before
 - [x] Family relation integrity checks
 - [x] Birth/death/marriage/family-loss/inheritance event vocabulary
 - [x] Live villager age assignment
-- [ ] Parents, siblings, spouses and children in live NPCs
+- [x] Parents, siblings, spouses and children in live NPCs
 - [x] Live parent/child relation linking
 - [x] Live spouse/courtship linking
-- [ ] Live sibling formation
+- [x] Live sibling formation
 - [x] Birth and death family events (live)
 - [x] Generational memory propagation
 - [x] Inherited and important possessions
-- [ ] Family-aware home assignment
-- [ ] Family-aware behavior and protection
+- [x] Family-aware home assignment
+- [x] Family-aware behavior and protection
 
-## Phase 6 — Villages & Society
+**Status: COMPLETE — v0.5.0-alpha**\n\n## Phase 6 — Villages & Society
 - [ ] Village history
 - [ ] Population
 - [ ] Wealth and shortages
