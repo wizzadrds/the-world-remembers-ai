@@ -15,6 +15,10 @@ public record RelationshipDelta(
         return new RelationshipDelta(2, 8, 0, 1, 2, -1, -2);
     }
 
+    public static RelationshipDelta homeIntrusion() {
+        return new RelationshipDelta(-8, 0, 5, -2, -2, 12, 10);
+    }
+
     public static RelationshipDelta threatened() {
         return new RelationshipDelta(-10, 0, 15, -2, -2, 15, 10);
     }
@@ -34,6 +38,7 @@ public record RelationshipDelta(
     public static RelationshipDelta forEvent(MemoryEventType type) {
         return switch (type) {
             case PLAYER_GAVE_BREAD -> breadGift();
+            case PLAYER_ENTERED_NPC_HOME -> homeIntrusion();
             case PLAYER_THREATENED_NPC -> threatened();
             case PLAYER_ATTACKED_NPC -> attacked();
             case PLAYER_SAVED_NPC -> saved();
