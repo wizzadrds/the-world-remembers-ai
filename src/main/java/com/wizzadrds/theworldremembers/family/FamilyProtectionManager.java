@@ -35,4 +35,8 @@ public final class FamilyProtectionManager extends SavedData {
     public void clear(UUID familyMember) {
         if (protectors.remove(familyMember) != null) setDirty();
     }
+    public void clearProtector(UUID protector) {
+        boolean changed = protectors.entrySet().removeIf(entry -> entry.getValue().equals(protector));
+        if (changed) setDirty();
+    }
 }
