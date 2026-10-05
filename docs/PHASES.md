@@ -94,7 +94,7 @@ The project follows a staged implementation plan. Features are documented before
 - [x] Village-scale GameTests
 - [x] Population-scale performance validation
 
-**Status: IMPLEMENTED — pending final CI validation**
+**Status: FINAL CI VALIDATION IN PROGRESS**
 
 ## Phase 7 — Rumors & Conversations
 - [ ] Witness-based knowledge
