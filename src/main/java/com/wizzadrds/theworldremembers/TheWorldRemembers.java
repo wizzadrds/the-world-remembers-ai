@@ -25,6 +25,7 @@ import com.wizzadrds.theworldremembers.village.VillageLandmarkManager;
 import com.wizzadrds.theworldremembers.village.VillageLandmark;
 import com.wizzadrds.theworldremembers.village.VillageMigrationManager;
 import net.minecraft.world.entity.animal.IronGolem;
+import net.minecraft.tags.PoiTypeTags;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
@@ -254,7 +255,7 @@ public class TheWorldRemembers implements ModInitializer {
             int golems = 0;
             for (IronGolem golem : world.getEntitiesOfClass(IronGolem.class, new net.minecraft.world.phys.AABB(center).inflate(32), g -> g.isAlive())) golems++;
             defense.observe(villageId, new VillageDefense(golems, 0, 0));
-            for (var bell : world.getPoiManager().getInRange(type -> type.equals(net.minecraft.world.entity.ai.village.poi.PoiTypes.VILLAGE), center, 32, net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).toList()) landmarks.add(villageId, new VillageLandmark("village_poi", bell, world.getGameTime()));
+            for (var bell : world.getPoiManager().findAllWithType(type -> type.is(PoiTypeTags.VILLAGE), pos -> true, center, 32, net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).map(pair -> pair.getSecond()).toList()) landmarks.add(villageId, new VillageLandmark("village_poi", bell, world.getGameTime()));
         }
     }
 
