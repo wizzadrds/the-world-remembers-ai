@@ -17,6 +17,8 @@ import com.wizzadrds.theworldremembers.relationship.*;
 import com.wizzadrds.theworldremembers.stress.NpcStressManager;
 import com.wizzadrds.theworldremembers.village.VillageManager;
 import com.wizzadrds.theworldremembers.village.VillageHistoryManager;
+import com.wizzadrds.theworldremembers.village.VillageResourceManager;
+import com.wizzadrds.theworldremembers.village.VillageResources;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
@@ -74,8 +76,9 @@ public class TheWorldRemembers implements ModInitializer {
         FamilyProtectionManager protection=FamilyProtectionManager.get(world.getServer());
         VillageManager villages=VillageManager.get(world.getServer());
         VillageHistoryManager villageHistory=VillageHistoryManager.get(world.getServer());
+        VillageResourceManager villageResources=VillageResourceManager.get(world.getServer());
 
-        observeVillages(world, villages, villageHistory);
+        observeVillages(world, villages, villageHistory, villageResources);
 
         for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),villager -> villager.isAlive()&&!villager.isRemoved())) {
             ages.assignIfAbsent(villager.getUUID(), villager.isBaby() ? NpcAgeGenerator.generateChildAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())) : NpcAgeGenerator.generateAdultAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())));
@@ -217,7 +220,7 @@ public class TheWorldRemembers implements ModInitializer {
             }
         }
     }
-    private static void observeVillages(ServerLevel world, VillageManager villages, VillageHistoryManager history) {
+    private static void observeVillages(ServerLevel world, VillageManager villages, VillageHistoryManager history, VillageResourceManager resources) {
         java.util.Map<Long, java.util.List<Villager>> clusters = new java.util.HashMap<>();
         for (Villager v : world.getEntitiesOfClass(Villager.class,
                 new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),
@@ -235,6 +238,8 @@ public class TheWorldRemembers implements ModInitializer {
             java.util.UUID villageId = java.util.UUID.nameUUIDFromBytes(identity.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             villages.observe(villageId, center, members.size(), world.getGameTime());
             history.observe(villageId, members.size(), world.getGameTime());
+            int food = members.stream().mapToInt(v -> v.getInventory().countItem(Items.BREAD)).sum();
+            resources.observe(villageId, new VillageResources(food, 0, 0, Math.max(1, members.size() * 8)));
         }
     }
 
