@@ -39,6 +39,7 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Items;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.chat.Component;
@@ -107,8 +108,10 @@ public class TheWorldRemembers implements ModInitializer {
             if (!villager.isBaby()) maintainFamilyProtection(villager, families, protection);
             NpcHome home=homes.get(villager.getUUID());
             if(home==null) {
-                BlockPos pos=villager.blockPosition();
-                home=homes.assignIfAbsent(villager.getUUID(),pos,null,pos);
+                BlockPos pos=findNearestBed(world,villager.blockPosition(),16);
+                if(pos==null) pos=villager.blockPosition();
+                BlockPos entrance=pos;
+                home=homes.assignIfAbsent(villager.getUUID(),pos,pos,entrance);
             }
             synchronizeFamilyHome(villager, families, homes);
             home=homes.get(villager.getUUID());
@@ -278,6 +281,16 @@ public class TheWorldRemembers implements ModInitializer {
             for(var pos:world.getPoiManager().findAllWithType(type->type.is(PoiTypeTags.VILLAGE),pos->true,center,32,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).map(pair->pair.getSecond()).toList()) landmarks.add(villageId,new VillageLandmark("village_poi",pos,world.getGameTime()));
         }
     }
+    private static BlockPos findNearestBed(ServerLevel world, BlockPos center, int radius) {
+        BlockPos best=null; double bestDistance=Double.MAX_VALUE;
+        for(BlockPos p:BlockPos.betweenClosed(center.offset(-radius,-4,-radius),center.offset(radius,4,radius))) {
+            if(world.getBlockState(p).is(BlockTags.BEDS)) {
+                double d=p.distSqr(center); if(d<bestDistance){bestDistance=d;best=p.immutable();}
+            }
+        }
+        return best;
+    }
+
     private static boolean hasRecentIntrusion(MemoryManager memories,Villager villager,ServerPlayer player,long gameTime){
         return memories.findMostRecentMemory(villager.getUUID(),player.getUUID(),MemoryEventType.PLAYER_ENTERED_NPC_HOME).map(m->gameTime-m.gameTime()<INTRUSION_COOLDOWN).orElse(false);
     }
