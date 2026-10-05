@@ -4,8 +4,16 @@ import com.wizzadrds.theworldremembers.personality.PersonalityProfile;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
 import com.wizzadrds.theworldremembers.relationship.Relationship;
 import com.wizzadrds.theworldremembers.stress.NpcStress;
+import com.wizzadrds.theworldremembers.family.FamilyProtectionManager;
 
 public final class NpcBehaviorEngine {
+    public NpcDecision decideFamilyResponse(boolean protectingFamily, boolean dangerPresent, NpcStress stress) {
+        if (!protectingFamily) return NpcDecision.IGNORE_PLAYER;
+        if (dangerPresent) return NpcDecision.CALL_FOR_HELP;
+        if (stress.isCritical()) return NpcDecision.RETURN_HOME;
+        return NpcDecision.FOLLOW;
+    }
+
     public NpcDecision decide(NpcActivity activity,
                               Relationship relationship,
                               PersonalityProfile personality) {
