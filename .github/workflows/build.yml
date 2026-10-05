@@ -17,10 +17,8 @@ jobs:
           java-version: '25'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-      - name: Make Gradle executable
-        run: chmod +x ./gradlew
       - name: Compile and test
-        run: ./gradlew build
+        run: gradle build
       - name: Prepare server EULA
         run: |
           mkdir -p run
@@ -30,7 +28,7 @@ jobs:
         run: |
           set -e
           rm -f server.log
-          ./gradlew runServer > server.log 2>&1 &
+          gradle runServer > server.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
           for i in {1..120}; do
