@@ -3,6 +3,9 @@ package com.wizzadrds.theworldremembers;
 import com.wizzadrds.theworldremembers.home.*;
 import com.wizzadrds.theworldremembers.age.NpcAgeGenerator;
 import com.wizzadrds.theworldremembers.age.NpcAgeManager;
+import com.wizzadrds.theworldremembers.family.FamilyCourtshipManager;
+import com.wizzadrds.theworldremembers.family.FamilyManager;
+import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
 import com.wizzadrds.theworldremembers.memory.*;
 import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
 import com.wizzadrds.theworldremembers.relationship.*;
@@ -59,11 +62,13 @@ public class TheWorldRemembers implements ModInitializer {
         NpcStressManager stress=NpcStressManager.get(world);
         MemoryManager memories=MemoryManager.get(world.getServer());
         RelationshipManager relationships=RelationshipManager.get(world.getServer());
-        com.wizzadrds.theworldremembers.family.FamilyManager families=com.wizzadrds.theworldremembers.family.FamilyManager.get(world.getServer());
+        FamilyManager families=FamilyManager.get(world.getServer());
+        FamilyCourtshipManager courtship=FamilyCourtshipManager.get(world.getServer());
 
         for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),villager -> villager.isAlive()&&!villager.isRemoved())) {
             ages.assignIfAbsent(villager.getUUID(), villager.isBaby() ? NpcAgeGenerator.generateChildAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())) : NpcAgeGenerator.generateAdultAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())));
             if (villager.isBaby() && !families.hasParents(villager.getUUID())) linkBabyToNearbyParents(world, villager, families, memories);
+            if (!villager.isBaby() && ages.get(villager.getUUID()).isAdult() && !families.hasSpouse(villager.getUUID())) processCourtship(world, villager, families, courtship, memories, ages);
             NpcHome home=homes.get(villager.getUUID());
             if(home==null) {
                 BlockPos pos=villager.blockPosition();
@@ -93,6 +98,34 @@ public class TheWorldRemembers implements ModInitializer {
             memories.rememberEvent(child.getUUID(), adults.get(0).getUUID(), MemoryEventType.NPC_BORN, time, MemoryImportance.IMPORTANT);
             memories.rememberEvent(child.getUUID(), adults.get(1).getUUID(), MemoryEventType.NPC_BORN, time, MemoryImportance.IMPORTANT);
         }
+    }
+    private static void processCourtship(ServerLevel world, Villager villager, FamilyManager families, FamilyCourtshipManager courtship, MemoryManager memories, NpcAgeManager ages) {
+        java.util.List<Villager> candidates = world.getEntitiesOfClass(Villager.class, villager.getBoundingBox().inflate(4),
+            other -> other.isAlive() && !other.isBaby() && !other.getUUID().equals(villager.getUUID())
+                && ages.get(other.getUUID()) != null && ages.get(other.getUUID()).isAdult()
+                && !families.hasSpouse(other.getUUID()) && !families.areRelated(villager.getUUID(), other.getUUID())
+                && marriageCompatible(villager, other, ages));
+        if (candidates.isEmpty()) return;
+        Villager partner = candidates.stream().min(java.util.Comparator.comparingDouble(villager::distanceToSqr)).orElse(null);
+        if (partner == null || villager.getUUID().compareTo(partner.getUUID()) > 0) return;
+        int progress = courtship.advance(villager.getUUID(), partner.getUUID(), TICK_INTERVAL);
+        if (progress < 1200) return;
+        if (!families.addSpouses(villager.getUUID(), partner.getUUID())) { courtship.clear(villager.getUUID(), partner.getUUID()); return; }
+        long time = world.getGameTime();
+        memories.rememberEvent(villager.getUUID(), partner.getUUID(), MemoryEventType.NPC_MARRIED, time, MemoryImportance.IMPORTANT);
+        memories.rememberEvent(partner.getUUID(), villager.getUUID(), MemoryEventType.NPC_MARRIED, time, MemoryImportance.IMPORTANT);
+        courtship.clear(villager.getUUID(), partner.getUUID());
+    }
+
+    private static boolean marriageCompatible(Villager first, Villager second, NpcAgeManager ages) {
+        var firstAge = ages.get(first.getUUID());
+        var secondAge = ages.get(second.getUUID());
+        if (firstAge == null || secondAge == null || Math.abs(firstAge.years() - secondAge.years()) > 12) return false;
+        var firstPersonality = PersonalityGenerator.generate(first.getUUID());
+        var secondPersonality = PersonalityGenerator.generate(second.getUUID());
+        boolean firstInterested = firstPersonality.strength(PersonalityTrait.SOCIAL) >= 50 || firstPersonality.strength(PersonalityTrait.FAMILY_ORIENTED) >= 50;
+        boolean secondInterested = secondPersonality.strength(PersonalityTrait.SOCIAL) >= 50 || secondPersonality.strength(PersonalityTrait.FAMILY_ORIENTED) >= 50;
+        return firstInterested && secondInterested;
     }
     private static void handleDeath(LivingEntity entity, net.minecraft.world.damagesource.DamageSource damageSource) {
         if (!(entity instanceof Villager villager) || !(entity.level() instanceof ServerLevel world)) return;

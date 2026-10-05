@@ -89,6 +89,34 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
         });
     }
 
+    @GameTest
+    public void liveVillagersCanFormPersistentMarriage(GameTestHelper context) {
+        Villager first = context.spawn(EntityTypes.VILLAGER, 2, 1, 2);
+        Villager second = context.spawn(EntityTypes.VILLAGER, 3, 1, 2);
+        first.setUUID(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+        second.setUUID(UUID.fromString("00000000-0000-0000-0000-000000000002"));
+        NpcAgeManager ages = NpcAgeManager.get(context.getLevel().getServer());
+        ages.assignIfAbsent(first.getUUID(), 24);
+        ages.assignIfAbsent(second.getUUID(), 26);
+
+        context.runAtTickTime(1, () -> {
+            for (int i = 0; i < 60; i++) {
+                TheWorldRemembers.processWorld(context.getLevel());
+            }
+            FamilyManager families = FamilyManager.get(context.getLevel().getServer());
+            if (!families.hasSpouse(first.getUUID()) || !families.hasSpouse(second.getUUID())) {
+                context.fail("Compatible adult villagers did not form a persistent spouse relation");
+                return;
+            }
+            if (MemoryManager.get(context.getLevel().getServer())
+                    .findMostRecentMemory(first.getUUID(), second.getUUID(), MemoryEventType.NPC_MARRIED).isEmpty()) {
+                context.fail("Marriage memory was not recorded for the first spouse");
+                return;
+            }
+            context.succeed();
+        });
+    }
+
     @Override
     public void invokeTestMethod(GameTestHelper context, Method method) throws ReflectiveOperationException {
         method.invoke(this, context);
