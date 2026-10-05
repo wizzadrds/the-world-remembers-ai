@@ -38,6 +38,7 @@ public record RelationshipDelta(
             case PLAYER_ATTACKED_NPC -> attacked();
             case PLAYER_SAVED_NPC -> saved();
             case GOLEM_KILLED -> golemKilled();
+            default -> new RelationshipDelta(0, 0, 0, 0, 0, 0, 0);
         };
     }
 }
