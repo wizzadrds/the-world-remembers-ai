@@ -29,13 +29,13 @@ public class TheWorldRemembers implements ModInitializer {
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             if (world.isClientSide() || !(player instanceof ServerPlayer serverPlayer) || !(entity instanceof Villager villager)) return InteractionResult.PASS;
             if (!serverPlayer.getItemInHand(hand).is(Items.BREAD)) return InteractionResult.PASS;
-            MemoryManager memories=MemoryManager.get(serverPlayer.getServer());
+            MemoryManager memories=MemoryManager.get(serverPlayer.level().getServer());
             if (memories.findMostRecentMemory(villager.getUUID(),serverPlayer.getUUID(),MemoryEventType.PLAYER_GAVE_BREAD).isPresent()) {
                 serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" remembers you: you gave me bread."));
                 return InteractionResult.PASS;
             }
             Memory memory=memories.rememberBreadGift(serverPlayer,villager);
-            RelationshipManager.get(serverPlayer.server).apply(new MemoryEvent(memory.npcId(),memory.playerId(),memory.type(),memory.gameTime(),memory.importance()));
+            RelationshipManager.get(serverPlayer.level().getServer()).apply(new MemoryEvent(memory.npcId(),memory.playerId(),memory.type(),memory.gameTime(),memory.importance()));
             serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" will remember this."));
             return InteractionResult.PASS;
         });
