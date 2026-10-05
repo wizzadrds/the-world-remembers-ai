@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.village; public record VillageStorage(int containers,int occupiedSlots,int capacitySlots){public VillageStorage{if(containers<0||occupiedSlots<0||capacitySlots<0||occupiedSlots>capacitySlots)throw new IllegalArgumentException();} public int freeSlots(){return capacitySlots-occupiedSlots;}}
