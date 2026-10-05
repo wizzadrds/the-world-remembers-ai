@@ -8,6 +8,9 @@ import com.wizzadrds.theworldremembers.family.FamilyManager;
 import com.wizzadrds.theworldremembers.family.FamilyProtectionManager;
 import com.wizzadrds.theworldremembers.behavior.NpcBehaviorEngine;
 import com.wizzadrds.theworldremembers.behavior.NpcDecision;
+import com.wizzadrds.theworldremembers.behavior.NpcActivity;
+import com.wizzadrds.theworldremembers.behavior.NpcBehaviorManager;
+import com.wizzadrds.theworldremembers.equipment.NpcEquipmentManager;
 import com.wizzadrds.theworldremembers.stress.NpcStress;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
 import com.wizzadrds.theworldremembers.inventory.NpcInventoryManager;
@@ -82,6 +85,8 @@ public class TheWorldRemembers implements ModInitializer {
         NpcHomeManager homes=NpcHomeManager.get(world);
         NpcAgeManager ages=NpcAgeManager.get(world.getServer());
         NpcStressManager stress=NpcStressManager.get(world);
+        NpcBehaviorManager behaviorStates=NpcBehaviorManager.get(world.getServer());
+        NpcEquipmentManager equipment=NpcEquipmentManager.get(world.getServer());
         MemoryManager memories=MemoryManager.get(world.getServer());
         RelationshipManager relationships=RelationshipManager.get(world.getServer());
         FamilyManager families=FamilyManager.get(world.getServer());
@@ -111,6 +116,7 @@ public class TheWorldRemembers implements ModInitializer {
             synchronizeFamilyHome(villager, families, homes);
             home=homes.get(villager.getUUID());
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress);
+            updateLiveBehavior(world, villager, homes, stress, relationships, behaviorStates, equipment);
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
             for(ServerPlayer player:world.players()) {
                 if(player.blockPosition().distSqr(entrance)>HOME_RADIUS*HOME_RADIUS) continue;
@@ -133,6 +139,30 @@ public class TheWorldRemembers implements ModInitializer {
             synchronizeFamilyHome(villager, families, homes);
         }
     }
+    private static void updateLiveBehavior(ServerLevel world, Villager villager, NpcHomeManager homes, NpcStressManager stress, RelationshipManager relationships, NpcBehaviorManager states, NpcEquipmentManager equipment) {
+        var relationship = world.players().stream().filter(p -> p.blockPosition().distSqr(villager.blockPosition()) <= 10*10)
+            .map(p -> relationships.get(villager.getUUID(),p.getUUID())).filter(java.util.Objects::nonNull).findFirst().orElse(null);
+        NpcActivity activity = world.isNightTime() ? NpcActivity.SLEEPING : NpcActivity.WORKING;
+        NpcDecision decision = relationship == null ? NpcDecision.IGNORE_PLAYER :
+            new NpcBehaviorEngine().decide(activity, relationship, PersonalityGenerator.generate(villager.getUUID()), new NpcStress(stress.value(villager.getUUID())));
+        int fatigue = states.get(villager.getUUID()) == null ? 0 : states.get(villager.getUUID()).fatigue();
+        if(decision == NpcDecision.FOLLOW) {
+            var player=world.players().stream().filter(p->p.blockPosition().distSqr(villager.blockPosition())<=10*10)
+                .min(java.util.Comparator.comparingDouble(villager::distanceToSqr)).orElse(null);
+            if(player!=null && activity.interruptible()){villager.getNavigation().moveTo(player,1.0);activity=NpcActivity.FOLLOWING_PLAYER;fatigue=Math.min(100,fatigue+1);}
+        } else if(decision == NpcDecision.LEAVE) {
+            var player=world.players().stream().filter(p->p.blockPosition().distSqr(villager.blockPosition())<=12*12)
+                .min(java.util.Comparator.comparingDouble(villager::distanceToSqr)).orElse(null);
+            if(player!=null && activity.interruptible()){var away=villager.position().subtract(player.position()).normalize();villager.getNavigation().moveTo(villager.getX()+away.x*12,villager.getY(),villager.getZ()+away.z*12,1.1);activity=NpcActivity.WALKING;}
+        } else if(decision == NpcDecision.RETURN_HOME) {
+            var home=homes.get(villager.getUUID()); if(home!=null){villager.getNavigation().moveTo(home.homePos().getX(),home.homePos().getY(),home.homePos().getZ(),1.0);activity=NpcActivity.TRAVELLING;}
+        }
+        var home=homes.get(villager.getUUID());
+        if(home!=null && villager.blockPosition().distSqr(home.homePos())<=16) fatigue=Math.max(0,fatigue-2); else if(activity==NpcActivity.TRAVELLING||activity==NpcActivity.FOLLOWING_PLAYER) fatigue=Math.min(100,fatigue+1);
+        var stack=villager.getMainHandItem(); if(!stack.isEmpty()) equipment.observeMainHand(villager.getUUID(),net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
+        states.observe(villager.getUUID(),activity,null,world.getGameTime(),fatigue);
+    }
+
     private static void maintainFamilyProtection(Villager villager, FamilyManager families, FamilyProtectionManager protection) {
         for (java.util.UUID child : families.childrenOf(villager.getUUID())) {
             if (protection.protectorOf(child) == null) protection.protect(villager.getUUID(), child);
