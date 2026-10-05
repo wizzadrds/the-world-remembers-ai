@@ -10,6 +10,7 @@ import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.level.block.Blocks;
+import java.util.UUID;
 
 public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker {
     @GameTest
@@ -24,9 +25,7 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
             return;
         }
 
-        var first = PersonalityGenerator.generate(context.getLevel().getRandom().nextLong() == Long.MIN_VALUE
-                ? java.util.UUID.randomUUID()
-                : java.util.UUID.randomUUID());
+        var first = PersonalityGenerator.generate(UUID.fromString("00000000-0000-0000-0000-000000000001"));
         if (first.strength(PersonalityTrait.SOCIAL) < -100
                 || first.strength(PersonalityTrait.SOCIAL) > 100) {
             context.fail("Generated personality escaped valid bounds");
