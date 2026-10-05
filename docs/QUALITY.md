@@ -65,7 +65,7 @@ A pull-request CI run must pass `gradle build` and the headless Fabric server sm
 - [x] Real village POIs are persisted as landmarks.
 - [x] Settlement movement preserves village identity and records migration.
 - [x] Dedicated GameTests cover history, resources, defense, landmarks, storage, migration and events.
-- [ ] Population-scale performance validation is green in CI.
+- [x] Population-scale performance validation is green in CI.
 
 Phase 6 is not marked complete until the final pull-request CI run passes both gradle build and the headless Fabric server smoke test.
 
