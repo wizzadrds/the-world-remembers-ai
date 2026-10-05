@@ -1,6 +1,7 @@
 package com.wizzadrds.theworldremembers;
 
 import com.wizzadrds.theworldremembers.memory.MemoryManager;
+import com.wizzadrds.theworldremembers.relationship.RelationshipManager;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.entity.passive.VillagerEntity;
@@ -27,19 +28,30 @@ public class TheWorldRemembers implements ModInitializer {
             MemoryManager memories = MemoryManager.get(serverPlayer.getServer());
 
             if (held.isOf(Items.BREAD)) {
-                memories.rememberBreadGift(serverPlayer, villager);
-            }
+                var previous = memories.findMostRecentMemory(villager.getUuid(), serverPlayer.getUuid());
 
-            var previous = memories.findMostRecentMemory(villager.getUuid(), serverPlayer.getUuid());
-            if (previous.isPresent()) {
-                serverPlayer.sendMessage(
-                        Text.literal(villager.getName().getString()
-                                + " remembers you: " + previous.get().summary()),
-                        false
-                );
+                if (previous.isPresent()) {
+                    serverPlayer.sendMessage(
+                            Text.literal(villager.getName().getString()
+                                    + " remembers you: " + previous.get().summary()),
+                            false
+                    );
+                } else {
+                    var memory = memories.rememberBreadGift(serverPlayer, villager);
+                    RelationshipManager.get(serverPlayer.getServer()).apply(
+                            new com.wizzadrds.theworldremembers.memory.MemoryEvent(
+                                    memory.npcId(), memory.playerId(), memory.type(),
+                                    memory.gameTime(), memory.importance()
+                            )
+                    );
+                    serverPlayer.sendMessage(
+                            Text.literal(villager.getName().getString() + " will remember this."),
+                            false
+                    );
+                }
             }
             return ActionResult.PASS;
         });
-        LOGGER.info("The World Remembers v0.1.0-alpha initialized.");
+        LOGGER.info("The World Remembers v0.2.0-alpha initialized.");
     }
 }
