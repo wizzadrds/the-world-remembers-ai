@@ -35,7 +35,12 @@ public final class FamilyManager extends SavedData {
     private boolean hasConflictingPair(UUID a, UUID b, FamilyRelationType type) {
         return relations.stream().anyMatch(existing ->
             ((existing.npcId().equals(a) && existing.relatedNpcId().equals(b)) ||
-             (existing.npcId().equals(b) && existing.relatedNpcId().equals(a))) && existing.type() != type);
+             (existing.npcId().equals(b) && existing.relatedNpcId().equals(a))) && !compatible(existing.type(), type));
+    }
+    private boolean compatible(FamilyRelationType existing, FamilyRelationType incoming) {
+        return existing == incoming ||
+            (existing == FamilyRelationType.PARENT && incoming == FamilyRelationType.CHILD) ||
+            (existing == FamilyRelationType.CHILD && incoming == FamilyRelationType.PARENT);
     }
     public List<FamilyRelation> getRelations(UUID id){return relations.stream().filter(r->r.npcId().equals(id)||r.relatedNpcId().equals(id)).toList();}
     public boolean areRelated(UUID a,UUID b){return relations.stream().anyMatch(r->(r.npcId().equals(a)&&r.relatedNpcId().equals(b))||(r.npcId().equals(b)&&r.relatedNpcId().equals(a)));}
