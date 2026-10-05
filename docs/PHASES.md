@@ -92,9 +92,11 @@ The project follows a staged implementation plan. Features are documented before
 - [x] Important buildings and landmarks
 - [x] Iron golems as social guardians
 - [x] Village-scale GameTests
-- [ ] Population-scale performance validation
+- [x] Population-scale performance validation
 
-**Phase 6 implementation complete; final CI/performance acceptance pending.**
+**[Phase 6 complete]**
+
+**Status: COMPLETE — v0.6.0-alpha**
 
 ## Phase 7 — Rumors & Conversations
 - [ ] Witness-based knowledge
