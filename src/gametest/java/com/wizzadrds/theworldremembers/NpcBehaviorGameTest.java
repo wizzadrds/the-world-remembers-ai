@@ -1,0 +1,3 @@
+package com.wizzadrds.theworldremembers;
+import com.wizzadrds.theworldremembers.behavior.*; import net.fabricmc.fabric.api.gametest.v1.GameTest; import net.minecraft.gametest.framework.GameTestHelper; import net.minecraft.world.entity.EntityTypes;
+public final class NpcBehaviorGameTest { @GameTest public void activityStatePersists(GameTestHelper c){var v=c.spawn(EntityTypes.VILLAGER,2,1,2);c.runAtTickTime(1,()->{var m=NpcActivityManager.get(c.getLevel().getServer());m.set(v.getUUID(),NpcActivity.FOLLOWING_PLAYER,null);if(m.get(v.getUUID()).activity()!=NpcActivity.FOLLOWING_PLAYER){c.fail("Activity state was not persisted");return;}c.succeed();});}}
