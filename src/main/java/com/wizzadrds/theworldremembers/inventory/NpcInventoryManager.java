@@ -6,6 +6,8 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
+import net.minecraft.world.entity.npc.villager.Villager;
+import net.minecraft.core.registries.BuiltInRegistries;
 import java.util.*;
 
 public final class NpcInventoryManager extends SavedData {
@@ -18,6 +20,19 @@ public final class NpcInventoryManager extends SavedData {
     public void transferIn(UUID id,String item,int count){getOrCreate(id).add(item,count);setDirty();}
     public int transferOut(UUID id,String item,int count){boolean removed=getOrCreate(id).remove(item,count);if(removed)setDirty();return removed?count:0;}
     public int count(UUID id,String item){return getOrCreate(id).count(item);}
+    public void synchronizeFromVillager(Villager villager) {
+        NpcInventory target=new NpcInventory();
+        var inventory=villager.getInventory();
+        for(int slot=0;slot<inventory.getContainerSize();slot++) {
+            var stack=inventory.getItem(slot);
+            if(stack.isEmpty()) continue;
+            String id=BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+            target.add(id,stack.getCount());
+        }
+        inventories.put(villager.getUUID(),target);
+        setDirty();
+    }
+
     public int inheritImportantItems(UUID from, UUID to) {
         NpcInventory source = getOrCreate(from);
         NpcInventory target = getOrCreate(to);

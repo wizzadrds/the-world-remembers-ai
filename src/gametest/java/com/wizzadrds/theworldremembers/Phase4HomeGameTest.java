@@ -1,0 +1,3 @@
+package com.wizzadrds.theworldremembers;
+import com.wizzadrds.theworldremembers.home.*; import net.fabricmc.fabric.api.gametest.v1.GameTest; import net.minecraft.gametest.framework.GameTestHelper; import net.minecraft.world.entity.EntityTypes; import net.minecraft.world.level.block.Blocks;
+public final class Phase4HomeGameTest { @GameTest public void homeUsesRealBed(GameTestHelper c){c.setBlock(3,1,3,Blocks.RED_BED);var v=c.spawn(EntityTypes.VILLAGER,4,1,4);c.runAtTickTime(1,()->{TheWorldRemembers.processWorld(c.getLevel());var h=NpcHomeManager.get(c.getLevel()).get(v.getUUID());if(h==null||h.bedPos()==null){c.fail("Home was not linked to a real bed");return;}c.succeed();});}}
