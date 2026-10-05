@@ -17,6 +17,7 @@ dependencies {
     implementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
     testImplementation platform("org.junit:junit-bom:6.0.0")
     testImplementation "org.junit.jupiter:junit-jupiter"
+    testImplementation "net.fabricmc:fabric-loader-junit:${loader_version}"
 }
 
 processResources {
@@ -36,4 +37,14 @@ java {
 
 tasks.named("test") {
     useJUnitPlatform()
+}
+
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = "${archives_base_name}-gametest"
+        enableGameTests = true
+        enableClientGameTests = true
+        eula = true
+    }
 }
