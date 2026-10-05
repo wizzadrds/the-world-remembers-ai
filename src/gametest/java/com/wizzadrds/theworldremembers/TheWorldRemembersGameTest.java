@@ -9,6 +9,7 @@ import com.wizzadrds.theworldremembers.family.FamilyManager;
 import com.wizzadrds.theworldremembers.family.FamilyRelation;
 import com.wizzadrds.theworldremembers.family.FamilyRelationType;
 import com.wizzadrds.theworldremembers.memory.MemoryEventType;
+import com.wizzadrds.theworldremembers.memory.MemoryManager;
 import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
 import net.fabricmc.fabric.api.gametest.v1.CustomTestMethodInvoker;
@@ -65,6 +66,24 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
         if (!families.areRelated(parent, child)) { context.fail("Family relation cannot be queried"); return; }
         if (families.getRelations(parent).size() != 2) { context.fail("Symmetric family relation was not persisted"); return; }
         context.succeed();
+    }
+
+    @GameTest
+    public void liveFamilyLinksAndDeathMemory(GameTestHelper context) {
+        Villager parentA = context.spawn(EntityTypes.VILLAGER, 2, 1, 2);
+        Villager parentB = context.spawn(EntityTypes.VILLAGER, 4, 1, 2);
+        Villager child = context.spawn(EntityTypes.VILLAGER, 3, 1, 3);
+        child.setBaby(true);
+        context.runAtTickTime(1, () -> {
+            TheWorldRemembers.processWorld(context.getLevel());
+            FamilyManager families=FamilyManager.get(context.getLevel().getServer());
+            if (families.parentsOf(child.getUUID()).size()!=2) { context.fail("Live baby was not linked to exactly two nearby parents"); return; }
+            parentA.kill();
+            context.runAtTickTime(1, () -> {
+                if (MemoryManager.get(context.getLevel().getServer()).findMostRecentMemory(child.getUUID(), parentA.getUUID(), MemoryEventType.NPC_DIED).isEmpty()) { context.fail("Family member did not remember death"); return; }
+                context.succeed();
+            });
+        });
     }
 
     @Override
