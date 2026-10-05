@@ -10,7 +10,7 @@ import net.fabricmc.fabric.api.gametest.v1.CustomTestMethodInvoker;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.level.block.Blocks;
 import java.util.UUID;
@@ -39,11 +39,11 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
         context.succeed();
     }
 
-    @GameTest(timeoutTicks = 60)
+    @GameTest
     public void villagerReceivesPersistentHome(GameTestHelper context) {
-        Villager villager = context.spawn(EntityType.VILLAGER, 2, 1, 2);
+        Villager villager = context.spawn(EntityTypes.VILLAGER, 2, 1, 2);
         context.runAtTickTime(21, () -> {
-            if (!NpcHomeManager.get(context.getLevel()).hasHome(villager.getUuid())) {
+            if (!NpcHomeManager.get(context.getLevel()).hasHome(villager.getUUID())) {
                 context.fail("Live villager did not receive persistent home state");
                 return;
             }
