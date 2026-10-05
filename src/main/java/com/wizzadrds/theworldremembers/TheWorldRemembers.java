@@ -100,6 +100,13 @@ public class TheWorldRemembers implements ModInitializer {
             if(world.getGameTime()%200==0&&!world.getEntitiesOfClass(ServerPlayer.class,villager.getBoundingBox().inflate(8),p->true).iterator().hasNext()) stress.recover(villager.getUUID(),1);
         }
     }
+
+        for (Villager villager : world.getEntitiesOfClass(Villager.class,
+                new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),
+                v -> v.isAlive() && !v.isRemoved())) {
+            synchronizeFamilyHome(villager, families, homes);
+        }
+    }
     private static void maintainFamilyProtection(Villager villager, FamilyManager families, FamilyProtectionManager protection) {
         for (java.util.UUID child : families.childrenOf(villager.getUUID())) {
             if (protection.protectorOf(child) == null) protection.protect(villager.getUUID(), child);
