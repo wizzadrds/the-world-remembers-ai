@@ -22,7 +22,11 @@ import com.wizzadrds.theworldremembers.village.VillageResources;
 import com.wizzadrds.theworldremembers.village.VillageDefenseManager;
 import com.wizzadrds.theworldremembers.village.VillageDefense;
 import com.wizzadrds.theworldremembers.village.VillageLandmarkManager;
-import com.wizzadrds.theworldremembers.village.VillageLandmark;
+import com.wizzadrds.theworldremembers.village.VillageMigrationManager;
+import com.wizzadrds.theworldremembers.village.VillageEventManager;
+import com.wizzadrds.theworldremembers.village.VillageEvent;
+import com.wizzadrds.theworldremembers.village.VillageEventManager;
+import com.wizzadrds.theworldremembers.village.VillageEvent;
 import net.minecraft.world.entity.animal.IronGolem;
 import net.minecraft.tags.PoiTypeTags;
 import net.fabricmc.api.ModInitializer;
@@ -85,8 +89,10 @@ public class TheWorldRemembers implements ModInitializer {
         VillageResourceManager villageResources=VillageResourceManager.get(world.getServer());
         VillageDefenseManager villageDefense=VillageDefenseManager.get(world.getServer());
         VillageLandmarkManager landmarks=VillageLandmarkManager.get(world.getServer());
+        VillageMigrationManager migrations=VillageMigrationManager.get(world.getServer());
+        VillageEventManager villageEvents=VillageEventManager.get(world.getServer());
 
-        observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks);
+        observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks, migrations, villageEvents);
 
         for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),villager -> villager.isAlive()&&!villager.isRemoved())) {
             ages.assignIfAbsent(villager.getUUID(), villager.isBaby() ? NpcAgeGenerator.generateChildAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())) : NpcAgeGenerator.generateAdultAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())));
@@ -229,33 +235,33 @@ public class TheWorldRemembers implements ModInitializer {
             }
         }
     }
-    private static void observeVillages(ServerLevel world, VillageManager villages, VillageHistoryManager history, VillageResourceManager resources, VillageDefenseManager defense, VillageLandmarkManager landmarks) {
+    private static void observeVillages(ServerLevel world, VillageManager villages, VillageHistoryManager history, VillageResourceManager resources, VillageDefenseManager defense, VillageLandmarkManager landmarks, VillageMigrationManager migrations, VillageEventManager villageEvents) {
         java.util.Map<Long, java.util.List<Villager>> clusters = new java.util.HashMap<>();
-        for (Villager v : world.getEntitiesOfClass(Villager.class,
-                new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),
-                v -> v.isAlive() && !v.isRemoved())) {
-            long key = (((long)(v.blockPosition().getX() >> 5)) << 32) ^ ((v.blockPosition().getZ() >> 5) & 0xffffffffL);
-            clusters.computeIfAbsent(key, ignored -> new java.util.ArrayList<>()).add(v);
+        for (Villager v : world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),v -> v.isAlive()&&!v.isRemoved())) {
+            long key=(((long)(v.blockPosition().getX()>>5))<<32)^((v.blockPosition().getZ()>>5)&0xffffffffL);
+            clusters.computeIfAbsent(key,ignored->new java.util.ArrayList<>()).add(v);
         }
-        for (var entry : clusters.entrySet()) {
-            java.util.List<Villager> members = entry.getValue();
-            if (members.isEmpty()) continue;
-            long sx=0, sz=0;
-            for (Villager v : members) { sx += v.blockPosition().getX(); sz += v.blockPosition().getZ(); }
-            BlockPos center = new BlockPos((int)(sx / members.size()), members.get(0).blockPosition().getY(), (int)(sz / members.size()));
-            String identity = world.dimension().location() + ":" + (center.getX() >> 5) + ":" + (center.getZ() >> 5);
-            java.util.UUID villageId = java.util.UUID.nameUUIDFromBytes(identity.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            villages.observe(villageId, center, members.size(), world.getGameTime());
-            history.observe(villageId, members.size(), world.getGameTime());
-            int food = members.stream().mapToInt(v -> v.getInventory().countItem(Items.BREAD)).sum();
-            resources.observe(villageId, new VillageResources(food, 0, 0, Math.max(1, members.size() * 8)));
-            int golems = 0;
-            for (IronGolem golem : world.getEntitiesOfClass(IronGolem.class, new net.minecraft.world.phys.AABB(center).inflate(32), g -> g.isAlive())) golems++;
-            defense.observe(villageId, new VillageDefense(golems, 0, 0));
-            for (var bell : world.getPoiManager().findAllWithType(type -> type.is(PoiTypeTags.VILLAGE), pos -> true, center, 32, net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).map(pair -> pair.getSecond()).toList()) landmarks.add(villageId, new VillageLandmark("village_poi", bell, world.getGameTime()));
+        java.util.Set<java.util.UUID> claimed=new java.util.HashSet<>();
+        for(var entry:clusters.entrySet()){
+            var members=entry.getValue(); if(members.isEmpty()) continue;
+            long sx=0,sz=0; for(var v:members){sx+=v.blockPosition().getX();sz+=v.blockPosition().getZ();}
+            BlockPos center=new BlockPos((int)(sx/members.size()),members.get(0).blockPosition().getY(),(int)(sz/members.size()));
+            VillageState previous=villages.findNearest(center,claimed);
+            BlockPos previousCenter=previous==null?null:previous.center();
+            VillageState state=villages.observeNearest(center,members.size(),world.getGameTime(),claimed);
+            UUID villageId=state.villageId();
+            history.observe(villageId,members.size(),world.getGameTime());
+            if(previousCenter!=null&&previousCenter.distSqr(center)>32*32){
+                migrations.record(villageId,previousCenter,center,world.getGameTime(),members.size());
+                villageEvents.record(villageId,new VillageEvent("migration",world.getGameTime(),null,center));
+            }
+            int food=members.stream().mapToInt(v->v.getInventory().countItem(Items.BREAD)).sum();
+            resources.observe(villageId,new VillageResources(food,0,0,Math.max(1,members.size()*8)));
+            int golems=world.getEntitiesOfClass(IronGolem.class,new net.minecraft.world.phys.AABB(center).inflate(32),g->g.isAlive()).size();
+            defense.observe(villageId,new VillageDefense(golems,0,0));
+            for(var pos:world.getPoiManager().findAllWithType(type->type.is(PoiTypeTags.VILLAGE),pos->true,center,32,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).map(pair->pair.getSecond()).toList()) landmarks.add(villageId,new VillageLandmark("village_poi",pos,world.getGameTime()));
         }
     }
-
     private static boolean hasRecentIntrusion(MemoryManager memories,Villager villager,ServerPlayer player,long gameTime){
         return memories.findMostRecentMemory(villager.getUUID(),player.getUUID(),MemoryEventType.PLAYER_ENTERED_NPC_HOME).map(m->gameTime-m.gameTime()<INTRUSION_COOLDOWN).orElse(false);
     }
