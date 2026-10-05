@@ -265,7 +265,7 @@ public class TheWorldRemembers implements ModInitializer {
             UUID villageId=state.villageId();
             history.observe(villageId,members.size(),world.getGameTime());
             if(previousCenter!=null&&previousCenter.distSqr(center)>32*32){
-                migrations.record(villageId,previousCenter,center,world.getGameTime(),members.size());
+                migrations.record(new com.wizzadrds.theworldremembers.village.VillageMigration(villageId,previousCenter,center,world.getGameTime(),members.size()));
                 villageEvents.record(villageId,new VillageEvent("migration",world.getGameTime(),villageId,center));
             }
             int food=members.stream().mapToInt(v->v.getInventory().countItem(Items.BREAD)).sum();
