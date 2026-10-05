@@ -1,11 +1,3 @@
 package com.wizzadrds.theworldremembers;
-import com.wizzadrds.theworldremembers.village.*;
-import net.fabricmc.fabric.api.gametest.v1.GameTest;
-import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.world.entity.EntityTypes;
-public final class VillageLandmarkGameTest {
- @GameTest public void villagePoiIsRecordedAsLandmark(GameTestHelper context){
-  context.spawn(EntityTypes.VILLAGER,2,1,2);
-  context.runAtTickTime(1,()->{TheWorldRemembers.processWorld(context.getLevel());var v=VillageManager.get(context.getLevel().getServer()).all().iterator().next();var list=VillageLandmarkManager.get(context.getLevel().getServer()).get(v.villageId());if(list==null){context.fail("Landmark state missing");return;}context.succeed();});
- }
-}
+import com.wizzadrds.theworldremembers.village.*; import net.fabricmc.fabric.api.gametest.v1.GameTest; import net.minecraft.gametest.framework.GameTestHelper; import net.minecraft.world.entity.EntityTypes; import net.minecraft.world.level.block.Blocks;
+public final class VillageLandmarkGameTest{@GameTest public void villagePoiIsRecordedAsLandmark(GameTestHelper c){c.setBlock(2,1,2,Blocks.BELL);c.spawn(EntityTypes.VILLAGER,3,1,2);c.runAtTickTime(2,()->{TheWorldRemembers.processWorld(c.getLevel());var v=VillageManager.get(c.getLevel().getServer()).all().iterator().next();var list=VillageLandmarkManager.get(c.getLevel().getServer()).get(v.villageId());if(list.stream().noneMatch(x->x.position().equals(new net.minecraft.core.BlockPos(2,1,2)))){c.fail("Real village bell was not recorded as landmark");return;}c.succeed();});}}
