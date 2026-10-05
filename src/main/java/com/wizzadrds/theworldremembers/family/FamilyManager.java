@@ -46,6 +46,22 @@ public final class FamilyManager extends SavedData {
     public List<UUID> parentsOf(UUID child) { return relations.stream().filter(r -> r.relatedNpcId().equals(child) && r.type() == FamilyRelationType.PARENT).map(FamilyRelation::npcId).toList(); }
     public List<UUID> childrenOf(UUID parent) { return relations.stream().filter(r -> r.npcId().equals(parent) && r.type() == FamilyRelationType.PARENT).map(FamilyRelation::relatedNpcId).toList(); }
     public boolean hasParents(UUID child) { return !parentsOf(child).isEmpty(); }
+    public List<UUID> siblingsOf(UUID npcId) {
+        return relations.stream()
+            .filter(r -> r.npcId().equals(npcId) && r.type() == FamilyRelationType.SIBLING)
+            .map(FamilyRelation::relatedNpcId).toList();
+    }
+
+    public void linkSiblingsFromSharedParent(UUID child) {
+        java.util.LinkedHashSet<UUID> siblings = new java.util.LinkedHashSet<>();
+        for (UUID parent : parentsOf(child)) {
+            for (UUID other : childrenOf(parent)) {
+                if (!other.equals(child)) siblings.add(other);
+            }
+        }
+        for (UUID sibling : siblings) addSiblings(child, sibling);
+    }
+
     public boolean hasSpouse(UUID npcId) { return relations.stream().anyMatch(r -> r.npcId().equals(npcId) && r.type() == FamilyRelationType.SPOUSE); }
     public boolean areRelated(UUID a,UUID b){return relations.stream().anyMatch(r->(r.npcId().equals(a)&&r.relatedNpcId().equals(b))||(r.npcId().equals(b)&&r.relatedNpcId().equals(a)));}
 }
