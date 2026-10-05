@@ -21,6 +21,8 @@ import com.wizzadrds.theworldremembers.village.VillageResourceManager;
 import com.wizzadrds.theworldremembers.village.VillageResources;
 import com.wizzadrds.theworldremembers.village.VillageDefenseManager;
 import com.wizzadrds.theworldremembers.village.VillageDefense;
+import com.wizzadrds.theworldremembers.village.VillageLandmarkManager;
+import com.wizzadrds.theworldremembers.village.VillageLandmark;
 import net.minecraft.world.entity.animal.IronGolem;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -81,8 +83,9 @@ public class TheWorldRemembers implements ModInitializer {
         VillageHistoryManager villageHistory=VillageHistoryManager.get(world.getServer());
         VillageResourceManager villageResources=VillageResourceManager.get(world.getServer());
         VillageDefenseManager villageDefense=VillageDefenseManager.get(world.getServer());
+        VillageLandmarkManager landmarks=VillageLandmarkManager.get(world.getServer());
 
-        observeVillages(world, villages, villageHistory, villageResources, villageDefense);
+        observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks);
 
         for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),villager -> villager.isAlive()&&!villager.isRemoved())) {
             ages.assignIfAbsent(villager.getUUID(), villager.isBaby() ? NpcAgeGenerator.generateChildAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())) : NpcAgeGenerator.generateAdultAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())));
@@ -224,7 +227,7 @@ public class TheWorldRemembers implements ModInitializer {
             }
         }
     }
-    private static void observeVillages(ServerLevel world, VillageManager villages, VillageHistoryManager history, VillageResourceManager resources, VillageDefenseManager defense) {
+    private static void observeVillages(ServerLevel world, VillageManager villages, VillageHistoryManager history, VillageResourceManager resources, VillageDefenseManager defense, VillageLandmarkManager landmarks) {
         java.util.Map<Long, java.util.List<Villager>> clusters = new java.util.HashMap<>();
         for (Villager v : world.getEntitiesOfClass(Villager.class,
                 new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),
@@ -247,6 +250,7 @@ public class TheWorldRemembers implements ModInitializer {
             int golems = 0;
             for (IronGolem golem : world.getEntitiesOfClass(IronGolem.class, new net.minecraft.world.phys.AABB(center).inflate(32), g -> g.isAlive())) golems++;
             defense.observe(villageId, new VillageDefense(golems, 0, 0));
+            for (var bell : world.getPoiManager().getInRange(type -> type.equals(net.minecraft.world.entity.ai.village.poi.PoiTypes.VILLAGE), center, 32, net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).toList()) landmarks.add(villageId, new VillageLandmark("village_poi", bell, world.getGameTime()));
         }
     }
 
