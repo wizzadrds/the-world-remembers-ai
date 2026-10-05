@@ -56,3 +56,15 @@ Items placed in a chest or personal storage must correspond to real state transi
 ## Future family integration
 
 Families will later share homes. Children, spouses, inheritance and important possessions will use the same persistent home identity.
+
+
+## Permission policy foundation
+
+Home access is evaluated from actual relationship state and personality.
+
+- trusted/affectionate relationships can allow entry;
+- suspicious or resentful relationships can deny entry;
+- intermediate relationships can be conditional;
+- an explicit invitation can allow entry regardless of ordinary thresholds.
+
+The thresholds are implementation defaults and can evolve as the simulation becomes richer.
