@@ -68,7 +68,7 @@ The project follows a staged implementation plan. Features are documented before
 - [x] Family relation persistence
 - [x] Family relation integrity checks
 - [x] Birth/death/marriage/family-loss/inheritance event vocabulary
-- [ ] Live villager age assignment
+- [x] Live villager age assignment
 - [ ] Parents, siblings, spouses and children in live NPCs
 - [ ] Birth and death simulation
 - [ ] Generational memory propagation
