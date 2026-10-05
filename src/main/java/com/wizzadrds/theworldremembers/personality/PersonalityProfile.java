@@ -31,4 +31,20 @@ public final class PersonalityProfile {
         set(trait, value);
         return this;
     }
+
+    public boolean has(PersonalityTrait trait, int threshold) {
+        return strength(trait) >= threshold;
+    }
+
+    public boolean isStrongly(PersonalityTrait trait) {
+        return Math.abs(strength(trait)) >= 60;
+    }
+
+    public PersonalityProfile copy() {
+        PersonalityProfile copy = new PersonalityProfile(npcId);
+        for (PersonalityTrait trait : PersonalityTrait.values()) {
+            copy.set(trait, strength(trait));
+        }
+        return copy;
+    }
 }
