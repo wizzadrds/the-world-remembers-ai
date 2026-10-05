@@ -16,6 +16,6 @@ public final class NpcInventoryManager extends SavedData {
     public static NpcInventoryManager get(MinecraftServer server){ServerLevel l=server.getLevel(ServerLevel.OVERWORLD);return l==null?new NpcInventoryManager():l.getDataStorage().computeIfAbsent(TYPE);}
     public NpcInventory getOrCreate(UUID id){return inventories.computeIfAbsent(id,k->new NpcInventory());}
     public void transferIn(UUID id,String item,int count){getOrCreate(id).add(item,count);setDirty();}
-    public int transferOut(UUID id,String item,int count){int removed=getOrCreate(id).remove(item,count);if(removed>0)setDirty();return removed;}
+    public int transferOut(UUID id,String item,int count){boolean removed=getOrCreate(id).remove(item,count);if(removed)setDirty();return removed?count:0;}
     public int count(UUID id,String item){return getOrCreate(id).count(item);}
 }
