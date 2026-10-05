@@ -1,8 +1,6 @@
 package com.wizzadrds.theworldremembers.home;
 
 import com.mojang.serialization.Codec;
-
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
@@ -23,7 +21,10 @@ public final class NpcHomeManager extends SavedData {
     public void assignFamilyHome(UUID member, UUID familyMember){
         NpcHome familyHome = homes.get(familyMember);
         if (familyHome == null) return;
-        homes.putIfAbsent(member, new NpcHome(member, familyHome.homePos(), familyHome.bedPos(), familyHome.entrancePos()));
-        setDirty();
+        NpcHome shared = new NpcHome(member, familyHome.homePos(), familyHome.bedPos(), familyHome.entrancePos());
+        if (!shared.equals(homes.get(member))) {
+            homes.put(member, shared);
+            setDirty();
+        }
     }
 }
