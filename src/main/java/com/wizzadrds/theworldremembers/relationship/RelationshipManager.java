@@ -23,7 +23,7 @@ public final class RelationshipManager extends SavedData {
     public Relationship getOrCreate(UUID npc, UUID player) { return relationships.computeIfAbsent(key(npc,player), k -> new Relationship(npc,player,0,0,0,0,0,0,0)); }
     public Relationship apply(MemoryEvent event) {
         Relationship current=getOrCreate(event.npcId(),event.playerId());
-        RelationshipDelta d=RelationshipDelta.from(event.type());
+        RelationshipDelta d=RelationshipDelta.forEvent(event.type());
         Relationship next=new Relationship(current.npcId(),current.playerId(),
             current.trust()+d.trust(),current.gratitude()+d.gratitude(),current.fear()+d.fear(),
             current.respect()+d.respect(),current.affection()+d.affection(),current.resentment()+d.resentment(),current.suspicion()+d.suspicion()).clamp();
