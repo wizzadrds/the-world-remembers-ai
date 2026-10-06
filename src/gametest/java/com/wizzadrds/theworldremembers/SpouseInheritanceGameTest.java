@@ -83,6 +83,13 @@ public final class SpouseInheritanceGameTest {
                     return;
                 }
 
+                MemoryManager memories = MemoryManager.get(context.getLevel().getServer());
+                if (memories.findMostRecentMemory(
+                        heir.getUUID(), deceased.getUUID(), MemoryEventType.NPC_INHERITED_ITEM).isEmpty()) {
+                    context.fail("Overflow inheritance memory missing");
+                    return;
+                }
+
                 TheWorldRemembers.processWorld(context.getLevel());
                 if (inventories.count(heir.getUUID(), "minecraft:diamond") != 1) {
                     context.fail("Normal inventory synchronization dropped pending inheritance");
