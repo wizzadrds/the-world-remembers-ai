@@ -170,9 +170,6 @@ public class TheWorldRemembers implements ModInitializer {
     private static void talkToVillager(ServerPlayer player, Villager villager, MemoryManager memories) {
         RelationshipManager relationships = RelationshipManager.get(player.level().getServer());
         Relationship relationship = relationships.getOrCreate(villager.getUUID(), player.getUUID());
-        java.util.Optional<Memory> previous = memories.memoriesOf(villager.getUUID()).stream()
-            .filter(m -> m.playerId().equals(player.getUUID()) && m.type() != MemoryEventType.PLAYER_TALKED)
-            .max(java.util.Comparator.comparingLong(Memory::gameTime));
         String line = NpcDialogue.reply(villager.getName().getString(), relationship, memories.memoriesOf(villager.getUUID()).stream().filter(m -> m.playerId().equals(player.getUUID())).toList());
         Memory memory = memories.rememberEvent(villager.getUUID(), player.getUUID(), MemoryEventType.PLAYER_TALKED,
             player.level().getGameTime(), MemoryImportance.TRIVIAL);
@@ -355,12 +352,26 @@ public class TheWorldRemembers implements ModInitializer {
             if(type!=null){ villageEvents.record(vs.villageId(),new VillageEvent(type,world.getGameTime(),entity.getUUID(),entity.blockPosition())); villageHistory.recordImportantEvent(vs.villageId()); }
             break;
         }
-        if(entity instanceof IronGolem) return;
+        var memories=MemoryManager.get(world.getServer());
+        var relationships=RelationshipManager.get(world.getServer());
+        if (sourceEntityIsPlayer(damageSource) && entity instanceof IronGolem) {
+            ServerPlayer attacker=(ServerPlayer)damageSource.getEntity();
+            for (Villager witness : world.getEntitiesOfClass(Villager.class, entity.getBoundingBox().inflate(24), v -> v.isAlive())) {
+                Memory remembered=memories.rememberEvent(witness.getUUID(), attacker.getUUID(), MemoryEventType.GOLEM_KILLED,
+                    world.getGameTime(), MemoryImportance.HISTORICAL);
+                relationships.apply(new MemoryEvent(remembered.npcId(), remembered.playerId(), remembered.type(), remembered.gameTime(), remembered.importance()));
+            }
+        }
         if (!(entity instanceof Villager villager)) return;
         var families=FamilyManager.get(world.getServer());
-        var memories=MemoryManager.get(world.getServer());
         var protection=FamilyProtectionManager.get(world.getServer());
         protection.clearProtector(villager.getUUID());
+        if (sourceEntityIsPlayer(damageSource)) {
+            ServerPlayer attacker=(ServerPlayer)damageSource.getEntity();
+            Memory remembered=memories.rememberEvent(villager.getUUID(), attacker.getUUID(), MemoryEventType.PLAYER_ATTACKED_NPC,
+                world.getGameTime(), MemoryImportance.IMPORTANT);
+            relationships.apply(new MemoryEvent(remembered.npcId(), remembered.playerId(), remembered.type(), remembered.gameTime(), remembered.importance()));
+        }
         var inventories=NpcInventoryManager.get(world.getServer());
         java.util.List<java.util.UUID> related = families.getRelations(villager.getUUID()).stream()
             .map(r -> r.npcId().equals(villager.getUUID()) ? r.relatedNpcId() : r.npcId()).distinct().toList();
@@ -378,6 +389,8 @@ public class TheWorldRemembers implements ModInitializer {
             }
         }
     }
+    private static boolean sourceEntityIsPlayer(net.minecraft.world.damagesource.DamageSource source) { return source.getEntity() instanceof ServerPlayer; }
+
     private static void observeVillages(ServerLevel world, VillageManager villages, VillageHistoryManager history, VillageResourceManager resources, VillageDefenseManager defense, VillageLandmarkManager landmarks, VillageMigrationManager migrations, VillageEventManager villageEvents, VillageStorageManager villageStorage) {
         java.util.Map<Long, java.util.List<Villager>> clusters = new java.util.HashMap<>();
         for (Villager v : world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),v -> v.isAlive()&&!v.isRemoved())) {
