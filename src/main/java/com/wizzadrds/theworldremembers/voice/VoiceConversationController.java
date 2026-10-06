@@ -1,10 +1,11 @@
 package com.wizzadrds.theworldremembers.voice;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
-import java.nio.file.Path;
 
 public final class VoiceConversationController implements AutoCloseable {
     private final ExecutorService worker = Executors.newSingleThreadExecutor(r -> {
@@ -12,6 +13,7 @@ public final class VoiceConversationController implements AutoCloseable {
         thread.setDaemon(true);
         return thread;
     });
+
     private volatile VoiceConversationState state = VoiceConversationState.IDLE;
     private volatile Consumer<VoiceConversationState> stateListener = ignored -> {};
 
@@ -24,7 +26,9 @@ public final class VoiceConversationController implements AutoCloseable {
     }
 
     public void beginListening() {
-        setState(VoiceConversationState.LISTENING);
+        if (state == VoiceConversationState.IDLE || state == VoiceConversationState.ERROR) {
+            setState(VoiceConversationState.LISTENING);
+        }
     }
 
     public void finishListening(byte[] pcm, VoiceService service, Consumer<String> transcriptConsumer) {
@@ -33,31 +37,52 @@ public final class VoiceConversationController implements AutoCloseable {
         worker.submit(() -> {
             String transcript = service.transcribe(pcm);
             if (transcript == null || transcript.isBlank()) {
-                setState(VoiceConversationState.ERROR);
+                fail();
                 return;
             }
-            transcriptConsumer.accept(transcript);
-        });
-    }
-
-    public void synthesizeAndSpeak(String text, VoiceService service, VoiceProfile profile, Path output, VoiceAudioPlayer player, Consumer<Path> completed) {
-        setState(VoiceConversationState.PROCESSING);
-        worker.submit(() -> {
             try {
-                Path audio = service.synthesize(text, profile, output);
-                if (audio == null) { fail(); return; }
-                setState(VoiceConversationState.SPEAKING);
-                player.play(audio, 1.0f);
-                completed.accept(audio);
-                finishSpeaking();
-            } catch (Exception e) {
+                transcriptConsumer.accept(transcript);
+            } catch (RuntimeException e) {
                 fail();
             }
         });
     }
 
-    public void beginSpeaking() {
-        setState(VoiceConversationState.SPEAKING);
+    public void synthesizeAndSpeak(
+            String text,
+            VoiceService service,
+            VoiceProfile profile,
+            Path output,
+            VoiceAudioPlayer player,
+            float outputVolume,
+            Consumer<Path> completed) {
+        setState(VoiceConversationState.PROCESSING);
+        worker.submit(() -> {
+            Path audio = null;
+            try {
+                audio = service.synthesize(text, profile, output);
+                if (audio == null || !Files.exists(audio)) {
+                    fail();
+                    return;
+                }
+                setState(VoiceConversationState.SPEAKING);
+                player.play(audio, outputVolume);
+                completed.accept(audio);
+                finishSpeaking();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                fail();
+            } catch (Exception e) {
+                fail();
+            } finally {
+                if (audio != null) {
+                    try {
+                        Files.deleteIfExists(audio);
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+        });
     }
 
     public void finishSpeaking() {
