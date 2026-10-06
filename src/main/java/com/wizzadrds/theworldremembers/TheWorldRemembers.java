@@ -506,8 +506,9 @@ public class TheWorldRemembers implements ModInitializer {
             .orElseGet(() -> families.spouseOf(villager.getUUID()));
         if (heir != null) {
             // AFTER_DEATH may run after vanilla has already cleared the live inventory.
-            // The persistent mirror was synchronized during the preceding simulation tick;
-            // never overwrite that last known snapshot with an empty post-mortem inventory.
+            // Prefer the persistent mirror, but capture any important live item that was
+            // missed by the regular simulation loop before attempting inheritance.
+            inventories.captureImportantItemsIfMissing(villager);
             int inherited = inventories.inheritImportantItems(villager.getUUID(), heir);
             if (inherited > 0) {
                 memories.rememberEvent(heir, villager.getUUID(), MemoryEventType.NPC_INHERITED_ITEM, world.getGameTime(), MemoryImportance.HISTORICAL);
