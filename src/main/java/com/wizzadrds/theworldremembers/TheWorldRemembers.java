@@ -257,7 +257,8 @@ public class TheWorldRemembers implements ModInitializer {
             java.util.List<ServerPlayer> nearbyPlayers = world.getGameTime() % SOCIAL_BEHAVIOR_INTERVAL == 0
                     ? world.players().stream().filter(p -> p.isAlive() && villager.distanceToSqr(p) <= 12*12).toList()
                     : java.util.List.of();
-            var personality = PersonalityGenerator.generate(villager.getUUID());
+            PersonalityProfile personality = null;
+            if (!budgeted || world.getGameTime() % SOCIAL_BEHAVIOR_INTERVAL == 0) personality = PersonalityGenerator.generate(villager.getUUID());
             if (!budgeted || world.getGameTime() % SOCIAL_BEHAVIOR_INTERVAL == 0) {
                 applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress, behavior);
                 applyLiveSocialBehavior(world, villager, relationships, stress, behavior, homes, homeStorage, nearbyPlayers, personality);
@@ -269,6 +270,7 @@ public class TheWorldRemembers implements ModInitializer {
                 if(villager.distanceToSqr(player)>12*12) continue;
                 Relationship relationship=relationships.get(villager.getUUID(),player.getUUID());
                 if(relationship==null) continue;
+                if (personality == null) personality = PersonalityGenerator.generate(villager.getUUID());
                 HomeAccess access=HomeAccessPolicy.evaluate(relationship,personality,false);
                 if(access==HomeAccess.DENIED&&!hasRecentIntrusion(memories,villager,player,world.getGameTime())) {
                     stress.increase(villager.getUUID(),3);
