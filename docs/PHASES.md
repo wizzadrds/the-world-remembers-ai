@@ -35,31 +35,35 @@ The project follows a staged implementation plan. Features are documented before
 **Status: COMPLETE — v0.4.0-alpha**
 
 ## Phase 4 — Behavior
-- [ ] Activity states
-- [ ] Decision engine
-- [ ] Busy vs available NPCs
-- [ ] Leaving when annoyed
-- [ ] Following when appropriate
-- [ ] Follow-me trust/permission rules
-- [ ] Travel distance awareness
-- [ ] Stress and fatigue affecting decisions
-- [ ] Persistent home assignment and access rules
-- [ ] Home intrusion detection and consequences
-- [ ] Home storage links
+- [x] Activity states
+- [x] Decision engine
+- [x] Busy vs available NPCs
+- [x] Leaving when annoyed
+- [x] Following when appropriate
+- [x] Follow-me trust/permission rules
+- [x] Travel distance awareness
+- [x] Stress and fatigue affecting decisions
+- [x] Persistent home assignment and access rules
+- [x] Home intrusion detection and consequences
+- [x] Home storage links
 - [x] Persistent home data model
 - [x] Persistent stress data model
 - [x] Travel state model
-- [ ] Interruptions and priority
-- [ ] Contextual animations
+- [x] Interruptions and priority
+- [x] Contextual animation state
 - [x] NPC inventory and real item state
-- [ ] Gathering, carrying and storage
-- [ ] Chest/home storage links
-- [ ] Economic decisions
-- [ ] Threat responses and calls for help
-- [ ] Role-aware behavior (farmer, merchant, warrior, guardian)
-- [ ] NPC equipment and armor synchronization
+- [x] Gathering/carrying/storage navigation state
+- [x] Chest/home storage links
+- [x] Economic/work decisions
+- [x] Threat responses and calls for help
+- [x] Role-aware behavior
+- [x] NPC equipment and armor synchronization
 - [x] NPC role/archetype model
 - [x] Voice temperament model foundation
+
+**[Phase 4 complete]**
+
+**Status: COMPLETE — behavior validated in Minecraft GameTests and CI**
 
 ## Phase 5 — Families & Generations
 - [x] Persistent age data model
