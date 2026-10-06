@@ -354,7 +354,7 @@ public class TheWorldRemembers implements ModInitializer {
         if (ids == null) return result;
         for (UUID id : ids) {
             Entity entity = world.getEntity(id);
-            if (entity instanceof Villager villager && villager.isAlive() && !villager.isRemoved()) result.add(villager);
+            if (entity instanceof Villager villager && villager.isAlive() && !villager.isRemoved() && world.hasChunkAt(villager.blockPosition())) result.add(villager);
         }
         return result;
     }
