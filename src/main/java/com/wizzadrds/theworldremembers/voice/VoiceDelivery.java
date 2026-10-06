@@ -1,0 +1,2 @@
+package com.wizzadrds.theworldremembers.voice;
+public final class VoiceDelivery {private VoiceDelivery(){} public static VoiceDeliveryState adapt(VoiceProfile p,int stress,boolean danger,boolean tired,boolean excited){VoiceTemperament t=p.temperament();if(danger)t=VoiceTemperament.NERVOUS;else if(tired)t=VoiceTemperament.TIRED;else if(excited)t=VoiceTemperament.EXCITED;int rate=p.rate()+(danger?15:0)+(tired?-20:0);int pitch=p.pitch()+(danger?10:0);int intensity=Math.min(100,p.expressiveness()+stress/2+(danger?20:0));return new VoiceDeliveryState(t,rate,pitch,intensity);}}
