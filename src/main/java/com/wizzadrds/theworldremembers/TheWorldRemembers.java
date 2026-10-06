@@ -80,6 +80,7 @@ public class TheWorldRemembers implements ModInitializer {
     private static final java.util.Map<ServerLevel,java.util.List<UUID>> VILLAGER_REGISTRY = new java.util.WeakHashMap<>();
     private static final java.util.Map<ServerLevel,SchedulerMetrics> SCHEDULER_METRICS = new java.util.WeakHashMap<>();
     private static final double HOME_RADIUS=3.5;
+    private static final NpcBehaviorEngine BEHAVIOR_ENGINE = new NpcBehaviorEngine();
 
     private static final class SchedulerMetrics {
         long samples;
@@ -169,7 +170,7 @@ public class TheWorldRemembers implements ModInitializer {
         NpcInventoryManager inventories=NpcInventoryManager.get(world.getServer());
         com.wizzadrds.theworldremembers.equipment.NpcEquipmentManager equipment=com.wizzadrds.theworldremembers.equipment.NpcEquipmentManager.get(world.getServer());
         NpcHomeStorageManager homeStorage=NpcHomeStorageManager.get(world.getServer());
-        NpcBehaviorEngine behavior=new NpcBehaviorEngine();
+        NpcBehaviorEngine behavior=BEHAVIOR_ENGINE;
         MemoryManager memories=MemoryManager.get(world.getServer());
         RelationshipManager relationships=RelationshipManager.get(world.getServer());
         FamilyManager families=FamilyManager.get(world.getServer());
@@ -450,8 +451,10 @@ public class TheWorldRemembers implements ModInitializer {
         int checked = 0;
         int index = start;
         while (checked < ids.size() && result.size() < budget) {
-            Entity entity = world.getEntity(ids.get(index));
-            if (entity instanceof Villager villager && villager.isAlive() && !villager.isRemoved()) result.add(villager);
+            UUID id = ids.get(index);
+            Entity entity = world.getEntity(id);
+            if (entity instanceof Villager villager && villager.isAlive() && !villager.isRemoved()
+                    && world.hasChunkAt(villager.blockPosition())) result.add(villager);
             index = (index + 1) % ids.size();
             checked++;
         }
