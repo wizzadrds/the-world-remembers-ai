@@ -6,12 +6,16 @@ import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.AudioSystem;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public final class VoiceStreamPlayer implements AutoCloseable {
     private static final AudioFormat FORMAT = new AudioFormat(16000.0f, 16, 1, true, false);
     private static final byte[] POISON = new byte[0];
 
     private final BlockingQueue<byte[]> queue = new ArrayBlockingQueue<>(32);
+    private final Map<UUID, Integer> lastSequences = new HashMap<>();
     private volatile SourceDataLine line;
     private volatile boolean running;
     private volatile Thread worker;
@@ -32,8 +36,12 @@ public final class VoiceStreamPlayer implements AutoCloseable {
         }
     }
 
-    public void enqueue(byte[] pcm) {
-        if (pcm == null || pcm.length == 0) return;
+    public synchronized void enqueue(UUID speaker, int sequence, byte[] pcm) {
+        if (speaker == null || pcm == null || pcm.length == 0) return;
+        Integer previous = lastSequences.get(speaker);
+        if (previous != null && sequence <= previous) return;
+        lastSequences.put(speaker, sequence);
+        if (lastSequences.size() > 128) lastSequences.clear();
         start();
         if (!running) return;
         byte[] copy = pcm.clone();
@@ -62,6 +70,7 @@ public final class VoiceStreamPlayer implements AutoCloseable {
     public synchronized void stop() {
         running = false;
         queue.clear();
+        lastSequences.clear();
         queue.offer(POISON);
         Thread current = worker;
         worker = null;
