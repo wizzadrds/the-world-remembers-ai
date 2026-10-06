@@ -144,7 +144,7 @@ public class TheWorldRemembers implements ModInitializer {
         }
 
         java.util.List<Villager> loadedVillagers = budgeted
-                ? nextBudgetedVillagers(world, VILLAGER_BUDGET_PER_TICK)
+                ? nextBudgetedVillagers(world, VILLAGER_BUDGET_PER_TICK, VILLAGER_CURSORS)
                 : new java.util.ArrayList<>(world.getEntitiesOfClass(
                     Villager.class,
                     new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),
