@@ -55,11 +55,11 @@ public final class VoiceSettingsScreen extends Screen {
         providerIndex = indexOfIgnoreCase(providers, config.provider);
         if (providerIndex < 0) providerIndex = 0;
 
-        microphoneButton = Button.builder(microphoneLabel(), button -> cycleMicrophone())
+        microphoneButton = Button.builder(Component.literal(microphoneLabel()), button -> cycleMicrophone())
                 .bounds(left, top, 150, 20).build();
         this.addRenderableWidget(microphoneButton);
 
-        providerButton = Button.builder(providerLabel(), button -> cycleProvider())
+        providerButton = Button.builder(Component.literal(providerLabel()), button -> cycleProvider())
                 .bounds(right, top, 150, 20).build();
         this.addRenderableWidget(providerButton);
 
@@ -96,7 +96,7 @@ public final class VoiceSettingsScreen extends Screen {
 
     private void cycleMicrophone() {
         microphoneIndex = (microphoneIndex + 1) % microphones.size();
-        microphoneButton.setMessage(microphoneLabel());
+        microphoneButton.setMessage(Component.literal(microphoneLabel()));
     }
 
     private void cycleOutputDevice() {
@@ -106,14 +106,16 @@ public final class VoiceSettingsScreen extends Screen {
 
     private void cycleProvider() {
         providerIndex = (providerIndex + 1) % providers.size();
-        providerButton.setMessage(providerLabel());
+        providerButton.setMessage(Component.literal(providerLabel()));
     }
 
     private String microphoneLabel() {
         return "Mic: " + microphones.get(microphoneIndex);
     }
 
-    private String outputDeviceLabel() { return "Headphones / output: " + outputDevices.get(outputDeviceIndex); }
+    private String outputDeviceLabel() {
+        return "Headphones / output: " + outputDevices.get(outputDeviceIndex);
+    }
 
     private String providerLabel() {
         return "AI: " + providers.get(providerIndex);
