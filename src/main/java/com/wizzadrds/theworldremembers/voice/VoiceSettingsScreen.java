@@ -55,22 +55,22 @@ public final class VoiceSettingsScreen extends Screen {
                 .bounds(right, top, 150, 20).build();
         this.addRenderableWidget(providerButton);\n\n        outputDeviceButton = Button.builder(Component.literal(outputDeviceLabel()), button -> cycleOutputDevice())\n                .bounds(left, top + 24, 310, 20).build();\n        this.addRenderableWidget(outputDeviceButton);
 
-        apiKey = field(left, top + 42, "API Key", config.apiKey);
+        apiKey = field(left, top + 54, "API Key", config.apiKey);
         apiKey.setMaxLength(512);
         apiKey.setSuggestion("API key (stored locally)");
         model = field(right, top + 42, "AI Model", config.model);
-        sttCommand = field(left, top + 84, "STT command", config.sttCommand);
+        sttCommand = field(left, top + 96, "STT command", config.sttCommand);
         sttCommand.setSuggestion("Optional local faster-whisper adapter command");
         ttsCommand = field(right, top + 84, "TTS command", config.ttsCommand);
         ttsCommand.setSuggestion("Optional local Piper adapter command");
-        inputVolume = field(left, top + 126, "Input volume", Float.toString(config.inputVolume));
+        inputVolume = field(left, top + 138, "Input volume", Float.toString(config.inputVolume));
         outputVolume = field(right, top + 126, "Output volume", Float.toString(config.outputVolume));
-        distance = field(left, top + 168, "Voice distance", Float.toString(config.voiceDistance));
+        distance = field(left, top + 180, "Voice distance", Float.toString(config.voiceDistance));
 
         this.addRenderableWidget(Button.builder(Component.literal("Save"), button -> saveAndClose())
                 .bounds(right, top + 168, 150, 20).build());
         this.addRenderableWidget(Button.builder(Component.literal("Defaults"), button -> resetDefaults())
-                .bounds(left, top + 198, 150, 20).build());
+                .bounds(left, top + 210, 150, 20).build());
         this.addRenderableWidget(Button.builder(Component.literal("Cancel"), button -> close())
                 .bounds(right, top + 198, 150, 20).build());
     }
@@ -164,13 +164,13 @@ public final class VoiceSettingsScreen extends Screen {
         int right = this.width / 2 + 5;
         graphics.text(this.font, "Microphone", left, 32, 0xFFE0E0E0, false);
         graphics.text(this.font, "AI Provider", right, 32, 0xFFE0E0E0, false);
-        graphics.text(this.font, "Output device / headphones", left, 56, 0xFFE0E0E0, false);\n        graphics.text(this.font, "API Key", left, 98, 0xFFE0E0E0, false);
-        graphics.text(this.font, "AI Model", right, 98, 0xFFE0E0E0, false);
-        graphics.text(this.font, "STT command", left, 140, 0xFFE0E0E0, false);
-        graphics.text(this.font, "TTS command", right, 140, 0xFFE0E0E0, false);
-        graphics.text(this.font, "Input volume", left, 158, 0xFFE0E0E0, false);
-        graphics.text(this.font, "Output volume", right, 158, 0xFFE0E0E0, false);
-        graphics.text(this.font, "Voice distance", left, 200, 0xFFE0E0E0, false);
+        graphics.text(this.font, "Output device / headphones", left, 56, 0xFFE0E0E0, false);\n        graphics.text(this.font, "API Key", left, 86, 0xFFE0E0E0, false);
+        graphics.text(this.font, "AI Model", right, 86, 0xFFE0E0E0, false);
+        graphics.text(this.font, "STT command", left, 128, 0xFFE0E0E0, false);
+        graphics.text(this.font, "TTS command", right, 128, 0xFFE0E0E0, false);
+        graphics.text(this.font, "Input volume", left, 170, 0xFFE0E0E0, false);
+        graphics.text(this.font, "Output volume", right, 170, 0xFFE0E0E0, false);
+        graphics.text(this.font, "Voice distance", left, 212, 0xFFE0E0E0, false);
         graphics.text(this.font, "V = push-to-talk · microphone uses the system audio devices", left, 230, 0xFFAAAAAA, false);
     }
 }
