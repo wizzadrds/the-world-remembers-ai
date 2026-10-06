@@ -2,6 +2,7 @@ package com.wizzadrds.theworldremembers.voice;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -17,12 +18,11 @@ class VoicePcmMixerTest {
 
     @Test
     void saturatesPositiveAndNegativeOverflow() {
-        byte[] positive = pcm(30_000, 20_000);
-        byte[] negative = pcm(-30_000, -20_000);
+        byte[] positive = VoicePcmMixer.mix(List.of(pcm(30_000, 20_000), pcm(10_000, 20_000)));
+        byte[] negative = VoicePcmMixer.mix(List.of(pcm(-30_000, -20_000), pcm(-10_000, -20_000)));
 
-        assertArrayEquals(
-                pcm(Short.MAX_VALUE, Short.MIN_VALUE),
-                VoicePcmMixer.mix(List.of(positive, pcm(10_000, 10_000), negative)));
+        assertArrayEquals(pcm(Short.MAX_VALUE, Short.MAX_VALUE), positive);
+        assertArrayEquals(pcm(Short.MIN_VALUE, Short.MIN_VALUE), negative);
     }
 
     @Test
@@ -38,7 +38,7 @@ class VoicePcmMixerTest {
         assertNull(VoicePcmMixer.mix(null));
         assertNull(VoicePcmMixer.mix(List.of()));
         assertNull(VoicePcmMixer.mix(List.of(new byte[0])));
-        assertNull(VoicePcmMixer.mix(java.util.Collections.singletonList(null)));
+        assertNull(VoicePcmMixer.mix(Collections.singletonList(null)));
     }
 
     private static byte[] pcm(int... samples) {
