@@ -96,3 +96,8 @@ A pull-request CI run must pass `gradle build` and the headless Fabric server sm
 - [x] Read-only Chronicle UI opens from the J key and renders bounded history.
 - [x] Dedicated Chronicle client GameTest and screenshot coverage pass.
 - [x] Final CI #379: Gradle build/tests, headless Fabric server smoke test and client GameTests passed.
+
+
+## Phase 10 — Dreams
+
+Dreams must be grounded in existing memories and world history, deterministic, bounded, persistent, private by default, and must never mutate world-state facts merely because an impossible dream occurred.
