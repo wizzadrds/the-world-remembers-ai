@@ -298,12 +298,14 @@ public class TheWorldRemembers implements ModInitializer {
         var protection=FamilyProtectionManager.get(world.getServer());
         protection.clearProtector(villager.getUUID());
         var inventories=NpcInventoryManager.get(world.getServer());
+        // AFTER_DEATH still exposes the dead villager inventory; snapshot it before inheritance so live items are not lost.
         java.util.List<java.util.UUID> related = families.getRelations(villager.getUUID()).stream()
             .map(r -> r.npcId().equals(villager.getUUID()) ? r.relatedNpcId() : r.npcId()).distinct().toList();
         for(java.util.UUID id : related) {
             memories.rememberEvent(id, villager.getUUID(), MemoryEventType.NPC_DIED, world.getGameTime(), MemoryImportance.IMPORTANT);
             memories.rememberEvent(id, villager.getUUID(), MemoryEventType.NPC_FAMILY_LOST, world.getGameTime(), MemoryImportance.IMPORTANT);
         }
+        inventories.synchronizeFromVillager(villager);
         java.util.UUID heir = families.childrenOf(villager.getUUID()).stream().findFirst()
             .orElseGet(() -> families.spouseOf(villager.getUUID()));
         if (heir != null) {
