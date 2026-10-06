@@ -1,29 +1,25 @@
 # Voice System
 
-Voice is planned for v0.8 and should be local-first.
-
-## Speech-to-text
-
-Initial candidate: faster-whisper. It provides local Whisper inference and can be selected by hardware profile.
-
-## Text-to-speech
-
-Initial candidate: Piper. TTS is an adapter so another local engine can replace it later.
+Phase 8 is local-first and provider-agnostic.
 
 ## Pipeline
 
-Microphone -> STT -> utterance -> conversation/intent -> grounded response -> TTS -> spatial Minecraft audio.
+Microphone -> local STT adapter -> grounded utterance -> conversation/intent -> grounded response -> priority scheduler -> local TTS adapter -> spatial delivery.
 
-## Voice identity
+## Adapter rule
 
-Each NPC should have a stable voice profile, including language, voice model and supported rate/pitch adjustments.
+The core mod never requires an online API. STT/TTS engines are external local executables behind narrow Java interfaces. A missing executable disables voice gracefully instead of breaking gameplay.
 
-## Performance
+Initial adapters target faster-whisper for STT and Piper for TTS. Paths and commands are configuration, not hard-coded credentials or remote services.
 
-Voice generation should be scheduled and cached. Direct conversations take precedence over ambient chatter.
+## Scheduling
+
+Priority order: DIRECT > DANGER > IMPORTANT > AMBIENT. Only one speech job per NPC may run at once; lower-priority ambient jobs may be dropped when the queue is saturated.
+
+## Spatial delivery
+
+Every utterance carries source position, maximum hearing distance and attenuation. The client computes audible gain from listener distance; the server remains authoritative over the text/event being spoken.
 
 ## Privacy
 
-Default microphone processing should remain local. Online providers must never be required for core gameplay.
-
-Voice is deliberately not part of v0.1.
+Microphone capture and transcription remain local by default. No cloud provider is required for core gameplay.
