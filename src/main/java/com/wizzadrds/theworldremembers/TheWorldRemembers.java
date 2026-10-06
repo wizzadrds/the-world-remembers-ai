@@ -40,6 +40,8 @@ import net.minecraft.world.entity.animal.golem.IronGolem;
 import java.util.UUID;
 import net.minecraft.tags.PoiTypeTags;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
+import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
@@ -100,6 +102,8 @@ public class TheWorldRemembers implements ModInitializer {
         ServerTickEvents.END_LEVEL_TICK.register(TheWorldRemembers::tickWorld);
         ServerLivingEntityEvents.AFTER_DEATH.register(TheWorldRemembers::handleDeath);
         ServerLivingEntityEvents.AFTER_DAMAGE.register(TheWorldRemembers::handleDamage);
+        ServerEntityCombatEvents.AFTER_KILLED_OTHER_ENTITY.register(TheWorldRemembers::handleCombatKill);
+        PlayerBlockBreakEvents.AFTER.register(TheWorldRemembers::handleBlockBreak);
         com.wizzadrds.theworldremembers.voice.VoiceNetworking.init();
         LOGGER.info("The World Remembers v0.4.0-alpha initialized.");
     }
@@ -197,6 +201,37 @@ public class TheWorldRemembers implements ModInitializer {
             player.level().getGameTime(), MemoryImportance.TRIVIAL);
         relationships.apply(new MemoryEvent(memory.npcId(), memory.playerId(), memory.type(), memory.gameTime(), memory.importance()));
         player.sendSystemMessage(Component.literal(villager.getName().getString() + ": " + line));
+    }
+
+    private static void handleCombatKill(ServerLevel world, net.minecraft.world.entity.Entity killer, LivingEntity killed, net.minecraft.world.damagesource.DamageSource source) {
+        MemoryManager memories=MemoryManager.get(world.getServer());
+        RelationshipManager relationships=RelationshipManager.get(world.getServer());
+        if (killer instanceof IronGolem golem) {
+            for (Villager witness : world.getEntitiesOfClass(Villager.class, golem.getBoundingBox().inflate(24), v -> v.isAlive())) {
+                Memory m=memories.rememberEvent(witness.getUUID(), golem.getUUID(), MemoryEventType.GOLEM_DEFENDED_VILLAGE, world.getGameTime(), MemoryImportance.IMPORTANT);
+                relationships.apply(new MemoryEvent(m.npcId(), m.playerId(), m.type(), m.gameTime(), m.importance()));
+            }
+        } else if (killer instanceof ServerPlayer player && killed instanceof net.minecraft.world.entity.monster.Monster) {
+            for (Villager witness : world.getEntitiesOfClass(Villager.class, player.getBoundingBox().inflate(12), v -> v.isAlive())) {
+                Memory m=memories.rememberEvent(witness.getUUID(), player.getUUID(), MemoryEventType.PLAYER_SAVED_NPC, world.getGameTime(), MemoryImportance.IMPORTANT);
+                relationships.apply(new MemoryEvent(m.npcId(), m.playerId(), m.type(), m.gameTime(), m.importance()));
+            }
+        }
+    }
+
+    private static void handleBlockBreak(net.minecraft.world.level.Level level, net.minecraft.world.entity.player.Player player, BlockPos pos,
+                                         net.minecraft.world.level.block.state.BlockState state, net.minecraft.world.level.block.entity.BlockEntity blockEntity) {
+        if (!(level instanceof ServerLevel world) || !(player instanceof ServerPlayer serverPlayer)) return;
+        if (!(state.is(net.minecraft.tags.BlockTags.DOORS) || state.is(net.minecraft.tags.BlockTags.BEDS) || blockEntity != null)) return;
+        VillageManager villages=VillageManager.get(world.getServer());
+        VillageEventManager events=VillageEventManager.get(world.getServer());
+        VillageHistoryManager history=VillageHistoryManager.get(world.getServer());
+        for (var village : villages.all()) {
+            if (village.center().distSqr(pos)>32*32) continue;
+            events.record(village.villageId(),new VillageEvent("property_damaged",world.getGameTime(),serverPlayer.getUUID(),pos));
+            history.recordImportantEvent(village.villageId());
+            break;
+        }
     }
 
     static void handleDamage(LivingEntity entity, net.minecraft.world.damagesource.DamageSource source,
