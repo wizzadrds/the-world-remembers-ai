@@ -15,14 +15,17 @@ public final class VoiceClientConfig {
     public boolean pushToTalkMode = true;
     public float inputVolume = 1.0f;
     public float outputVolume = 1.0f;
+    public String outputDevice = "Default";
     public float voiceDistance = 32.0f;
     public String provider = "openai";
     public String apiKey = "";
     public String model = "";
-    public String sttModel = "faster-whisper";
+    public String sttModel = "gpt-4o-mini-transcribe";
     public String sttCommand = "";
     public String ttsCommand = "";
-    public String ttsModel = "piper";
+    public String ttsModel = "gpt-4o-mini-tts";
+    public String ttsVoice = "onyx";
+    public String ttsInstructions = "Speak like a rustic, friendly Minecraft villager NPC: slightly nasal, expressive, short natural phrases, never like a narrator.";
     public String systemPrompt = "You are a Minecraft NPC. Answer briefly, naturally, and stay in character.";
 
     public static VoiceClientConfig load(Path gameDir) {
