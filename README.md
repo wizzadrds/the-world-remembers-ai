@@ -6,7 +6,7 @@ Minecraft Java mod focused on persistent memory, relationships, emergent NPC beh
 
 ## Status
 
-**Current milestone:** v0.10.0-alpha — Phase 10 complete and CI-validated
+**Current milestone:** v1.0.0 — release candidate; final CI validation in progress
 
 ## Core pillars
 
@@ -33,7 +33,7 @@ Minecraft Java mod focused on persistent memory, relationships, emergent NPC beh
 | 0.7 | Rumors & Conversations |
 | 0.8 | Local Voice |
 | 0.9 | Chronicles |
-| 0.10 | Dreams |
+| 0.10 | Dreams |\n| 1.0 | The World Remembers — integrated release |
 | 1.0 | The World Remembers |
 
 ## Development principles

@@ -156,3 +156,12 @@ Phase 8 acceptance is satisfied by local adapter contracts, deterministic bounde
 **[Phase 10 complete]**
 
 **Status: COMPLETE — v0.10.0-alpha — CI run #403 validated**
+
+## v1.0 — The World Remembers
+- [x] Integrate Phases 0-10 as one release line
+- [x] Release acceptance criteria documented
+- [ ] Final cross-system CI validation
+- [ ] Final release artifact validation
+- [ ] Release tag
+
+**Status: RELEASE CANDIDATE — v1.0.0**
