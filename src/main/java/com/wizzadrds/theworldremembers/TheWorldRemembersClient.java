@@ -128,7 +128,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
 
         voiceConversation.finishListening(pcm, service, transcript -> {
             try {
-                AiChatAdapter ai = new OpenAiResponsesAdapter(voiceConfig.apiKey, voiceConfig.model);
+                AiChatAdapter ai = createAiAdapter();
                 String reply = ai.respond(transcript, voiceConfig.systemPrompt);
                 if (reply == null || reply.isBlank()) {
                     throw new IllegalStateException("AI returned an empty reply");
@@ -148,6 +148,17 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 throw new RuntimeException("Voice AI request failed", e);
             }
         });
+    }
+
+    private static AiChatAdapter createAiAdapter() {
+        String provider = voiceConfig.provider == null ? "" : voiceConfig.provider.trim().toLowerCase();
+        return switch (provider) {
+            case "", "openai", "openai-responses" ->
+                    new OpenAiResponsesAdapter(voiceConfig.apiKey, voiceConfig.model);
+            default -> throw new IllegalArgumentException(
+                    "Unsupported voice AI provider: " + voiceConfig.provider
+                            + ". Supported providers: openai");
+        };
     }
 
     private static void cleanupVoiceSession() {
