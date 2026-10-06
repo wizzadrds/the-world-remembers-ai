@@ -27,8 +27,8 @@ public final class NpcInventoryManager extends SavedData {
         int moved = 0;
         for (NpcItemStack stack : source.items()) {
             if (!isImportantItem(stack.itemId())) continue;
-            if (source.remove(stack.itemId(), stack.count())) {
-                target.add(stack.itemId(), stack.count());
+            if (!target.canAdd(stack.itemId(), stack.count())) continue;
+            if (source.remove(stack.itemId(), stack.count()) && target.add(stack.itemId(), stack.count())) {
                 moved += stack.count();
             }
         }
