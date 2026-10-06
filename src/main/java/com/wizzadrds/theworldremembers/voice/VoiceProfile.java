@@ -1,0 +1,2 @@
+package com.wizzadrds.theworldremembers.voice;
+public record VoiceProfile(String language,String model,VoiceTemperament temperament,int pitch,int rate,int expressiveness){public VoiceProfile{if(language==null||language.isBlank()||model==null||model.isBlank())throw new IllegalArgumentException();if(pitch<-100||pitch>100||rate<-100||rate>100||expressiveness<0||expressiveness>100)throw new IllegalArgumentException();}}
