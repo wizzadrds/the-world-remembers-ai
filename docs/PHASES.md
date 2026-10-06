@@ -156,3 +156,17 @@ Phase 8 acceptance is satisfied by local adapter contracts, deterministic bounde
 **[Phase 10 complete]**
 
 **Status: COMPLETE — v0.10.0-alpha — CI run #403 validated**
+
+
+## v1.0 — Release Candidate
+- [ ] Full-system regression validation
+- [ ] Persistence/reload validation across all major systems
+- [ ] Server GameTests green
+- [ ] Client GameTests green
+- [ ] Headless Fabric server smoke test green
+- [ ] Population-scale performance validation
+- [ ] Release artifact and metadata validation
+
+**[v1.0 RC started]**
+
+**Status: IN PROGRESS — v1.0.0-rc1**
