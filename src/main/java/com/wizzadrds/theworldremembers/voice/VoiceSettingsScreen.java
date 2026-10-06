@@ -33,7 +33,8 @@ public final class VoiceSettingsScreen extends Screen {
         int top = 42;
 
         microphone = field(left, top, "Microphone", config.microphone);
-        provider = field(right, top, "AI Provider", config.provider);\n        provider.setSuggestion("openai");
+        provider = field(right, top, "AI Provider", config.provider);
+        provider.setSuggestion("openai");
         apiKey = field(left, top + 42, "API Key", config.apiKey);
         apiKey.setMaxLength(512);
         apiKey.setSuggestion("OpenAI API key (stored locally)");
