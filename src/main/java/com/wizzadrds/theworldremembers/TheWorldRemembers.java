@@ -118,8 +118,10 @@ public class TheWorldRemembers implements ModInitializer {
             equipment.sync(villager);
             NpcHome home=homes.get(villager.getUUID());
             if(home==null) {
-                BlockPos pos=villager.blockPosition();
-                home=homes.assignIfAbsent(villager.getUUID(),pos,null,pos);
+                BlockPos pos=findNearbyHomePoi(world,villager.blockPosition());
+                if(pos==null)pos=villager.blockPosition();
+                BlockPos door=findNearbyDoor(world,pos);
+                home=homes.assignIfAbsent(villager.getUUID(),pos,pos,door==null?pos:door);
             }
             synchronizeFamilyHome(villager, families, homes);
             home=homes.get(villager.getUUID());
@@ -131,6 +133,7 @@ public class TheWorldRemembers implements ModInitializer {
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
             for(ServerPlayer player:world.players()) {
                 if(player.blockPosition().distSqr(entrance)>HOME_RADIUS*HOME_RADIUS) continue;
+                if(villager.distanceToSqr(player)>12*12) continue;
                 Relationship relationship=relationships.get(villager.getUUID(),player.getUUID());
                 if(relationship==null) continue;
                 HomeAccess access=HomeAccessPolicy.evaluate(relationship,PersonalityGenerator.generate(villager.getUUID()),false);
