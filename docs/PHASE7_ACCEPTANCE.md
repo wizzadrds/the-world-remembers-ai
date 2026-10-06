@@ -1,13 +1,12 @@
 # Phase 7 Acceptance
 
-Phase 7 is complete only when automated tests and Minecraft GameTests demonstrate:
+A Phase 7 milestone is complete only when witness-based knowledge, provenance, rumor degradation, persistent NPC-to-NPC conversations and grounded dialogue are demonstrated by unit tests and Minecraft GameTests, followed by final CI build and headless server validation.
 
-- Witness-based knowledge from real event proximity.
-- Direct versus reported knowledge.
-- Bounded rumor degradation.
-- Persistent conversations across save/reload.
-- NPC-to-NPC conversations selecting facts from actual knowledge.
-- Grounded dialogue based only on known world events.
-- No indefinite duplicate propagation.
-- Distinguishable direct, reported and rumored knowledge.
-- Final CI passes Gradle tests, Minecraft GameTests and headless Fabric server smoke test.
+- [ ] Witnesses create direct knowledge.
+- [ ] NPC conversations transfer only grounded knowledge.
+- [ ] Reported knowledge is distinguishable from direct knowledge.
+- [ ] Rumor confidence degrades over time.
+- [ ] Conversation records persist.
+- [ ] Dialogue is generated only from known facts.
+- [ ] Live NPC-to-NPC conversation GameTest passes.
+- [ ] Final CI build/GameTests/server smoke passes.
