@@ -51,7 +51,10 @@ public final class VoiceStreamPlayer implements AutoCloseable {
         start();
         if (!running) return;
         byte[] copy = pcm.clone();
-        queue.offer(copy);
+        if (!queue.offer(copy)) {
+            queue.poll();
+            queue.offer(copy);
+        }
     }
 
     private void playLoop(SourceDataLine output) {
