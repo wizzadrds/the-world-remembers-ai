@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.voice; import java.util.UUID; public record VoiceRequest(UUID npcId,String text,int priority,double distance,VoiceDeliveryState state,long createdTick){public VoiceRequest{if(npcId==null||text==null||text.isBlank()||priority<0||distance<0)throw new IllegalArgumentException();}}
