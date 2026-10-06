@@ -1,13 +1,13 @@
 # Phase 7 Acceptance
 
-Phase 7 is complete only when:
+Phase 7 is complete only when automated tests and Minecraft GameTests demonstrate:
 
-- [ ] Direct witness facts persist.
-- [ ] NPC-to-NPC reports propagate only through an explicit conversation event.
-- [ ] Rumor confidence degrades with propagation/time.
-- [ ] Direct knowledge outranks reported or rumored knowledge.
-- [ ] Contradictory knowledge remains distinguishable.
-- [ ] Conversations are persistent events, not transient chat text.
-- [ ] Grounded dialogue never references unavailable facts.
-- [ ] Dedicated GameTests cover witness, propagation, degradation and grounded recall.
-- [ ] Population-scale conversation processing passes CI performance validation.
+- Witness-based knowledge from real event proximity.
+- Direct versus reported knowledge.
+- Bounded rumor degradation.
+- Persistent conversations across save/reload.
+- NPC-to-NPC conversations selecting facts from actual knowledge.
+- Grounded dialogue based only on known world events.
+- No indefinite duplicate propagation.
+- Distinguishable direct, reported and rumored knowledge.
+- Final CI passes Gradle tests, Minecraft GameTests and headless Fabric server smoke test.
