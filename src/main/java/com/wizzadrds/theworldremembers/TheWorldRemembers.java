@@ -19,6 +19,7 @@ import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
 import com.wizzadrds.theworldremembers.relationship.*;
 import com.wizzadrds.theworldremembers.stress.NpcStressManager;
 import com.wizzadrds.theworldremembers.village.VillageManager;
+import com.wizzadrds.theworldremembers.dream.DreamManager;
 import com.wizzadrds.theworldremembers.chronicle.ChronicleNetworking;
 import com.wizzadrds.theworldremembers.rumor.*;
 import com.wizzadrds.theworldremembers.village.VillageHistoryManager;
@@ -101,6 +102,7 @@ public class TheWorldRemembers implements ModInitializer {
         FamilyCourtshipManager courtship=FamilyCourtshipManager.get(world.getServer());
         FamilyProtectionManager protection=FamilyProtectionManager.get(world.getServer());
         VillageManager villages=VillageManager.get(world.getServer());
+        DreamManager dreams=DreamManager.get(world.getServer());
         KnowledgeManager knowledge=KnowledgeManager.get(world.getServer());
         ConversationManager conversations=ConversationManager.get(world.getServer());
         VillageHistoryManager villageHistory=VillageHistoryManager.get(world.getServer());
@@ -114,6 +116,7 @@ public class TheWorldRemembers implements ModInitializer {
         observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks, migrations, villageEvents, villageStorage);
 
         for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),villager -> villager.isAlive()&&!villager.isRemoved())) {
+            if(villager.isSleeping() && dreams.latest(villager.getUUID()).map(d -> world.getGameTime()-d.generatedAt() >= 1200).orElse(true)) dreams.generateForSleepingNpc(villager.getUUID(),world.getGameTime(),memories.memoriesOf(villager.getUUID()));
             ages.assignIfAbsent(villager.getUUID(), villager.isBaby() ? NpcAgeGenerator.generateChildAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())) : NpcAgeGenerator.generateAdultAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())));
             if (villager.isBaby() && !families.hasParents(villager.getUUID())) linkBabyToNearbyParents(world, villager, families, memories);
             if (!villager.isBaby() && ages.get(villager.getUUID()).isAdult() && !families.hasSpouse(villager.getUUID())) processCourtship(world, villager, families, courtship, memories, ages);

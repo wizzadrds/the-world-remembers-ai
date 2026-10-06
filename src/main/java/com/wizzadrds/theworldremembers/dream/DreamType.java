@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.dream; public enum DreamType { MEMORY, FEAR, NOSTALGIA, IMPOSSIBLE }
