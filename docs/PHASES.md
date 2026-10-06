@@ -139,6 +139,8 @@ Phase 8 acceptance is satisfied by local adapter contracts, deterministic bounde
 - [ ] Families
 - [ ] Village history
 
+**Status: IN PROGRESS — v0.9.0-alpha**
+
 ## Phase 10 — Dreams
 - [ ] Memory dreams
 - [ ] Fear dreams
