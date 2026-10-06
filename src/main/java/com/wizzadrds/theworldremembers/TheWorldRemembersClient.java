@@ -7,6 +7,7 @@ import java.util.UUID;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
@@ -45,6 +46,8 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         voicePlayer = new VoiceAudioPlayer();
 
         VoiceHud.register(VOICE_KEY, voiceConversation);
+        ClientPlayConnectionEvents.DISCONNECT.register((listener, client) -> cleanupVoiceSession());
+
         ClientPlayNetworking.registerGlobalReceiver(VoiceAudioPacket.TYPE, (payload, context) -> {
             Minecraft client = context.client();
             client.execute(() -> {
@@ -143,6 +146,15 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 voiceConversation.fail();
             }
         });
+    }
+
+    private static void cleanupVoiceSession() {
+        voiceKeyWasDown = false;
+        microphone.stop();
+        voiceConversation.reset();
+        voiceStreamPlayer.stop();
+        voicePlayer.stop();
+        voiceConversation.close();
     }
 
     public static void openChronicles() { ChronicleNetworking.request(); }
