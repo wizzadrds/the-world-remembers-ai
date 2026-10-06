@@ -93,7 +93,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 AiChatAdapter ai = new OpenAiResponsesAdapter(voiceConfig.apiKey, voiceConfig.model);
                 String reply = ai.respond(transcript, voiceConfig.systemPrompt);
                 if (reply == null || reply.isBlank()) { voiceConversation.fail(); return; }
-                VoiceProfile profile = new VoiceProfile("es-ES", voiceConfig.ttsModel, VoiceTemperament.NORMAL, 1.0f, 1.0f, 0.5f);
+                VoiceProfile profile = new VoiceProfile("es-ES", voiceConfig.ttsModel, VoiceTemperament.CALM, 1.0f, 1.0f, 0.5f);
                 Path output = Minecraft.getInstance().gameDirectory.toPath().resolve("config").resolve("the_world_remembers_voice_response.wav");
                 voiceConversation.synthesizeAndSpeak(reply, service, profile, output, voicePlayer, ignored -> {});
             } catch (Exception e) {
