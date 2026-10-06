@@ -64,6 +64,7 @@ public class TheWorldRemembers implements ModInitializer {
     /** Social knowledge/conversation propagation is deliberately decoupled from the live behavior tick. */
     private static final int CONVERSATION_INTERVAL=100;
     private static final int INTRUSION_COOLDOWN=200;
+    private static final java.util.Map<ServerLevel,Integer> VILLAGER_CURSORS = new java.util.WeakHashMap<>();
     private static final double HOME_RADIUS=3.5;
 
     @Override public void onInitialize() {
@@ -134,9 +135,17 @@ public class TheWorldRemembers implements ModInitializer {
             processConversations(world, memories, knowledge, conversations);
         }
 
-        int processedVillagers = 0;
-        for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),villager -> villager.isAlive()&&!villager.isRemoved())) {
-            if (budgeted && processedVillagers++ >= VILLAGER_BUDGET_PER_TICK) break;
+        java.util.List<Villager> loadedVillagers = new java.util.ArrayList<>(world.getEntitiesOfClass(
+                Villager.class,
+                new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),
+                villager -> villager.isAlive() && !villager.isRemoved()));
+        if (budgeted && !loadedVillagers.isEmpty()) {
+            int start = VILLAGER_CURSORS.getOrDefault(world, 0) % loadedVillagers.size();
+            java.util.Collections.rotate(loadedVillagers, -start);
+            int advanced = Math.min(VILLAGER_BUDGET_PER_TICK, loadedVillagers.size());
+            VILLAGER_CURSORS.put(world, (start + advanced) % loadedVillagers.size());
+        }
+        for(Villager villager : loadedVillagers) {
             if(villager.isSleeping() && dreams.latest(villager.getUUID()).map(d -> world.getGameTime()-d.generatedAt() >= 1200).orElse(true)) dreams.generateForSleepingNpc(villager.getUUID(),world.getGameTime(),memories.memoriesOf(villager.getUUID()));
             ages.assignIfAbsent(villager.getUUID(), villager.isBaby() ? NpcAgeGenerator.generateChildAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())) : NpcAgeGenerator.generateAdultAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())));
             if (villager.isBaby() && !families.hasParents(villager.getUUID())) linkBabyToNearbyParents(world, villager, families, memories);
