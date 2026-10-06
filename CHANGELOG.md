@@ -1,5 +1,7 @@
 # Changelog
 
+<!-- Final Phase 6 CI verification trigger -->
+
 ## v0.6.0-alpha — Phase 6 Villages & Society
 - Added persistent village identity, population and history.
 - Added typed village events, migration history and resident/guardian death memory.
