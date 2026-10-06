@@ -75,6 +75,8 @@ public final class NpcInventoryManager extends SavedData {
      */
     public void synchronizeFromVillager(Villager villager){
         UUID id=villager.getUUID();
+        NpcInventory previous=inventories.get(id);
+        java.util.List<NpcItemStack> previousItems=previous==null?java.util.List.of():previous.items();
         NpcInventory target=new NpcInventory();
         var inventory=villager.getInventory();
         for(int slot=0;slot<inventory.getContainerSize();slot++){
@@ -84,16 +86,19 @@ public final class NpcInventoryManager extends SavedData {
         }
 
         NpcInventory pending=pendingInherited.get(id);
+        java.util.List<NpcItemStack> pendingBefore=pending==null?java.util.List.of():pending.items();
         if(pending!=null){
-            for(NpcItemStack stack:pending.items()){
+            for(NpcItemStack stack:pendingBefore){
                 target.add(stack.itemId(),stack.count());
             }
             materializePending(villager, pending);
             if(pending.items().isEmpty()) pendingInherited.remove(id);
         }
+        java.util.List<NpcItemStack> pendingAfter=pendingInherited.get(id)==null
+                ?java.util.List.of():pendingInherited.get(id).items();
 
         inventories.put(id,target);
-        setDirty();
+        if(!previousItems.equals(target.items()) || !pendingBefore.equals(pendingAfter)) setDirty();
     }
 
     /**
