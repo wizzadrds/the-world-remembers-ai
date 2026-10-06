@@ -215,7 +215,7 @@ public class TheWorldRemembers implements ModInitializer {
             if(homeStorage.get(villager.getUUID())==null){BlockPos storage=findNearestContainer(world,home.homePos(),8);if(storage!=null)homeStorage.link(villager.getUUID(),storage);}
             activities.set(villager.getUUID(),villager.isSleeping()?NpcActivity.SLEEPING:(villager.getNavigation().isInProgress()?NpcActivity.WALKING:NpcActivity.IDLE),10,villager.blockPosition(),world.getGameTime());
             if(villager.getNavigation().isInProgress())fatigue.increase(villager.getUUID(),1);else fatigue.recover(villager.getUUID(),1);
-            applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress);
+            applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress, behavior);
             applyLiveSocialBehavior(world, villager, relationships, stress, behavior, homes, homeStorage);
             depositInventoryIntoHomeStorage(world, villager, homeStorage.get(villager.getUUID()));
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
@@ -446,10 +446,9 @@ public class TheWorldRemembers implements ModInitializer {
 
     private static void applyFamilyProtectionBehavior(ServerLevel world, Villager villager, FamilyManager families,
                                                        FamilyProtectionManager protection, NpcHomeManager homes,
-                                                       NpcStressManager stress) {
+                                                       NpcStressManager stress, NpcBehaviorEngine engine) {
         java.util.List<java.util.UUID> children = families.childrenOf(villager.getUUID());
         if (children.isEmpty()) return;
-        NpcBehaviorEngine engine = new NpcBehaviorEngine();
         NpcStress npcStress = new NpcStress(stress.value(villager.getUUID()));
         for (java.util.UUID childId : children) {
             if (!villager.getUUID().equals(protection.protectorOf(childId))) continue;
