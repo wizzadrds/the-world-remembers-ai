@@ -47,7 +47,6 @@ public final class VoiceStreamPlayer implements AutoCloseable {
         Integer previous = lastSequences.get(speaker);
         if (previous != null && sequence <= previous) return;
         lastSequences.put(speaker, sequence);
-        if (lastSequences.size() > 128) lastSequences.clear();
         start();
         if (!running) return;
         byte[] copy = pcm.clone();
