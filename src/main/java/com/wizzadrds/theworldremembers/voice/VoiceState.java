@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.voice; public enum VoiceState { NORMAL,TIMID,NERVOUS,TIRED,ANGRY,EXCITED }
