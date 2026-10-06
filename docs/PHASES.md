@@ -63,7 +63,7 @@ The project follows a staged implementation plan. Features are documented before
 
 **[Phase 4 complete]**
 
-**Status: COMPLETE — v0.4.0-alpha; final CI confirmation in progress**
+**Status: COMPLETE — v0.4.0-alpha — CI validated on PR #80**
 
 ## Phase 5 — Families & Generations
 - [x] Persistent age data model

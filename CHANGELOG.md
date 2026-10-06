@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.4.0-alpha — Phase 4 Behavior
+- Completed live NPC behavior integration.
+- Added persistent homes, stress, travel state, inventory/equipment synchronization and role-aware behavior.
+- Added live navigation, home intrusion consequences, work/threat responses and Phase 4 GameTests.
+- Final CI validation passed: Gradle build/tests and headless Fabric server smoke test on PR #80.
+
 ## Phase 4 Behavior — validated
 - Completed live NPC activity and decision integration.
 - Added real home, door and container discovery with persistent home storage links.
