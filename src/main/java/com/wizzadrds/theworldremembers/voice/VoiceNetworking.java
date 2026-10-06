@@ -24,7 +24,7 @@ public final class VoiceNetworking {
             ServerPlayer sender = context.player();
             if (payload.pcm().length == 0 || payload.pcm().length > 4096) return;
 
-            long now = sender.serverLevel().getGameTime();
+            long now = sender.level().getGameTime();
             RateState state = RATE_LIMITS.computeIfAbsent(sender.getUUID(), ignored -> new RateState(now));
             if (now - state.windowStart >= RATE_WINDOW_TICKS) {
                 state.windowStart = now;
@@ -35,14 +35,8 @@ public final class VoiceNetworking {
             float distance = Math.max(1.0f, Math.min(MAX_DISTANCE, payload.maxDistance()));
             float volume = Math.max(0.0f, Math.min(2.0f, payload.volume()));
             VoiceAudioPacket relay = new VoiceAudioPacket(
-                    sender.getUUID(),
-                    sender.getX(),
-                    sender.getY() + sender.getEyeHeight(),
-                    sender.getZ(),
-                    volume,
-                    distance,
-                    payload.sequence(),
-                    payload.pcm());
+                    sender.getUUID(), sender.getX(), sender.getY() + sender.getEyeHeight(),
+                    sender.getZ(), volume, distance, payload.sequence(), payload.pcm());
 
             double radiusSquared = distance * distance;
             for (ServerPlayer recipient : sender.serverLevel().players()) {
@@ -64,9 +58,6 @@ public final class VoiceNetworking {
     private static final class RateState {
         private long windowStart;
         private int frames;
-
-        private RateState(long windowStart) {
-            this.windowStart = windowStart;
-        }
+        private RateState(long windowStart) { this.windowStart = windowStart; }
     }
 }
