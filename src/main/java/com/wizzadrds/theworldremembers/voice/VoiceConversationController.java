@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
+import java.nio.file.Path;
 
 public final class VoiceConversationController implements AutoCloseable {
     private final ExecutorService worker = Executors.newSingleThreadExecutor(r -> {
@@ -36,6 +37,22 @@ public final class VoiceConversationController implements AutoCloseable {
                 return;
             }
             transcriptConsumer.accept(transcript);
+        });
+    }
+
+    public void synthesizeAndSpeak(String text, VoiceService service, VoiceProfile profile, Path output, VoiceAudioPlayer player, Consumer<Path> completed) {
+        setState(VoiceConversationState.PROCESSING);
+        worker.submit(() -> {
+            try {
+                Path audio = service.synthesize(text, profile, output);
+                if (audio == null) { fail(); return; }
+                setState(VoiceConversationState.SPEAKING);
+                player.play(audio, 1.0f);
+                completed.accept(audio);
+                finishSpeaking();
+            } catch (Exception e) {
+                fail();
+            }
         });
     }
 
