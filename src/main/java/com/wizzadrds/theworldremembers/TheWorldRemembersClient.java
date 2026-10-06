@@ -59,9 +59,9 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 if (client.player != null) openChronicles();
             }
             while (SETTINGS_KEY.consumeClick()) {
-                client.setScreen(new VoiceSettingsScreen(client.screen, voiceConfig));
+                client.gui.setScreenAndShow(new VoiceSettingsScreen(client.gui.screen(), voiceConfig));
             }
-            if (client.player != null && client.screen == null) {
+            if (client.player != null && client.gui.screen() == null) {
                 boolean down = VOICE_KEY.isDown();
                 if (down && !voiceKeyWasDown) {
                     if (microphone.start(voiceConfig.microphone)) {
