@@ -2,7 +2,9 @@ package com.wizzadrds.theworldremembers;
 
 import com.wizzadrds.theworldremembers.chronicle.*;
 import com.wizzadrds.theworldremembers.voice.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.UUID;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -36,13 +38,17 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         return voiceConfig;
     }
 
+    public static VoiceConversationState voiceState() {
+        return voiceConversation == null ? VoiceConversationState.IDLE : voiceConversation.state();
+    }
+
     public void onInitializeClient() {
         voiceConfig = VoiceClientConfig.load(Minecraft.getInstance().gameDirectory.toPath());
         voiceConversation = new VoiceConversationController();
         microphone = new MicrophoneCapture();
         voicePlayer = new VoiceAudioPlayer();
 
-        VoiceHud.register(VOICE_KEY);
+        VoiceHud.register(VOICE_KEY, voiceConversation);
         ClientPlayNetworking.registerGlobalReceiver(VoicePacket.TYPE, (payload, context) -> lastVoice = payload);
         ClientPlayNetworking.registerGlobalReceiver(ChronicleResponsePacket.TYPE, (payload, context) ->
                 Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.setScreen(new ChronicleScreen(payload.lines()))));
@@ -54,6 +60,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             while (SETTINGS_KEY.consumeClick()) {
                 client.gui.setScreen(new VoiceSettingsScreen(client.gui.screen(), voiceConfig));
             }
+
             if (client.player != null && client.gui.screen() == null) {
                 boolean down = VOICE_KEY.isDown();
                 if (down && !voiceKeyWasDown) {
@@ -77,18 +84,48 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
 
     private static void processVoice(byte[] pcm) {
         var sttCommand = VoiceCommandParser.parse(voiceConfig.sttCommand);
-        if (sttCommand.isEmpty()) { voiceConversation.fail(); return; }
+        if (sttCommand.isEmpty()) {
+            voiceConversation.fail();
+            return;
+        }
         var ttsCommand = VoiceCommandParser.parse(voiceConfig.ttsCommand);
-        if (ttsCommand.isEmpty()) { voiceConversation.fail(); return; }
-        var service = new VoiceService(new LocalProcessSttAdapter(sttCommand), new LocalProcessTtsAdapter(ttsCommand));
+        if (ttsCommand.isEmpty()) {
+            voiceConversation.fail();
+            return;
+        }
+
+        var service = new VoiceService(
+                new LocalProcessSttAdapter(sttCommand),
+                new LocalProcessTtsAdapter(ttsCommand));
+
         voiceConversation.finishListening(pcm, service, transcript -> {
             try {
                 AiChatAdapter ai = new OpenAiResponsesAdapter(voiceConfig.apiKey, voiceConfig.model);
                 String reply = ai.respond(transcript, voiceConfig.systemPrompt);
-                if (reply == null || reply.isBlank()) { voiceConversation.fail(); return; }
-                VoiceProfile profile = new VoiceProfile("es-ES", voiceConfig.ttsModel, VoiceTemperament.CALM, 1.0f, 1.0f, 0.5f);
-                Path output = Minecraft.getInstance().gameDirectory.toPath().resolve("config").resolve("the_world_remembers_voice_response.wav");
-                voiceConversation.synthesizeAndSpeak(reply, service, profile, output, voicePlayer, ignored -> {});
+                if (reply == null || reply.isBlank()) {
+                    voiceConversation.fail();
+                    return;
+                }
+
+                VoiceProfile profile = new VoiceProfile(
+                        "es-ES",
+                        voiceConfig.ttsModel,
+                        VoiceTemperament.CALM,
+                        1.0f,
+                        1.0f,
+                        0.5f);
+
+                Path output = Minecraft.getInstance().gameDirectory.toPath()
+                        .resolve("config")
+                        .resolve("the_world_remembers_voice_response_" + UUID.randomUUID() + ".wav");
+                voiceConversation.synthesizeAndSpeak(
+                        reply,
+                        service,
+                        profile,
+                        output,
+                        voicePlayer,
+                        voiceConfig.outputVolume,
+                        ignored -> {});
             } catch (Exception e) {
                 voiceConversation.fail();
             }
