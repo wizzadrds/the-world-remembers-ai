@@ -151,7 +151,7 @@ public class TheWorldRemembers implements ModInitializer {
                     villager -> villager.isAlive() && !villager.isRemoved()));
         if (budgeted) {
             processConversations(world, memories, knowledge, conversations,
-                    nextBudgetedVillagers(world, SOCIAL_BUDGET_PER_TICK));
+                    nextBudgetedVillagers(world, SOCIAL_BUDGET_PER_TICK, SOCIAL_CURSORS));
         } else {
             processConversations(world, memories, knowledge, conversations);
         }
@@ -266,10 +266,10 @@ public class TheWorldRemembers implements ModInitializer {
         SOCIAL_CURSORS.putIfAbsent(world, 0);
     }
 
-    private static java.util.List<Villager> nextBudgetedVillagers(ServerLevel world, int budget) {
+    private static java.util.List<Villager> nextBudgetedVillagers(ServerLevel world, int budget, java.util.Map<ServerLevel,Integer> cursors) {
         java.util.List<UUID> ids = VILLAGER_REGISTRY.get(world);
         if (ids == null || ids.isEmpty() || budget <= 0) return new java.util.ArrayList<>();
-        int start = VILLAGER_CURSORS.getOrDefault(world, 0) % ids.size();
+        int start = cursors.getOrDefault(world, 0) % ids.size();
         java.util.List<Villager> result = new java.util.ArrayList<>(Math.min(budget, ids.size()));
         int checked = 0;
         int index = start;
@@ -279,7 +279,7 @@ public class TheWorldRemembers implements ModInitializer {
             index = (index + 1) % ids.size();
             checked++;
         }
-        VILLAGER_CURSORS.put(world, index);
+        cursors.put(world, index);
         return result;
     }
 
