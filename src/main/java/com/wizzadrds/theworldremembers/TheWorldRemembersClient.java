@@ -56,6 +56,24 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             while (SETTINGS_KEY.consumeClick()) {
                 client.setScreen(new VoiceSettingsScreen(client.screen, voiceConfig));
             }
+            if (client.player != null && client.screen == null) {
+                boolean down = VOICE_KEY.isDown();
+                if (down && !voiceKeyWasDown) {
+                    if (microphone.start(voiceConfig.microphone)) {
+                        voiceConversation.beginListening();
+                    } else {
+                        voiceConversation.fail();
+                    }
+                } else if (!down && voiceKeyWasDown) {
+                    byte[] pcm = microphone.stop();
+                    if (pcm.length > 0) {
+                        voiceConversation.reset();
+                    } else {
+                        voiceConversation.fail();
+                    }
+                }
+                voiceKeyWasDown = down;
+            }
         });
     }
 
