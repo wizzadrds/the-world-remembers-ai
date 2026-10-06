@@ -9,4 +9,4 @@
 - [x] Bounded dream history.
 - [x] Unit tests for selection/persistence.
 - [x] Minecraft GameTests for sleeping/awake behavior.
-- [ ] CI build, tests and headless Fabric smoke test pass.
+- [x] CI build, tests and headless Fabric smoke test pass.
