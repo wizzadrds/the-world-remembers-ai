@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.voice; import org.junit.jupiter.api.Test;import static org.junit.jupiter.api.Assertions.*; class SpatialVoiceTest{@Test void attenuationIsBounded(){var s=new SpatialVoice(0,0,0,10);assertEquals(1f,s.volumeAt(0,0,0),.001);assertEquals(.5f,s.volumeAt(5,0,0),.001);assertEquals(0f,s.volumeAt(10,0,0),.001);}}
