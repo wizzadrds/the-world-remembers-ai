@@ -245,9 +245,10 @@ public class TheWorldRemembers implements ModInitializer {
             activities.set(villager.getUUID(),villager.isSleeping()?NpcActivity.SLEEPING:(villager.getNavigation().isInProgress()?NpcActivity.WALKING:NpcActivity.IDLE),10,villager.blockPosition(),world.getGameTime());
             if(villager.getNavigation().isInProgress())fatigue.increase(villager.getUUID(),1);else fatigue.recover(villager.getUUID(),1);
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress, behavior);
+            var personality = PersonalityGenerator.generate(villager.getUUID());
             java.util.List<ServerPlayer> nearbyPlayers = world.getEntitiesOfClass(ServerPlayer.class,
                     villager.getBoundingBox().inflate(12), p -> p.isAlive());
-            applyLiveSocialBehavior(world, villager, relationships, stress, behavior, homes, homeStorage, nearbyPlayers);
+            applyLiveSocialBehavior(world, villager, relationships, stress, behavior, homes, homeStorage, nearbyPlayers, personality);
             depositInventoryIntoHomeStorage(world, villager, homeStorage.get(villager.getUUID()));
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
             for(ServerPlayer player:nearbyPlayers) {
@@ -255,7 +256,7 @@ public class TheWorldRemembers implements ModInitializer {
                 if(villager.distanceToSqr(player)>12*12) continue;
                 Relationship relationship=relationships.get(villager.getUUID(),player.getUUID());
                 if(relationship==null) continue;
-                HomeAccess access=HomeAccessPolicy.evaluate(relationship,PersonalityGenerator.generate(villager.getUUID()),false);
+                HomeAccess access=HomeAccessPolicy.evaluate(relationship,personality,false);
                 if(access==HomeAccess.DENIED&&!hasRecentIntrusion(memories,villager,player,world.getGameTime())) {
                     stress.increase(villager.getUUID(),3);
                     Memory memory=memories.rememberEvent(villager.getUUID(),player.getUUID(),MemoryEventType.PLAYER_ENTERED_NPC_HOME,world.getGameTime(),MemoryImportance.IMPORTANT);
@@ -353,7 +354,7 @@ public class TheWorldRemembers implements ModInitializer {
             }
         }
     }
-    private static void applyLiveSocialBehavior(ServerLevel world, Villager villager, RelationshipManager relationships, NpcStressManager stress, NpcBehaviorEngine behavior, NpcHomeManager homes, NpcHomeStorageManager homeStorage, java.util.List<ServerPlayer> nearbyPlayers) {
+    private static void applyLiveSocialBehavior(ServerLevel world, Villager villager, RelationshipManager relationships, NpcStressManager stress, NpcBehaviorEngine behavior, NpcHomeManager homes, NpcHomeStorageManager homeStorage, java.util.List<ServerPlayer> nearbyPlayers, com.wizzadrds.theworldremembers.personality.Personality personality) {
         if (!villager.getNavigation().isDone() && !villager.isTrading()) return;
         String role=villager.getVillagerData().toString().toLowerCase(java.util.Locale.ROOT);
         boolean worker=role.contains("farmer")||role.contains("librarian")||role.contains("cleric")||role.contains("armorer")||role.contains("toolsmith")||role.contains("weaponsmith");
@@ -364,7 +365,7 @@ public class TheWorldRemembers implements ModInitializer {
             Relationship relationship=relationships.get(villager.getUUID(),player.getUUID());
             if(relationship==null) continue;
             NpcActivity activity=villager.isSleeping()?NpcActivity.SLEEPING:(villager.isTrading()?NpcActivity.TRADING:NpcActivity.IDLE);
-            NpcDecision decision=behavior.decide(activity,relationship,PersonalityGenerator.generate(villager.getUUID()),new NpcStress(stress.value(villager.getUUID())));
+            NpcDecision decision=behavior.decide(activity,relationship,personality,new NpcStress(stress.value(villager.getUUID())));
             if(decision==NpcDecision.FOLLOW && relationship.trust()>=30) villager.getNavigation().moveTo(player,1.0);
             else if(decision==NpcDecision.LEAVE) {
                 NpcHome home=homes.get(villager.getUUID());
