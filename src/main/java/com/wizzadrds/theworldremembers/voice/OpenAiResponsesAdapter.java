@@ -16,7 +16,7 @@ public final class OpenAiResponsesAdapter implements AiChatAdapter {
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("API key is required");
         this.client = HttpClient.newHttpClient();
         this.apiKey = apiKey;
-        this.model = model == null || model.isBlank() ? "gpt-6-luna" : model;
+        this.model = model == null || model.isBlank() ? "gpt-5.6-luna" : model;
     }
 
     @Override
