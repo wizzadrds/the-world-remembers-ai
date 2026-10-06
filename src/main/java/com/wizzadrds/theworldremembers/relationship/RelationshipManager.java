@@ -11,6 +11,8 @@ import com.wizzadrds.theworldremembers.memory.MemoryEvent;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Collection;
+import java.util.List;
 
 public final class RelationshipManager extends SavedData {
     private final Map<String, Relationship> relationships = new HashMap<>();
