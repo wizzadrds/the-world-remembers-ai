@@ -19,6 +19,7 @@ public final class RelationshipManager extends SavedData {
     private static final SavedDataType<RelationshipManager> TYPE = new SavedDataType<>(net.minecraft.resources.Identifier.fromNamespaceAndPath("the_world_remembers", "relationships"), RelationshipManager::new, CODEC, null);
     private static String key(UUID npc, UUID player) { return npc + ":" + player; }
     public static RelationshipManager get(MinecraftServer server) { ServerLevel l=server.getLevel(ServerLevel.OVERWORLD); return l==null?new RelationshipManager():l.getDataStorage().computeIfAbsent(TYPE); }
+    public Collection<Relationship> all(){return List.copyOf(relationships.values());}
     public Relationship get(UUID npc, UUID player) { return relationships.get(key(npc, player)); }
     public Relationship getOrCreate(UUID npc, UUID player) { return relationships.computeIfAbsent(key(npc,player), k -> new Relationship(npc,player,0,0,0,0,0,0,0)); }
     public Relationship apply(MemoryEvent event) {
