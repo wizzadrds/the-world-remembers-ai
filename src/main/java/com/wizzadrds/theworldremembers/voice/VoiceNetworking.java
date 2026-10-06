@@ -28,7 +28,10 @@ public final class VoiceNetworking {
 
         ServerPlayNetworking.registerGlobalReceiver(VoiceAudioPacket.TYPE, (payload, context) -> {
             ServerPlayer sender = context.player();
-            if (payload.pcm().length == 0 || payload.pcm().length > 4096) return;
+            byte[] pcm = payload.pcm();
+            if (pcm.length == 0 || pcm.length > 4096 || (pcm.length & 1) != 0) return;
+            if (payload.sequence() < 0) return;
+            if (!Float.isFinite(payload.maxDistance()) || !Float.isFinite(payload.volume())) return;
 
             long now = sender.level().getGameTime();
             RateState state = RATE_LIMITS.computeIfAbsent(sender.getUUID(), ignored -> new RateState(now));
@@ -42,7 +45,7 @@ public final class VoiceNetworking {
             float volume = Math.max(0.0f, Math.min(2.0f, payload.volume()));
             VoiceAudioPacket relay = new VoiceAudioPacket(
                     sender.getUUID(), sender.getX(), sender.getY() + sender.getEyeHeight(),
-                    sender.getZ(), volume, distance, payload.sequence(), payload.pcm());
+                    sender.getZ(), volume, distance, payload.sequence(), pcm);
 
             double radiusSquared = distance * distance;
             for (ServerPlayer recipient : sender.level().players()) {
