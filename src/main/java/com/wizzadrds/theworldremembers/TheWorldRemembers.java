@@ -49,6 +49,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.Container;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -232,10 +234,12 @@ public class TheWorldRemembers implements ModInitializer {
             if (villager.isBaby() && !families.hasParents(villager.getUUID())) linkBabyToNearbyParents(world, villager, families, memories);
             if (!villager.isBaby() && ages.get(villager.getUUID()).isAdult() && !families.hasSpouse(villager.getUUID())) processCourtship(world, villager, families, courtship, memories, ages);
             if (!villager.isBaby()) maintainFamilyProtection(villager, families, protection);
+            if (shouldRunItemPickup(world, villager)) pickupNearbyItems(world, villager);
+            equipWarriorLoot(villager);
+            consumeFoodIfNeeded(villager);
+            // Mirror after pickup/equipment so a death on the next tick cannot lose newly acquired loot.
             inventories.synchronizeFromVillager(villager);
             equipment.sync(villager);
-            if (shouldRunItemPickup(world, villager)) pickupNearbyItems(world, villager);
-            consumeFoodIfNeeded(villager);
             NpcHome home=homes.get(villager.getUUID());
             if(home==null) {
                 BlockPos pos=findNearbyHomePoi(world,villager.blockPosition());
@@ -297,16 +301,45 @@ public class TheWorldRemembers implements ModInitializer {
         java.util.List<ItemEntity> items = world.getEntitiesOfClass(ItemEntity.class,
                 villager.getBoundingBox().inflate(2.5),
                 item -> item.isAlive() && !item.hasPickUpDelay() && !item.getItem().isEmpty());
+        ItemEntity nearest = null;
+        double nearestDistance = Double.MAX_VALUE;
         for (ItemEntity entity : items) {
-            ItemStack offered = entity.getItem();
-            if (offered.isEmpty()) continue;
-            ItemStack remainder = villager.getInventory().addItem(offered.copy());
-            int picked = offered.getCount() - remainder.getCount();
-            if (picked <= 0) continue;
-            entity.setItem(remainder);
-            if (remainder.isEmpty()) entity.discard();
-            break;
+            double distance = villager.distanceToSqr(entity);
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearest = entity;
+            }
         }
+        if (nearest == null) return;
+        ItemStack offered = nearest.getItem();
+        ItemStack remainder = villager.getInventory().addItem(offered.copy());
+        int picked = offered.getCount() - remainder.getCount();
+        if (picked <= 0) return;
+        nearest.setItem(remainder);
+        if (remainder.isEmpty()) nearest.discard();
+    }
+
+    /** Warriors can immediately equip armor found in their inventory instead of leaving it inert. */
+    private static void equipWarriorLoot(Villager villager) {
+        if (!isWarrior(villager)) return;
+        var inventory = villager.getInventory();
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (!(stack.getItem() instanceof ArmorItem armor)) continue;
+            EquipmentSlot target = armor.getEquipmentSlot();
+            ItemStack equipped = villager.getItemBySlot(target);
+            if (!equipped.isEmpty()) continue;
+            villager.setItemSlot(target, stack.copy());
+            inventory.setItem(slot, ItemStack.EMPTY);
+            return;
+        }
+    }
+
+    private static boolean isWarrior(Villager villager) {
+        String profession = villager.getVillagerData().toString().toLowerCase(java.util.Locale.ROOT);
+        return profession.contains("weaponsmith") || profession.contains("armorer")
+                || profession.contains("toolsmith") || profession.contains("warrior")
+                || profession.contains("guardian");
     }
 
     /** Lets a villager actually use food it carries when injured instead of keeping food as inert inventory state. */
@@ -577,8 +610,14 @@ public class TheWorldRemembers implements ModInitializer {
             if (carried.isEmpty()) carried = inventories.snapshot(villager.getUUID());
             for (ItemStack stack : carried) {
                 if (stack.isEmpty()) continue;
-                ItemEntity drop = new ItemEntity(world, villager.getX(), villager.getY(), villager.getZ(), stack);
-                world.addFreshEntity(drop);
+                world.addFreshEntity(new ItemEntity(world, villager.getX(), villager.getY(), villager.getZ(), stack.copy()));
+            }
+            for (EquipmentSlot slot : EquipmentSlot.values()) {
+                if (slot.getType() != EquipmentSlot.Type.HUMANOID_ARMOR
+                        && slot != EquipmentSlot.MAINHAND && slot != EquipmentSlot.OFFHAND) continue;
+                ItemStack equipped = villager.getItemBySlot(slot);
+                if (equipped.isEmpty()) continue;
+                world.addFreshEntity(new ItemEntity(world, villager.getX(), villager.getY(), villager.getZ(), equipped.copy()));
             }
             inventories.clear(villager.getUUID());
             return;
