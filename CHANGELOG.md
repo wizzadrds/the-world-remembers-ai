@@ -5,7 +5,7 @@
 - Added confidence degradation for reported and rumored knowledge.
 - Added persistent NPC-to-NPC conversations.
 - Added grounded dialogue that exposes provenance and confidence.
-- Added live rumor exchange GameTest and final CI validation (PR #102).
+- Added live rumor exchange GameTest and final CI validation (PR #104).
 
 <!-- Final Phase 6 CI verification trigger -->
 

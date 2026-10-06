@@ -114,7 +114,7 @@ The project follows a staged implementation plan. Features are documented before
 
 **[Phase 7 complete]**
 
-**Status: COMPLETE — v0.7.0-alpha — CI validated on PR #102**
+**Status: COMPLETE — v0.7.0-alpha — CI validated on PR #104**
 
 ## Phase 8 — Local Voice
 - [ ] Local STT

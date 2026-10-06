@@ -72,4 +72,4 @@ A pull-request CI run must pass `gradle build` and the headless Fabric server sm
 - [x] Persistent NPC-to-NPC conversation records.
 - [x] Grounded dialogue exposes knowledge provenance and confidence.
 - [x] Live NPC-to-NPC rumor exchange GameTest.
-- [x] Final CI #309: Gradle build/GameTests and headless Fabric server smoke test passed.
+- [x] Final CI #314: Gradle build/GameTests and headless Fabric server smoke test passed.
