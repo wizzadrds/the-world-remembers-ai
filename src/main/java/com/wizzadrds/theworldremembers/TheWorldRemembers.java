@@ -19,6 +19,9 @@ import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
 import com.wizzadrds.theworldremembers.relationship.*;
 import com.wizzadrds.theworldremembers.stress.NpcStressManager;
 import com.wizzadrds.theworldremembers.village.VillageManager;
+import com.wizzadrds.theworldremembers.chronicle.*;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import com.wizzadrds.theworldremembers.rumor.*;
 import com.wizzadrds.theworldremembers.village.VillageHistoryManager;
 import com.wizzadrds.theworldremembers.village.VillageResourceManager;
@@ -59,6 +62,9 @@ public class TheWorldRemembers implements ModInitializer {
     private static final double HOME_RADIUS=3.5;
 
     @Override public void onInitialize() {
+        PayloadTypeRegistry.serverboundPlay().register(ChronicleRequestPacket.TYPE,ChronicleRequestPacket.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ChronicleResponsePacket.TYPE,ChronicleResponsePacket.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(ChronicleRequestPacket.TYPE,(payload,context)->context.server().execute(()->{var book=ChronicleManager.build(context.player());var lines=new java.util.ArrayList<String>();lines.add("TIMELINE");book.timeline().stream().limit(80).forEach(e->lines.add(e.tick()+" | "+e.category()+" | "+e.title()+" | "+e.detail()));lines.add("PEOPLE");lines.addAll(book.people());lines.add("RELATIONSHIPS");lines.addAll(book.relationships());lines.add("FAMILIES");lines.addAll(book.families());lines.add("VILLAGES");lines.addAll(book.villages());ServerPlayNetworking.send(context.player(),new ChronicleResponsePacket(lines));}));
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             if (world.isClientSide() || !(player instanceof ServerPlayer serverPlayer) || !(entity instanceof Villager villager)) return InteractionResult.PASS;
             if (!serverPlayer.getItemInHand(hand).is(Items.BREAD)) return InteractionResult.PASS;

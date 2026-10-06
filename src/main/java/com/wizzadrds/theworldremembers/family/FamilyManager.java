@@ -72,5 +72,6 @@ public final class FamilyManager extends SavedData {
             .map(FamilyRelation::relatedNpcId)
             .findFirst().orElse(null);
     }
+    public List<FamilyRelation> all(){return List.copyOf(relations);}
     public boolean areRelated(UUID a,UUID b){return relations.stream().anyMatch(r->(r.npcId().equals(a)&&r.relatedNpcId().equals(b))||(r.npcId().equals(b)&&r.relatedNpcId().equals(a)));}
 }
