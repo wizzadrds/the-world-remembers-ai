@@ -69,6 +69,27 @@ public final class NpcInventoryManager extends SavedData {
     public int transferOut(UUID id,String item,int count){boolean removed=getOrCreate(id).remove(item,count);if(removed)setDirty();return removed?count:0;}
     public int count(UUID id,String item){return getOrCreate(id).count(item);}
 
+    /** Returns a best-effort item-only reconstruction for death drops when the live inventory is already cleared. */
+    public java.util.List<ItemStack> snapshot(UUID id) {
+        java.util.List<ItemStack> result = new java.util.ArrayList<>();
+        NpcInventory inventory = inventories.get(id);
+        if (inventory == null) return result;
+        for (NpcItemStack stack : inventory.items()) {
+            var item = BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.parse(stack.itemId()));
+            if (item != null && !item.equals(net.minecraft.world.item.Items.AIR)) {
+                result.add(new ItemStack(item, stack.count()));
+            }
+        }
+        return result;
+    }
+
+    /** Removes the persistent carried-inventory mirror after a physical death drop. */
+    public void clear(UUID id) {
+        boolean changed = inventories.remove(id) != null;
+        changed |= pendingInherited.remove(id) != null;
+        if (changed) setDirty();
+    }
+
     /**
      * Mirrors ordinary live inventory state while retaining inherited important stacks
      * that are waiting for room in the live inventory.
