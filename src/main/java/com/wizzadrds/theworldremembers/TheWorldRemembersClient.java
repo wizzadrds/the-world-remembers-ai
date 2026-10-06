@@ -1,22 +1,15 @@
 package com.wizzadrds.theworldremembers;
 
 import com.wizzadrds.theworldremembers.chronicle.*;
-import com.wizzadrds.theworldremembers.voice.VoiceClientConfig;
-import com.wizzadrds.theworldremembers.voice.VoicePacket;
-import com.wizzadrds.theworldremembers.voice.VoiceSettingsScreen;
-import com.wizzadrds.theworldremembers.voice.VoiceHud;
-import com.wizzadrds.theworldremembers.voice.VoiceConversationController;
-import com.wizzadrds.theworldremembers.voice.MicrophoneCapture;
 import com.wizzadrds.theworldremembers.voice.*;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 
 public final class TheWorldRemembersClient implements ClientModInitializer {
     private static final KeyMapping.Category CATEGORY =
@@ -59,9 +52,9 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 if (client.player != null) openChronicles();
             }
             while (SETTINGS_KEY.consumeClick()) {
-                client.setScreen(new VoiceSettingsScreen(client.screen, voiceConfig));
+                client.gui.setScreen(new VoiceSettingsScreen(client.gui.screen(), voiceConfig));
             }
-            if (client.player != null && client.screen == null) {
+            if (client.player != null && client.gui.screen() == null) {
                 boolean down = VOICE_KEY.isDown();
                 if (down && !voiceKeyWasDown) {
                     if (microphone.start(voiceConfig.microphone)) {
