@@ -63,7 +63,7 @@ The project follows a staged implementation plan. Features are documented before
 
 **[Phase 4 complete]**
 
-**Status: COMPLETE — behavior validated in Minecraft GameTests and CI**
+**Status: COMPLETE — v0.4.0-alpha; final CI confirmation in progress**
 
 ## Phase 5 — Families & Generations
 - [x] Persistent age data model
@@ -85,22 +85,22 @@ The project follows a staged implementation plan. Features are documented before
 
 **[Phase 5 complete]**
 
-**Status: COMPLETE — v0.5.0-alpha**\n\n## Phase 6 — Villages & Society
-- [x] Village identity and persistent village state
-- [x] Population tracking
-- [x] Village history and important events
-- [x] Wealth and resource pressure
-- [x] Shared village resources and storage
-- [x] Village defense state
-- [x] Migration and settlement change
-- [x] Important buildings and landmarks
-- [x] Iron golems as social guardians
-- [x] Village-scale GameTests
-- [x] Population-scale performance validation
+**Status: COMPLETE — v0.5.0-alpha**
 
-**[Phase 6 complete]**
+## Phase 6 — Villages & Society
+- [ ] Village identity and persistent village state
+- [ ] Population tracking
+- [ ] Village history and important events
+- [ ] Wealth and resource pressure
+- [ ] Shared village resources and storage
+- [ ] Village defense state
+- [ ] Migration and settlement change
+- [ ] Important buildings and landmarks
+- [ ] Iron golems as social guardians
+- [ ] Village-scale GameTests
+- [ ] Population-scale performance validation
 
-**Status: COMPLETE — v0.6.0-alpha**
+**Status: IN PROGRESS — v0.6.0-alpha**
 
 ## Phase 7 — Rumors & Conversations
 - [ ] Witness-based knowledge
@@ -131,7 +131,3 @@ The project follows a staged implementation plan. Features are documented before
 - [ ] Fear dreams
 - [ ] Nostalgia
 - [ ] Impossible dreams
-
-## Phase 3 acceptance test
-
-A relationship changes when a meaningful event occurs, the change is clamped to safe bounds, persists with world state, and later behavior can query the resulting relationship without inventing facts.
