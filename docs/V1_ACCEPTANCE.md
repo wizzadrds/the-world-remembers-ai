@@ -11,3 +11,4 @@ The v1.0 milestone is complete only when the integrated experience is validated 
 - Authoritative world-state facts are derived from Minecraft state.
 - Release version is exactly 1.0.0.
 - Final CI is green on the release commit.
+- Release documentation and milestone status are synchronized.
