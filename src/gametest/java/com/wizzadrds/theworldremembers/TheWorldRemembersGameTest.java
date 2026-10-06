@@ -115,6 +115,8 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
     public void liveVillagersCanFormPersistentMarriage(GameTestHelper context) {
         Villager first = context.spawn(EntityTypes.VILLAGER, 2, 1, 2);
         Villager second = context.spawn(EntityTypes.VILLAGER, 3, 1, 2);
+        first.setNoAi(true);
+        second.setNoAi(true);
         first.setUUID(UUID.fromString("00000000-0000-0000-0000-000000000001"));
         second.setUUID(UUID.fromString("00000000-0000-0000-0000-000000000002"));
         NpcAgeManager ages = NpcAgeManager.get(context.getLevel().getServer());
