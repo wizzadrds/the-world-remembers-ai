@@ -1,7 +1,7 @@
 # Phase 9 Acceptance
 
 Phase 9 is complete only when:
-- [ ] Timeline UI opens in-game.
+- [x] Timeline UI opens in-game.
 - [ ] Timeline contains grounded historical events.
 - [ ] People view exposes remembered people tied to the player's world history.
 - [ ] Relationships view exposes persisted relationship state.
