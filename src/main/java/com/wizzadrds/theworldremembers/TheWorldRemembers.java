@@ -48,6 +48,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.Container;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.chat.Component;
@@ -186,6 +187,7 @@ public class TheWorldRemembers implements ModInitializer {
             if(villager.getNavigation().isInProgress())fatigue.increase(villager.getUUID(),1);else fatigue.recover(villager.getUUID(),1);
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress);
             applyLiveSocialBehavior(world, villager, relationships, stress, behavior, homes, homeStorage);
+            depositInventoryIntoHomeStorage(world, villager, homeStorage.get(villager.getUUID()));
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
             for(ServerPlayer player:world.getEntitiesOfClass(ServerPlayer.class, villager.getBoundingBox().inflate(12), p -> p.isAlive())) {
                 if(player.blockPosition().distSqr(entrance)>HOME_RADIUS*HOME_RADIUS) continue;
@@ -217,25 +219,59 @@ public class TheWorldRemembers implements ModInitializer {
      */
     private static void pickupNearbyItems(ServerLevel world, Villager villager) {
         if (!villager.isAlive() || villager.isSleeping() || villager.isTrading()) return;
-        if (!villager.getInventory().canAddItem(new ItemStack(Items.AIR))) return;
         java.util.List<ItemEntity> items = world.getEntitiesOfClass(ItemEntity.class,
                 villager.getBoundingBox().inflate(2.5),
                 item -> item.isAlive() && !item.hasPickUpDelay() && !item.getItem().isEmpty());
         for (ItemEntity entity : items) {
             ItemStack offered = entity.getItem();
-            if (offered.isEmpty()) continue;
+            if (offered.isEmpty() || !villagerCanUseItem(offered)) continue;
             ItemStack before = offered.copy();
-            ItemStack remainder = villager.getInventory().addItem(offered);
+            ItemStack remainder = villager.getInventory().addItem(offered.copy());
             int picked = before.getCount() - remainder.getCount();
             if (picked <= 0) continue;
             entity.setItem(remainder);
-            entity.setPickUpDelay(0);
-            villager.take(entity, picked);
             if (remainder.isEmpty()) entity.discard();
             break;
         }
     }
 
+    /** Keeps the live pickup path compatible with vanilla villager priorities. */
+    private static boolean villagerCanUseItem(ItemStack stack) {
+        return stack.is(Items.BREAD) || stack.is(Items.WHEAT) || stack.is(Items.WHEAT_SEEDS)
+                || stack.is(Items.CARROT) || stack.is(Items.POTATO) || stack.is(Items.BEETROOT)
+                || stack.is(Items.BEETROOT_SEEDS) || stack.is(Items.EMERALD);
+    }
+
+    /** A linked home chest is now a real destination: the villager must reach it before depositing one stack. */
+    private static void depositInventoryIntoHomeStorage(ServerLevel world, Villager villager, BlockPos storagePos) {
+        if (storagePos == null || !villager.isAlive() || villager.isTrading()) return;
+        if (villager.blockPosition().distSqr(storagePos) > 4 * 4) return;
+        if (!(world.getBlockEntity(storagePos) instanceof Container container)) return;
+        var inventory = villager.getInventory();
+        for (int sourceSlot = 0; sourceSlot < inventory.getContainerSize(); sourceSlot++) {
+            ItemStack source = inventory.getItem(sourceSlot);
+            if (source.isEmpty() || !villagerCanUseItem(source)) continue;
+            for (int targetSlot = 0; targetSlot < container.getContainerSize(); targetSlot++) {
+                ItemStack target = container.getItem(targetSlot);
+                if (!target.isEmpty() && !ItemStack.isSameItemSameComponents(source, target)) continue;
+                if (target.isEmpty()) {
+                    container.setItem(targetSlot, source.copy());
+                    inventory.setItem(sourceSlot, ItemStack.EMPTY);
+                    container.setChanged();
+                    return;
+                }
+                int room = Math.min(target.getMaxStackSize(), container.getMaxStackSize()) - target.getCount();
+                if (room <= 0) continue;
+                int moved = Math.min(room, source.getCount());
+                target.grow(moved);
+                source.shrink(moved);
+                inventory.setItem(sourceSlot, source);
+                container.setItem(targetSlot, target);
+                container.setChanged();
+                return;
+            }
+        }
+    }
     private static void applyLiveSocialBehavior(ServerLevel world, Villager villager, RelationshipManager relationships, NpcStressManager stress, NpcBehaviorEngine behavior, NpcHomeManager homes, NpcHomeStorageManager homeStorage) {
         if (!villager.getNavigation().isDone() && !villager.isTrading()) return;
         String role=villager.getVillagerData().toString().toLowerCase(java.util.Locale.ROOT);
