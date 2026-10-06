@@ -133,11 +133,15 @@ Phase 8 acceptance is satisfied by local adapter contracts, deterministic bounde
 
 
 ## Phase 9 — Chronicles
-- [ ] Timeline UI
-- [ ] People
-- [ ] Relationships
-- [ ] Families
-- [ ] Village history
+- [x] Timeline UI
+- [x] People
+- [x] Relationships
+- [x] Families
+- [x] Village history
+
+**[Phase 9 complete]**
+
+**Status: COMPLETE — v0.9.0-alpha — final CI validation pending**
 
 ## Phase 10 — Dreams
 - [ ] Memory dreams
