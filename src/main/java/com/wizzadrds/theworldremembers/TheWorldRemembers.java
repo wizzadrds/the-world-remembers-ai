@@ -19,6 +19,7 @@ import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
 import com.wizzadrds.theworldremembers.relationship.*;
 import com.wizzadrds.theworldremembers.stress.NpcStressManager;
 import com.wizzadrds.theworldremembers.village.VillageManager;
+import com.wizzadrds.theworldremembers.knowledge.KnowledgeManager;
 import com.wizzadrds.theworldremembers.village.VillageHistoryManager;
 import com.wizzadrds.theworldremembers.village.VillageResourceManager;
 import com.wizzadrds.theworldremembers.village.VillageResources;
@@ -266,6 +267,11 @@ public class TheWorldRemembers implements ModInitializer {
             break;
         }
         if(entity instanceof IronGolem) return;
+        if(entity instanceof Villager deadVillager){
+            KnowledgeManager knowledge=KnowledgeManager.get(world.getServer());
+            for(Villager witness:world.getEntitiesOfClass(Villager.class,deadVillager.getBoundingBox().inflate(16),v->v.isAlive()&&!v.getUUID().equals(deadVillager.getUUID())))
+                knowledge.addDirect(witness.getUUID(),"npc-death:"+deadVillager.getUUID(),"npc_died",deadVillager.getUUID(),world.getGameTime());
+        }
         if (!(entity instanceof Villager villager)) return;
         var families=FamilyManager.get(world.getServer());
         var memories=MemoryManager.get(world.getServer());
