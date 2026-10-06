@@ -312,6 +312,10 @@ public class TheWorldRemembers implements ModInitializer {
             for(var pos:world.getPoiManager().findAllWithType(type->type.is(PoiTypeTags.VILLAGE),pos->true,center,32,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).map(pair->pair.getSecond()).toList()) landmarks.add(villageId,new VillageLandmark("village_poi",pos,world.getGameTime()));
         }
     }
+    private static BlockPos findNearbyHomePoi(ServerLevel world,BlockPos pos){return world.getPoiManager().findClosest(type->type.is(net.minecraft.tags.PoiTypeTags.HOME),pos,16,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).orElse(null);}
+    private static BlockPos findNearbyDoor(ServerLevel world,BlockPos pos){BlockPos best=null;double d=257;for(BlockPos p:BlockPos.betweenClosed(pos.offset(-8,-2,-8),pos.offset(8,4,8)))if(world.getBlockState(p).is(net.minecraft.tags.BlockTags.DOORS)){double x=p.distSqr(pos);if(x<d){d=x;best=p.immutable();}}return best;}
+    private static BlockPos findNearestContainer(ServerLevel world,BlockPos center,int radius){BlockPos best=null;double d=Double.MAX_VALUE;for(BlockPos p:BlockPos.betweenClosed(center.offset(-radius,-3,-radius),center.offset(radius,3,radius)))if(world.getBlockEntity(p) instanceof net.minecraft.world.Container){double x=p.distSqr(center);if(x<d){d=x;best=p.immutable();}}return best;}
+
     private static boolean hasRecentIntrusion(MemoryManager memories,Villager villager,ServerPlayer player,long gameTime){
         return memories.findMostRecentMemory(villager.getUUID(),player.getUUID(),MemoryEventType.PLAYER_ENTERED_NPC_HOME).map(m->gameTime-m.gameTime()<INTRUSION_COOLDOWN).orElse(false);
     }
