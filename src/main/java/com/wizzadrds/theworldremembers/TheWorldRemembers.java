@@ -78,7 +78,7 @@ public class TheWorldRemembers implements ModInitializer {
         ServerTickEvents.END_LEVEL_TICK.register(TheWorldRemembers::tickWorld);
         ServerLivingEntityEvents.AFTER_DEATH.register(TheWorldRemembers::handleDeath);
         com.wizzadrds.theworldremembers.voice.VoiceNetworking.init();
-        LOGGER.info("The World Remembers v0.4.0-alpha initialized.");
+        LOGGER.info("The World Remembers v1.0.0 initialized.");
     }
 
     static void tickWorld(ServerLevel world) {
@@ -114,6 +114,8 @@ public class TheWorldRemembers implements ModInitializer {
         VillageStorageManager villageStorage=VillageStorageManager.get(world.getServer());
 
         observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks, migrations, villageEvents, villageStorage);
+        // The social pipeline is part of the live simulation: memory -> knowledge -> conversation -> rumor.
+        processConversations(world, memories, knowledge, conversations);
 
         for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),villager -> villager.isAlive()&&!villager.isRemoved())) {
             if(villager.isSleeping() && dreams.latest(villager.getUUID()).map(d -> world.getGameTime()-d.generatedAt() >= 1200).orElse(true)) dreams.generateForSleepingNpc(villager.getUUID(),world.getGameTime(),memories.memoriesOf(villager.getUUID()));
