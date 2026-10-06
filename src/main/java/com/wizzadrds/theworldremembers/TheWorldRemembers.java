@@ -304,6 +304,7 @@ public class TheWorldRemembers implements ModInitializer {
         java.util.UUID heir = families.childrenOf(villager.getUUID()).stream().findFirst()
             .orElseGet(() -> families.spouseOf(villager.getUUID()));
         if (heir != null) {
+            inventories.synchronizeFromVillager(villager);
             int inherited = inventories.inheritImportantItems(villager.getUUID(), heir);
             if (inherited > 0) {
                 memories.rememberEvent(heir, villager.getUUID(), MemoryEventType.NPC_INHERITED_ITEM, world.getGameTime(), MemoryImportance.HISTORICAL);
