@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.10.0-alpha — Phase 10 Dreams
+- Added persistent bounded dream history per NPC.
+- Added memory, fear, nostalgia and explicitly surreal impossible dream types.
+- Added sleep-gated dream generation with cooldown protection.
+- Added deterministic dream selection and persistence tests.
+- Added Phase 10 Minecraft GameTests and CI validation.
+
+## v0.9.0-alpha — Phase 9 Chronicles
+- Completed timeline, people, relationships, families and village history browsing.
+
+
 ## v0.9.0-alpha — Phase 9 Chronicles
 - Added a bounded Chronicle aggregation layer over persistent memory, relationships, families and village history.
 - Added server/client Chronicle networking with read-only world-history snapshots.
