@@ -109,9 +109,11 @@ public final class NpcInventoryManager extends SavedData {
             var stack = inventory.getItem(slot);
             if (stack.isEmpty()) continue;
             String itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
-            if (!isImportantItem(itemId) || target.count(itemId) > 0) continue;
-            target.add(itemId, stack.getCount());
-            captured += stack.getCount();
+            if (!isImportantItem(itemId)) continue;
+            int missing = stack.getCount() - target.count(itemId);
+            if (missing <= 0) continue;
+            target.add(itemId, missing);
+            captured += missing;
         }
         if (captured > 0) setDirty();
         return captured;
