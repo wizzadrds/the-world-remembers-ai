@@ -141,7 +141,7 @@ Phase 8 acceptance is satisfied by local adapter contracts, deterministic bounde
 
 **[Phase 9 complete]**
 
-**Status: COMPLETE — v0.9.0-alpha — CI run #377 validated**
+**Status: COMPLETE — v0.9.0-alpha — CI run #379 validated**
 
 ## Phase 10 — Dreams
 - [ ] Memory dreams
