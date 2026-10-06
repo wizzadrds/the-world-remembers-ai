@@ -35,23 +35,23 @@ public final class NpcInventoryManager extends SavedData {
      * continue to load, while new saves use the explicit persisted-state object.
      */
     static final Codec<NpcInventoryManager> CODEC = Codec.either(
-            INVENTORIES_CODEC,
-            PERSISTED_STATE_CODEC
+            PERSISTED_STATE_CODEC,
+            INVENTORIES_CODEC
     ).xmap(
             value -> value.map(
-                    inventories -> {
-                        NpcInventoryManager manager = new NpcInventoryManager();
-                        manager.inventories.putAll(inventories);
-                        return manager;
-                    },
                     state -> {
                         NpcInventoryManager manager = new NpcInventoryManager();
                         manager.inventories.putAll(state.inventories());
                         manager.pendingInherited.putAll(state.pendingInherited());
                         return manager;
+                    },
+                    inventories -> {
+                        NpcInventoryManager manager = new NpcInventoryManager();
+                        manager.inventories.putAll(inventories);
+                        return manager;
                     }
             ),
-            manager -> com.mojang.datafixers.util.Either.right(
+            manager -> Either.left(
                     new PersistedState(manager.inventories, manager.pendingInherited))
     );
 
