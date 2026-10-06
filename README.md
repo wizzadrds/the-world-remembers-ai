@@ -33,8 +33,8 @@ Minecraft Java mod focused on persistent memory, relationships, emergent NPC beh
 | 0.7 | Rumors & Conversations |
 | 0.8 | Local Voice |
 | 0.9 | Chronicles |
-| 0.10 | Dreams |\n| 1.0 | The World Remembers — integrated release |
-| 1.0 | The World Remembers |
+| 0.10 | Dreams |
+| 1.0 | The World Remembers — integrated release |
 
 ## Development principles
 
