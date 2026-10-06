@@ -92,12 +92,12 @@ public final class VoiceSettingsScreen extends Screen {
         providerButton.setMessage(providerLabel());
     }
 
-    private String microphoneLabel() {
-        return "Mic: " + microphones.get(microphoneIndex);
+    private Component microphoneLabel() {
+        return Component.literal("Mic: " + microphones.get(microphoneIndex));
     }
 
-    private String providerLabel() {
-        return "AI: " + providers.get(providerIndex);
+    private Component providerLabel() {
+        return Component.literal("AI: " + providers.get(providerIndex));
     }
 
     private EditBox field(int x, int y, String label, String value) {
