@@ -34,7 +34,7 @@ public final class NpcInventoryManager extends SavedData {
      * Accept the pre-overflow format (a bare UUID -> inventory map) so existing worlds
      * continue to load, while new saves use the explicit persisted-state object.
      */
-    private static final Codec<NpcInventoryManager> CODEC = Codec.either(
+    static final Codec<NpcInventoryManager> CODEC = Codec.either(
             INVENTORIES_CODEC,
             PERSISTED_STATE_CODEC
     ).xmap(
