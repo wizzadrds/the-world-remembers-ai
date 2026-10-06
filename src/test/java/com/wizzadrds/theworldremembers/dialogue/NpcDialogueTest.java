@@ -1,0 +1,3 @@
+package com.wizzadrds.theworldremembers.dialogue;
+import com.wizzadrds.theworldremembers.memory.*; import com.wizzadrds.theworldremembers.relationship.*; import org.junit.jupiter.api.Test; import java.util.*; import static org.junit.jupiter.api.Assertions.*;
+class NpcDialogueTest { @Test void remembersAttack(){UUID n=UUID.randomUUID(),p=UUID.randomUUID();var r=new Relationship(n,p,0,0,20,0,0,30,20);var m=new Memory(n,p,MemoryEventType.PLAYER_ATTACKED_NPC,10,MemoryImportance.IMPORTANT);assertTrue(NpcDialogue.reply("A",r,List.of(m)).contains("hurt me"));} @Test void trustedNpcGreets(){UUID n=UUID.randomUUID(),p=UUID.randomUUID();var r=new Relationship(n,p,50,0,0,0,0,0,0);assertEquals("Good to see you again.",NpcDialogue.reply("A",r,List.of()));} }

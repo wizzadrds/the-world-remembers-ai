@@ -2,6 +2,7 @@ package com.wizzadrds.theworldremembers.memory;
 
 public enum MemoryEventType {
     PLAYER_GAVE_BREAD,
+    PLAYER_TALKED,
     PLAYER_GAVE_ITEM,
     PLAYER_RECEIVED_ITEM,
     NPC_TRADED_ITEM,

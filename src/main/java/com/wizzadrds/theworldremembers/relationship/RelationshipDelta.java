@@ -38,6 +38,7 @@ public record RelationshipDelta(
     public static RelationshipDelta forEvent(MemoryEventType type) {
         return switch (type) {
             case PLAYER_GAVE_BREAD -> breadGift();
+            case PLAYER_TALKED -> new RelationshipDelta(1, 0, 0, 1, 1, 0, -1);
             case PLAYER_ENTERED_NPC_HOME -> homeIntrusion();
             case PLAYER_THREATENED_NPC -> threatened();
             case PLAYER_ATTACKED_NPC -> attacked();

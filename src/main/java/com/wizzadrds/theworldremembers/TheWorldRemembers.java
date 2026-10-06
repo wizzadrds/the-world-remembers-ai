@@ -21,6 +21,7 @@ import com.wizzadrds.theworldremembers.stress.NpcStressManager;
 import com.wizzadrds.theworldremembers.village.VillageManager;
 import com.wizzadrds.theworldremembers.dream.DreamManager;
 import com.wizzadrds.theworldremembers.chronicle.ChronicleNetworking;
+import com.wizzadrds.theworldremembers.dialogue.NpcDialogue;
 import com.wizzadrds.theworldremembers.rumor.*;
 import com.wizzadrds.theworldremembers.village.VillageHistoryManager;
 import com.wizzadrds.theworldremembers.village.VillageResourceManager;
@@ -39,6 +40,8 @@ import net.minecraft.world.entity.animal.golem.IronGolem;
 import java.util.UUID;
 import net.minecraft.tags.PoiTypeTags;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
+import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
@@ -64,19 +67,52 @@ public class TheWorldRemembers implements ModInitializer {
         ChronicleNetworking.init();
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             if (world.isClientSide() || !(player instanceof ServerPlayer serverPlayer) || !(entity instanceof Villager villager)) return InteractionResult.PASS;
-            if (!serverPlayer.getItemInHand(hand).is(Items.BREAD)) return InteractionResult.PASS;
             MemoryManager memories=MemoryManager.get(serverPlayer.level().getServer());
-            if (memories.findMostRecentMemory(villager.getUUID(),serverPlayer.getUUID(),MemoryEventType.PLAYER_GAVE_BREAD).isPresent()) {
-                serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" remembers you: you gave me bread."));
+            if (serverPlayer.getItemInHand(hand).isEmpty()) {
+                talkToVillager(serverPlayer, villager, memories);
                 return InteractionResult.PASS;
             }
-            Memory memory=memories.rememberBreadGift(serverPlayer,villager);
-            RelationshipManager.get(serverPlayer.level().getServer()).apply(new MemoryEvent(memory.npcId(),memory.playerId(),memory.type(),memory.gameTime(),memory.importance()));
-            serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" will remember this."));
-            return InteractionResult.PASS;
+            if (!serverPlayer.getItemInHand(hand).is(Items.BREAD) && serverPlayer.isShiftKeyDown()) {
+                var offered = serverPlayer.getItemInHand(hand).copy();
+                offered.setCount(1);
+                if (villager.getInventory().canAddItem(offered)) {
+                    var remainder = villager.getInventory().addItem(offered);
+                    if (remainder.isEmpty()) {
+                        String itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(offered.getItem()).toString();
+                        serverPlayer.getItemInHand(hand).shrink(1);
+                        Memory memory = memories.rememberItemGift(villager.getUUID(), serverPlayer.getUUID(), itemId, serverPlayer.level().getGameTime());
+                        RelationshipManager.get(serverPlayer.level().getServer()).apply(new MemoryEvent(memory.npcId(), memory.playerId(), memory.type(), memory.gameTime(), memory.importance()));
+                        serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" remembers the "+itemId+" you gave them."));
+                        return InteractionResult.SUCCESS;
+                    }
+                }
+                serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" has no room for that item."));
+                return InteractionResult.SUCCESS;
+            }
+            if (!serverPlayer.getItemInHand(hand).is(Items.BREAD)) return InteractionResult.PASS;
+            var bread = serverPlayer.getItemInHand(hand).copy();
+            bread.setCount(1);
+            if (!villager.getInventory().canAddItem(bread)) {
+                serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" has no room for more bread."));
+                return InteractionResult.SUCCESS;
+            }
+            var remainder = villager.getInventory().addItem(bread);
+            if (!remainder.isEmpty()) return InteractionResult.PASS;
+            serverPlayer.getItemInHand(hand).shrink(1);
+            if (memories.findMostRecentMemory(villager.getUUID(),serverPlayer.getUUID(),MemoryEventType.PLAYER_GAVE_BREAD).isEmpty()) {
+                Memory memory=memories.rememberBreadGift(serverPlayer,villager);
+                RelationshipManager.get(serverPlayer.level().getServer()).apply(new MemoryEvent(memory.npcId(),memory.playerId(),memory.type(),memory.gameTime(),memory.importance()));
+                serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" remembers that you gave them bread."));
+            } else {
+                serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" remembers you."));
+            }
+            return InteractionResult.SUCCESS;
         });
         ServerTickEvents.END_LEVEL_TICK.register(TheWorldRemembers::tickWorld);
         ServerLivingEntityEvents.AFTER_DEATH.register(TheWorldRemembers::handleDeath);
+        ServerLivingEntityEvents.AFTER_DAMAGE.register(TheWorldRemembers::handleDamage);
+        ServerEntityCombatEvents.AFTER_KILLED_OTHER_ENTITY.register(TheWorldRemembers::handleCombatKill);
+        PlayerBlockBreakEvents.AFTER.register(TheWorldRemembers::handleBlockBreak);
         com.wizzadrds.theworldremembers.voice.VoiceNetworking.init();
         LOGGER.info("The World Remembers v0.4.0-alpha initialized.");
     }
@@ -114,6 +150,7 @@ public class TheWorldRemembers implements ModInitializer {
         VillageStorageManager villageStorage=VillageStorageManager.get(world.getServer());
 
         observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks, migrations, villageEvents, villageStorage);
+        processConversations(world, memories, knowledge, conversations);
 
         for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),villager -> villager.isAlive()&&!villager.isRemoved())) {
             if(villager.isSleeping() && dreams.latest(villager.getUUID()).map(d -> world.getGameTime()-d.generatedAt() >= 1200).orElse(true)) dreams.generateForSleepingNpc(villager.getUUID(),world.getGameTime(),memories.memoriesOf(villager.getUUID()));
@@ -160,6 +197,98 @@ public class TheWorldRemembers implements ModInitializer {
             synchronizeFamilyHome(villager, families, homes);
         }
     }
+    static void talkToVillager(ServerPlayer player, Villager villager, MemoryManager memories) {
+        RelationshipManager relationships = RelationshipManager.get(player.level().getServer());
+        Relationship relationship = relationships.getOrCreate(villager.getUUID(), player.getUUID());
+        String line = NpcDialogue.reply(villager.getName().getString(), relationship, memories.memoriesOf(villager.getUUID()).stream().filter(m -> m.playerId().equals(player.getUUID())).toList());
+        if (memories.findMostRecentMemory(villager.getUUID(), player.getUUID(), MemoryEventType.PLAYER_TALKED)
+            .map(m -> player.level().getGameTime() - m.gameTime() < 20).orElse(false)) {
+            player.sendSystemMessage(Component.literal(villager.getName().getString() + ": " + line));
+            return;
+        }
+        Memory memory = memories.rememberEvent(villager.getUUID(), player.getUUID(), MemoryEventType.PLAYER_TALKED,
+            player.level().getGameTime(), MemoryImportance.TRIVIAL);
+        relationships.apply(new MemoryEvent(memory.npcId(), memory.playerId(), memory.type(), memory.gameTime(), memory.importance()));
+        player.sendSystemMessage(Component.literal(villager.getName().getString() + ": " + line));
+    }
+
+    private static void handleCombatKill(ServerLevel world, net.minecraft.world.entity.Entity killer, LivingEntity killed, net.minecraft.world.damagesource.DamageSource source) {
+        MemoryManager memories=MemoryManager.get(world.getServer());
+        RelationshipManager relationships=RelationshipManager.get(world.getServer());
+        if (killer instanceof IronGolem golem) {
+            for (Villager witness : world.getEntitiesOfClass(Villager.class, golem.getBoundingBox().inflate(24), v -> v.isAlive())) {
+                Memory m=memories.rememberEvent(witness.getUUID(), golem.getUUID(), MemoryEventType.GOLEM_DEFENDED_VILLAGE, world.getGameTime(), MemoryImportance.IMPORTANT);
+                relationships.apply(new MemoryEvent(m.npcId(), m.playerId(), m.type(), m.gameTime(), m.importance()));
+            }
+        } else if (killer instanceof ServerPlayer player && killed instanceof net.minecraft.world.entity.monster.Monster) {
+            for (Villager witness : world.getEntitiesOfClass(Villager.class, player.getBoundingBox().inflate(12), v -> v.isAlive())) {
+                Memory m=memories.rememberEvent(witness.getUUID(), player.getUUID(), MemoryEventType.PLAYER_SAVED_NPC, world.getGameTime(), MemoryImportance.IMPORTANT);
+                relationships.apply(new MemoryEvent(m.npcId(), m.playerId(), m.type(), m.gameTime(), m.importance()));
+            }
+        }
+    }
+
+    private static void handleBlockBreak(net.minecraft.world.level.Level level, net.minecraft.world.entity.player.Player player, BlockPos pos,
+                                         net.minecraft.world.level.block.state.BlockState state, net.minecraft.world.level.block.entity.BlockEntity blockEntity) {
+        if (!(level instanceof ServerLevel world) || !(player instanceof ServerPlayer serverPlayer)) return;
+        if (!(state.is(net.minecraft.tags.BlockTags.DOORS) || state.is(net.minecraft.tags.BlockTags.BEDS) || blockEntity != null)) return;
+        VillageManager villages=VillageManager.get(world.getServer());
+        VillageEventManager events=VillageEventManager.get(world.getServer());
+        VillageHistoryManager history=VillageHistoryManager.get(world.getServer());
+        for (var village : villages.all()) {
+            if (village.center().distSqr(pos)>32*32) continue;
+            events.record(village.villageId(),new VillageEvent("property_damaged",world.getGameTime(),serverPlayer.getUUID(),pos));
+            history.recordImportantEvent(village.villageId());
+            break;
+        }
+    }
+
+    static void handleDamage(LivingEntity entity, net.minecraft.world.damagesource.DamageSource source,
+                                      float baseDamage, float damageTaken, boolean blocked) {
+        if (!(entity instanceof Villager villager) || !(entity.level() instanceof ServerLevel world)) return;
+        if (!(source.getEntity() instanceof ServerPlayer attacker)) return;
+        MemoryManager memories = MemoryManager.get(world.getServer());
+        RelationshipManager relationships = RelationshipManager.get(world.getServer());
+        NpcStressManager stress = NpcStressManager.get(world);
+        if (memories.findMostRecentMemory(villager.getUUID(), attacker.getUUID(), MemoryEventType.PLAYER_ATTACKED_NPC)
+            .map(m -> world.getGameTime() - m.gameTime() < 10).orElse(false)) return;
+        Memory memory = memories.rememberEvent(villager.getUUID(), attacker.getUUID(), MemoryEventType.PLAYER_ATTACKED_NPC,
+            world.getGameTime(), MemoryImportance.IMPORTANT);
+        Relationship relationship = relationships.apply(new MemoryEvent(memory.npcId(), memory.playerId(), memory.type(), memory.gameTime(), memory.importance()));
+        stress.increase(villager.getUUID(), Math.max(3, (int)Math.ceil(damageTaken)));
+        var personality = PersonalityGenerator.generate(villager.getUUID());
+        boolean flee = personality.strength(PersonalityTrait.COWARDLY) >= 60 || relationship.fear() >= 45;
+        if (flee) {
+            BlockPos away = villager.blockPosition().offset(
+                villager.blockPosition().getX() < attacker.blockPosition().getX() ? -12 : 12, 0,
+                villager.blockPosition().getZ() < attacker.blockPosition().getZ() ? -12 : 12);
+            villager.getNavigation().moveTo(away.getX(), away.getY(), away.getZ(), 1.25);
+            attacker.sendSystemMessage(Component.literal(villager.getName().getString() + " panics and runs away."));
+            return;
+        }
+        boolean defend = personality.strength(PersonalityTrait.BRAVE) >= 60
+            || personality.strength(PersonalityTrait.HOT_TEMPERED) >= 65
+            || personality.strength(PersonalityTrait.PROTECTIVE) >= 65;
+        if (defend) {
+            villager.getNavigation().moveTo(attacker, 1.15);
+            java.util.List<IronGolem> golems = world.getEntitiesOfClass(IronGolem.class,
+                villager.getBoundingBox().inflate(24), g -> g.isAlive());
+            if (!golems.isEmpty()) {
+                IronGolem golem = golems.get(0);
+                golem.setTarget(attacker);
+                Memory alert = memories.rememberEvent(villager.getUUID(), attacker.getUUID(),
+                    MemoryEventType.GOLEM_CALLED_FOR_HELP, world.getGameTime(), MemoryImportance.IMPORTANT);
+                relationships.apply(new MemoryEvent(alert.npcId(), alert.playerId(), alert.type(), alert.gameTime(), alert.importance()));
+                attacker.sendSystemMessage(Component.literal(villager.getName().getString() + " calls the iron golem for help!"));
+            } else {
+                attacker.sendSystemMessage(Component.literal(villager.getName().getString() + " stands its ground."));
+            }
+        } else {
+            villager.getNavigation().moveTo(villager.blockPosition().getX() + 6, villager.blockPosition().getY(),
+                villager.blockPosition().getZ() + 6, 1.0);
+        }
+    }
+
     private static void applyLiveSocialBehavior(ServerLevel world, Villager villager, RelationshipManager relationships, NpcStressManager stress, NpcBehaviorEngine behavior, NpcHomeManager homes, NpcHomeStorageManager homeStorage) {
         if (!villager.getNavigation().isDone() && !villager.isTrading()) return;
         String role=villager.getVillagerData().toString().toLowerCase(java.util.Locale.ROOT);
@@ -291,12 +420,26 @@ public class TheWorldRemembers implements ModInitializer {
             if(type!=null){ villageEvents.record(vs.villageId(),new VillageEvent(type,world.getGameTime(),entity.getUUID(),entity.blockPosition())); villageHistory.recordImportantEvent(vs.villageId()); }
             break;
         }
-        if(entity instanceof IronGolem) return;
+        var memories=MemoryManager.get(world.getServer());
+        var relationships=RelationshipManager.get(world.getServer());
+        if (sourceEntityIsPlayer(damageSource) && entity instanceof IronGolem) {
+            ServerPlayer attacker=(ServerPlayer)damageSource.getEntity();
+            for (Villager witness : world.getEntitiesOfClass(Villager.class, entity.getBoundingBox().inflate(24), v -> v.isAlive())) {
+                Memory remembered=memories.rememberEvent(witness.getUUID(), attacker.getUUID(), MemoryEventType.GOLEM_KILLED,
+                    world.getGameTime(), MemoryImportance.HISTORICAL);
+                relationships.apply(new MemoryEvent(remembered.npcId(), remembered.playerId(), remembered.type(), remembered.gameTime(), remembered.importance()));
+            }
+        }
         if (!(entity instanceof Villager villager)) return;
         var families=FamilyManager.get(world.getServer());
-        var memories=MemoryManager.get(world.getServer());
         var protection=FamilyProtectionManager.get(world.getServer());
         protection.clearProtector(villager.getUUID());
+        if (sourceEntityIsPlayer(damageSource)) {
+            ServerPlayer attacker=(ServerPlayer)damageSource.getEntity();
+            Memory remembered=memories.rememberEvent(villager.getUUID(), attacker.getUUID(), MemoryEventType.PLAYER_ATTACKED_NPC,
+                world.getGameTime(), MemoryImportance.IMPORTANT);
+            relationships.apply(new MemoryEvent(remembered.npcId(), remembered.playerId(), remembered.type(), remembered.gameTime(), remembered.importance()));
+        }
         var inventories=NpcInventoryManager.get(world.getServer());
         java.util.List<java.util.UUID> related = families.getRelations(villager.getUUID()).stream()
             .map(r -> r.npcId().equals(villager.getUUID()) ? r.relatedNpcId() : r.npcId()).distinct().toList();
@@ -314,6 +457,8 @@ public class TheWorldRemembers implements ModInitializer {
             }
         }
     }
+    private static boolean sourceEntityIsPlayer(net.minecraft.world.damagesource.DamageSource source) { return source.getEntity() instanceof ServerPlayer; }
+
     private static void observeVillages(ServerLevel world, VillageManager villages, VillageHistoryManager history, VillageResourceManager resources, VillageDefenseManager defense, VillageLandmarkManager landmarks, VillageMigrationManager migrations, VillageEventManager villageEvents, VillageStorageManager villageStorage) {
         java.util.Map<Long, java.util.List<Villager>> clusters = new java.util.HashMap<>();
         for (Villager v : world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),v -> v.isAlive()&&!v.isRemoved())) {
