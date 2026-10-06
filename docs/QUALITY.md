@@ -60,4 +60,4 @@ A pull-request CI run must pass `gradle build` and the headless Fabric server sm
 - [x] Migration identity preservation and movement history.
 - [x] Dedicated village GameTests.
 - [x] Population-scale performance GameTest.
-- [x] Final CI #277: Gradle build/GameTests and headless Fabric server smoke test passed.
+- [x] Final CI #287: Gradle build/GameTests and headless Fabric server smoke test passed.

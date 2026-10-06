@@ -7,7 +7,7 @@
 - Added typed village events, migration history and resident/guardian death memory.
 - Added live resource pressure and shared storage derived from real Minecraft state.
 - Added village defense, landmarks and population-scale validation.
-- Added dedicated village GameTests and final CI validation.
+- Added dedicated village GameTests and final CI validation (run #287).
 
 ## v0.4.0-alpha — Phase 4 Behavior
 - Completed live NPC behavior integration.
