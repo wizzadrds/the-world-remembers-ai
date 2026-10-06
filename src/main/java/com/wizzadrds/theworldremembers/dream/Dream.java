@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.dream; import java.util.UUID; public record Dream(UUID npcId,DreamType type,long sleepEpoch,String text,boolean factual){public Dream{if(text==null||text.isBlank())throw new IllegalArgumentException("text");if(factual)throw new IllegalArgumentException("dreams cannot be factual");}}
