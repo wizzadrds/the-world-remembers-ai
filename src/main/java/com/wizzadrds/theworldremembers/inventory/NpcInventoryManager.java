@@ -20,7 +20,27 @@ public final class NpcInventoryManager extends SavedData {
     public void transferIn(UUID id,String item,int count){getOrCreate(id).add(item,count);setDirty();}
     public int transferOut(UUID id,String item,int count){boolean removed=getOrCreate(id).remove(item,count);if(removed)setDirty();return removed?count:0;}
     public int count(UUID id,String item){return getOrCreate(id).count(item);}
- public void synchronizeFromVillager(Villager villager){NpcInventory target=new NpcInventory();var inventory=villager.getInventory();for(int slot=0;slot<inventory.getContainerSize();slot++){var stack=inventory.getItem(slot);if(stack.isEmpty())continue;target.add(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(),stack.getCount());}inventories.put(villager.getUUID(),target);setDirty();}
+    public void synchronizeFromVillager(Villager villager){NpcInventory target=new NpcInventory();var inventory=villager.getInventory();for(int slot=0;slot<inventory.getContainerSize();slot++){var stack=inventory.getItem(slot);if(stack.isEmpty())continue;target.add(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(),stack.getCount());}inventories.put(villager.getUUID(),target);setDirty();}
+    /**
+     * Captures only important live items without replacing an existing snapshot.
+     * This is a last-resort death-path guard for cases where the death callback runs
+     * before the regular simulation mirror has been populated.
+     */
+    public int captureImportantItemsIfMissing(Villager villager) {
+        NpcInventory target = getOrCreate(villager.getUUID());
+        int captured = 0;
+        var inventory = villager.getInventory();
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            var stack = inventory.getItem(slot);
+            if (stack.isEmpty()) continue;
+            String itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+            if (!isImportantItem(itemId) || target.count(itemId) > 0) continue;
+            target.add(itemId, stack.getCount());
+            captured += stack.getCount();
+        }
+        if (captured > 0) setDirty();
+        return captured;
+    }
     public int inheritImportantItems(UUID from, UUID to) {
         NpcInventory source = getOrCreate(from);
         NpcInventory target = getOrCreate(to);
