@@ -55,11 +55,11 @@ public final class VoiceSettingsScreen extends Screen {
         providerIndex = indexOfIgnoreCase(providers, config.provider);
         if (providerIndex < 0) providerIndex = 0;
 
-        microphoneButton = Button.builder(Component.literal(microphoneLabel()), button -> cycleMicrophone())
+        microphoneButton = Button.builder(microphoneLabel(), button -> cycleMicrophone())
                 .bounds(left, top, 150, 20).build();
         this.addRenderableWidget(microphoneButton);
 
-        providerButton = Button.builder(Component.literal(providerLabel()), button -> cycleProvider())
+        providerButton = Button.builder(providerLabel(), button -> cycleProvider())
                 .bounds(right, top, 150, 20).build();
         this.addRenderableWidget(providerButton);
 
@@ -96,7 +96,7 @@ public final class VoiceSettingsScreen extends Screen {
 
     private void cycleMicrophone() {
         microphoneIndex = (microphoneIndex + 1) % microphones.size();
-        microphoneButton.setMessage(Component.literal(microphoneLabel()));
+        microphoneButton.setMessage(microphoneLabel());
     }
 
     private void cycleOutputDevice() {
@@ -106,7 +106,7 @@ public final class VoiceSettingsScreen extends Screen {
 
     private void cycleProvider() {
         providerIndex = (providerIndex + 1) % providers.size();
-        providerButton.setMessage(Component.literal(providerLabel()));
+        providerButton.setMessage(providerLabel());
     }
 
     private String microphoneLabel() {
