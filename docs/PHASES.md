@@ -144,7 +144,11 @@ Phase 8 acceptance is satisfied by local adapter contracts, deterministic bounde
 **Status: COMPLETE — v0.9.0-alpha — CI run #379 validated**
 
 ## Phase 10 — Dreams
+- [ ] Persistent dream records
+- [ ] Sleep-triggered dream generation
 - [ ] Memory dreams
 - [ ] Fear dreams
 - [ ] Nostalgia
 - [ ] Impossible dreams
+- [ ] Bounded dream history
+- [ ] Dream GameTests and CI validation
