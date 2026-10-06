@@ -5,6 +5,7 @@
   "name": "The World Remembers Game Tests",
   "environment": "*",
   "entrypoints": {
+    "fabric-client-gametest": ["com.wizzadrds.theworldremembers.VoiceClientGameTest"],
     "fabric-gametest": [
       "com.wizzadrds.theworldremembers.TheWorldRemembersGameTest"
     ]
