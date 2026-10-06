@@ -84,6 +84,10 @@ public class TheWorldRemembers implements ModInitializer {
         long samples;
         long totalNanos;
         long maxNanos;
+        long discoveryNanos;
+        long socialNanos;
+        long villageNanos;
+        long villagerNanos;
 
         void record(long elapsedNanos) {
             samples++;
@@ -91,10 +95,19 @@ public class TheWorldRemembers implements ModInitializer {
             maxNanos = Math.max(maxNanos, elapsedNanos);
         }
 
+        void recordDiscovery(long elapsedNanos) { discoveryNanos += elapsedNanos; }
+        void recordSocial(long elapsedNanos) { socialNanos += elapsedNanos; }
+        void recordVillage(long elapsedNanos) { villageNanos += elapsedNanos; }
+        void recordVillagers(long elapsedNanos) { villagerNanos += elapsedNanos; }
+
         void reset() {
             samples = 0;
             totalNanos = 0;
             maxNanos = 0;
+            discoveryNanos = 0;
+            socialNanos = 0;
+            villageNanos = 0;
+            villagerNanos = 0;
         }
     }
 
@@ -131,7 +144,12 @@ public class TheWorldRemembers implements ModInitializer {
         if (world.getGameTime() % 200 == 0 && metrics.samples > 0) {
             long averageMicros = metrics.totalNanos / metrics.samples / 1_000L;
             long maxMicros = metrics.maxNanos / 1_000L;
-            LOGGER.info("Live simulation scheduler: samples={}, avg={}us, max={}us", metrics.samples, averageMicros, maxMicros);
+            LOGGER.info("Live simulation scheduler: samples={}, avg={}us, max={}us, discovery={}us, social={}us, village={}us, villagers={}us",
+                    metrics.samples, averageMicros, maxMicros,
+                    metrics.discoveryNanos / metrics.samples / 1_000L,
+                    metrics.socialNanos / metrics.samples / 1_000L,
+                    metrics.villageNanos / metrics.samples / 1_000L,
+                    metrics.villagerNanos / metrics.samples / 1_000L);
             metrics.reset();
         }
     }
@@ -168,8 +186,14 @@ public class TheWorldRemembers implements ModInitializer {
         VillageEventManager villageEvents=VillageEventManager.get(world.getServer());
         VillageStorageManager villageStorage=VillageStorageManager.get(world.getServer());
 
+        SchedulerMetrics metrics = budgeted
+                ? SCHEDULER_METRICS.computeIfAbsent(world, ignored -> new SchedulerMetrics())
+                : null;
+
         if (budgeted && (world.getGameTime() % VILLAGER_DISCOVERY_INTERVAL == 0 || !VILLAGER_REGISTRY.containsKey(world))) {
+            long phaseStarted = System.nanoTime();
             refreshVillagerRegistry(world);
+            metrics.recordDiscovery(System.nanoTime() - phaseStarted);
         }
 
         java.util.List<Villager> loadedVillagers = budgeted
@@ -180,12 +204,16 @@ public class TheWorldRemembers implements ModInitializer {
                     villager -> villager.isAlive() && !villager.isRemoved()));
         if (budgeted) {
             if (world.getGameTime() % SOCIAL_INTERVAL == 0) {
+                long phaseStarted = System.nanoTime();
                 processConversations(world, memories, knowledge, conversations,
                         nextBudgetedVillagers(world, SOCIAL_BUDGET_PER_TICK, SOCIAL_CURSORS));
+                metrics.recordSocial(System.nanoTime() - phaseStarted);
             }
             if (world.getGameTime() % VILLAGE_SCAN_INTERVAL == 0) {
+                long phaseStarted = System.nanoTime();
                 observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks, migrations, villageEvents, villageStorage,
                         loadedVillagersFromRegistry(world), VILLAGE_SCAN_BUDGET, VILLAGE_CURSORS);
+                metrics.recordVillage(System.nanoTime() - phaseStarted);
             }
         } else {
             processConversations(world, memories, knowledge, conversations);
@@ -193,6 +221,7 @@ public class TheWorldRemembers implements ModInitializer {
                     loadedVillagers, Integer.MAX_VALUE, VILLAGE_CURSORS);
         }
 
+        long villagersStarted = budgeted ? System.nanoTime() : 0L;
         for(Villager villager : loadedVillagers) {
             if(villager.isSleeping() && dreams.latest(villager.getUUID()).map(d -> world.getGameTime()-d.generatedAt() >= 1200).orElse(true)) dreams.generateForSleepingNpc(villager.getUUID(),world.getGameTime(),memories.memoriesOf(villager.getUUID()));
             ages.assignIfAbsent(villager.getUUID(), villager.isBaby() ? NpcAgeGenerator.generateChildAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())) : NpcAgeGenerator.generateAdultAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())));
@@ -234,6 +263,7 @@ public class TheWorldRemembers implements ModInitializer {
             }
             if(world.getGameTime()%200==0&&!world.getEntitiesOfClass(ServerPlayer.class,villager.getBoundingBox().inflate(8),p->true).iterator().hasNext()) stress.recover(villager.getUUID(),1);
         }
+        if (budgeted) metrics.recordVillagers(System.nanoTime() - villagersStarted);
 
         if (!budgeted) {
             for (Villager villager : world.getEntitiesOfClass(Villager.class,
