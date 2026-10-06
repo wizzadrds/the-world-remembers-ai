@@ -8,7 +8,7 @@
   "contact": {"sources": "https://github.com/wizzadrds/the-world-remembers-ai"},
   "license": "All-Rights-Reserved",
   "environment": "*",
-  "entrypoints": {"main": ["com.wizzadrds.theworldremembers.TheWorldRemembers"]},
+  "entrypoints": {"main": ["com.wizzadrds.theworldremembers.TheWorldRemembers"], "client": ["com.wizzadrds.theworldremembers.TheWorldRemembersClient"]},
   "depends": {
     "fabricloader": ">=0.19.3",
     "minecraft": "~26.2",
