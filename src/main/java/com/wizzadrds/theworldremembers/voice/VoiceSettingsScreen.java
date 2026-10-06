@@ -59,7 +59,7 @@ public final class VoiceSettingsScreen extends Screen {
     }
 
     private void close() {
-        Minecraft.getInstance().gui.setScreenAndShow(parent);
+        Minecraft.getInstance().setScreen(parent);
     }
 
     @Override
