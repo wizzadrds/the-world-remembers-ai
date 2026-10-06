@@ -127,7 +127,7 @@ The project follows a staged implementation plan. Features are documented before
 
 **[Phase 8 complete]**
 
-**Status: COMPLETE — v0.8.0-alpha — CI run #344 validated**
+**Status: COMPLETE — v0.8.0-alpha — CI run #348 validated**
 
 Phase 8 acceptance is satisfied by local adapter contracts, deterministic bounded scheduling, spatial delivery, state-driven delivery, graceful adapter failure, and live client/server voice payload integration.
 
