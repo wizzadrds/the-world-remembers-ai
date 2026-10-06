@@ -322,7 +322,7 @@ public class TheWorldRemembers implements ModInitializer {
         if (remainder.isEmpty()) nearest.discard();
     }
 
-    /** Warriors can immediately equip armor found in their inventory instead of leaving it inert. */
+    /** Warriors equip armor and a useful weapon found in their inventory. */
     private static void equipWarriorLoot(Villager villager) {
         if (!isWarrior(villager)) return;
         var inventory = villager.getInventory();
@@ -333,6 +333,14 @@ public class TheWorldRemembers implements ModInitializer {
             ItemStack equipped = villager.getItemBySlot(target);
             if (!equipped.isEmpty()) continue;
             villager.setItemSlot(target, stack.copy());
+            inventory.setItem(slot, ItemStack.EMPTY);
+            return;
+        }
+        if (!villager.getMainHandItem().isEmpty()) return;
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (stack.isEmpty() || (!stack.is(ItemTags.SWORDS) && !stack.is(ItemTags.AXES) && !stack.is(Items.SHIELD))) continue;
+            villager.setItemSlot(EquipmentSlot.MAINHAND, stack.copy());
             inventory.setItem(slot, ItemStack.EMPTY);
             return;
         }
