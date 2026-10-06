@@ -1,0 +1,3 @@
+package com.wizzadrds.theworldremembers.chronicle;
+import java.util.*;
+public record ChronicleSnapshot(List<String> timeline,List<String> people,List<String> relationships,List<String> families,List<String> villages){public ChronicleSnapshot{timeline=List.copyOf(timeline);people=List.copyOf(people);relationships=List.copyOf(relationships);families=List.copyOf(families);villages=List.copyOf(villages);}public String encode(){return String.join("\n",timeline)+"\n---PEOPLE---\n"+String.join("\n",people)+"\n---RELATIONSHIPS---\n"+String.join("\n",relationships)+"\n---FAMILIES---\n"+String.join("\n",families)+"\n---VILLAGES---\n"+String.join("\n",villages);}}

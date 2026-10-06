@@ -1,0 +1,3 @@
+package com.wizzadrds.theworldremembers.chronicle;
+import net.minecraft.network.RegistryFriendlyByteBuf; import net.minecraft.network.codec.StreamCodec; import net.minecraft.network.protocol.common.custom.CustomPacketPayload; import net.minecraft.resources.Identifier;
+public record ChronicleRequestPacket() implements CustomPacketPayload{public static final Type<ChronicleRequestPacket> TYPE=new Type<>(Identifier.fromNamespaceAndPath("the_world_remembers","chronicle_request"));public static final StreamCodec<RegistryFriendlyByteBuf,ChronicleRequestPacket> CODEC=StreamCodec.unit(new ChronicleRequestPacket());public Type<? extends CustomPacketPayload> type(){return TYPE;}}
