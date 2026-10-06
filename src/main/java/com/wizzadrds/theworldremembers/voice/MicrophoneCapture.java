@@ -13,6 +13,7 @@ import java.util.function.Consumer;
 
 public final class MicrophoneCapture implements AutoCloseable {
     public static final float SAMPLE_RATE = 16000.0f;
+    public static final String DEFAULT_DEVICE = "Default";
     private static final AudioFormat FORMAT = new AudioFormat(SAMPLE_RATE, 16, 1, true, false);
     private volatile TargetDataLine line;
     private volatile Thread captureThread;
@@ -23,11 +24,18 @@ public final class MicrophoneCapture implements AutoCloseable {
 
     public static List<String> devices() {
         List<String> result = new ArrayList<>();
+        result.add(DEFAULT_DEVICE);
         for (Mixer.Info info : AudioSystem.getMixerInfo()) {
             Mixer mixer = AudioSystem.getMixer(info);
-            if (mixer.isLineSupported(new DataLine.Info(TargetDataLine.class, FORMAT))) result.add(info.getName());
+            if (mixer.isLineSupported(new DataLine.Info(TargetDataLine.class, FORMAT))) {
+                result.add(info.getName());
+            }
         }
-        return result;
+        return List.copyOf(result);
+    }
+
+    public static String detectDefaultDevice() {
+        return DEFAULT_DEVICE;
     }
 
     public synchronized boolean start(String deviceName) {
@@ -115,7 +123,7 @@ public final class MicrophoneCapture implements AutoCloseable {
     }
 
     private static Mixer findMixer(String requested) {
-        if (requested == null || requested.isBlank() || requested.equalsIgnoreCase("Default")) return null;
+        if (requested == null || requested.isBlank() || requested.equalsIgnoreCase(DEFAULT_DEVICE)) return null;
         for (Mixer.Info info : AudioSystem.getMixerInfo()) {
             if (info.getName().equalsIgnoreCase(requested)) return AudioSystem.getMixer(info);
         }
