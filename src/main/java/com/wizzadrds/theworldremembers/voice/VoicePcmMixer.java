@@ -8,12 +8,14 @@ public final class VoicePcmMixer {
     public static byte[] mix(Collection<byte[]> frames) {
         if (frames == null || frames.isEmpty()) return null;
 
-        int length = frames.stream()
-                .filter(frame -> frame != null)
-                .mapToInt(frame -> frame.length)
-                .min()
-                .orElse(0);
-        if (length == 0) return null;
+        int length = Integer.MAX_VALUE;
+        boolean hasFrame = false;
+        for (byte[] frame : frames) {
+            if (frame == null) continue;
+            hasFrame = true;
+            length = Math.min(length, frame.length);
+        }
+        if (!hasFrame || length == 0) return null;
 
         length &= ~1;
         byte[] mixed = new byte[length];
@@ -21,7 +23,9 @@ public final class VoicePcmMixer {
             int sample = 0;
             for (byte[] frame : frames) {
                 if (frame == null || frame.length < offset + 2) continue;
-                sample += (short) ((frame[offset] & 0xFF) | (frame[offset + 1] << 8));
+                int unsignedLittleEndian =
+                        (frame[offset] & 0xFF) | ((frame[offset + 1] & 0xFF) << 8);
+                sample += (short) unsignedLittleEndian;
             }
             sample = Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, sample));
             mixed[offset] = (byte) sample;
