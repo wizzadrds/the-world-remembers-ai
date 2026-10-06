@@ -15,7 +15,7 @@ public final class VillageResourceManager extends SavedData {
  private static final Codec<VillageResourceManager> CODEC=Codec.unboundedMap(Codec.STRING.xmap(UUID::fromString,UUID::toString),RES).xmap(m->{var x=new VillageResourceManager();x.resources.putAll(m);return x;},x->x.resources);
  private static final SavedDataType<VillageResourceManager> TYPE=new SavedDataType<>(Identifier.fromNamespaceAndPath("the_world_remembers","village_resources"),VillageResourceManager::new,CODEC,null);
  public static VillageResourceManager get(MinecraftServer s){ServerLevel l=s.getLevel(ServerLevel.OVERWORLD);return l==null?new VillageResourceManager():l.getDataStorage().computeIfAbsent(TYPE);}
- public void observe(UUID id,VillageResources value){resources.put(id,value);setDirty();}
+ public void observe(UUID id,VillageResources value){var old=resources.get(id); if(!value.equals(old)){resources.put(id,value);setDirty();}}
  public VillageResources get(UUID id){return resources.get(id);}
  public Collection<VillageResources> all(){return List.copyOf(resources.values());}
 }
