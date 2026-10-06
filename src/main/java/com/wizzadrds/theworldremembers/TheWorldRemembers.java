@@ -28,6 +28,7 @@ import com.wizzadrds.theworldremembers.village.VillageDefenseManager;
 import com.wizzadrds.theworldremembers.village.VillageDefense;
 import com.wizzadrds.theworldremembers.village.VillageLandmarkManager;
 import com.wizzadrds.theworldremembers.village.VillageLandmark;
+import com.wizzadrds.theworldremembers.dream.*;
 import com.wizzadrds.theworldremembers.village.VillageMigrationManager;
 import com.wizzadrds.theworldremembers.village.VillageEventManager;
 import com.wizzadrds.theworldremembers.village.VillageEvent;
@@ -107,6 +108,7 @@ public class TheWorldRemembers implements ModInitializer {
         VillageResourceManager villageResources=VillageResourceManager.get(world.getServer());
         VillageDefenseManager villageDefense=VillageDefenseManager.get(world.getServer());
         VillageLandmarkManager landmarks=VillageLandmarkManager.get(world.getServer());
+        DreamManager dreams=DreamManager.get(world.getServer());
         VillageMigrationManager migrations=VillageMigrationManager.get(world.getServer());
         VillageEventManager villageEvents=VillageEventManager.get(world.getServer());
         VillageStorageManager villageStorage=VillageStorageManager.get(world.getServer());
@@ -114,6 +116,25 @@ public class TheWorldRemembers implements ModInitializer {
         observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks, migrations, villageEvents, villageStorage);
 
         for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),villager -> villager.isAlive()&&!villager.isRemoved())) {
+            if (villager.isSleeping() && world.getGameTime() % 200 == 0) {
+                var latest=dreams.latest(villager.getUUID());
+                if (latest.isEmpty() || world.getGameTime()-latest.get().startTick() >= 1200) {
+                    var memoriesForNpc=memories.memoriesOf(villager.getUUID());
+                    var stressValue=stress.value(villager.getUUID());
+                    java.util.Optional<Memory> source;
+                    DreamCategory category;
+                    int roll=Math.floorMod(villager.getUUID().hashCode()+(int)(world.getGameTime()/24000),4);
+                    if(stressValue>=50 && (source=DreamSelector.selectFear(villager.getUUID(),memoriesForNpc,world.getGameTime(),stressValue)).isPresent()) category=DreamCategory.FEAR;
+                    else if(roll==1 && (source=DreamSelector.selectNostalgia(villager.getUUID(),memoriesForNpc,world.getGameTime())).isPresent()) category=DreamCategory.NOSTALGIA;
+                    else if(roll==2 && (source=DreamSelector.selectImpossible(villager.getUUID(),memoriesForNpc,world.getGameTime())).isPresent()) category=DreamCategory.IMPOSSIBLE;
+                    else if((source=DreamSelector.selectMemory(villager.getUUID(),memoriesForNpc,world.getGameTime())).isPresent()) category=DreamCategory.MEMORY;
+                    else source=java.util.Optional.empty();
+                    if(source.isPresent()) {
+                        var m=source.get();
+                        dreams.add(new DreamRecord(villager.getUUID(),category,m.npcId(),m.playerId(),m.gameTime(),world.getGameTime(),Math.min(600,200+Math.floorMod(m.type().ordinal()*37,300))));
+                    }
+                }
+            }
             ages.assignIfAbsent(villager.getUUID(), villager.isBaby() ? NpcAgeGenerator.generateChildAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())) : NpcAgeGenerator.generateAdultAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())));
             if (villager.isBaby() && !families.hasParents(villager.getUUID())) linkBabyToNearbyParents(world, villager, families, memories);
             if (!villager.isBaby() && ages.get(villager.getUUID()).isAdult() && !families.hasSpouse(villager.getUUID())) processCourtship(world, villager, families, courtship, memories, ages);
