@@ -6,7 +6,7 @@ import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.AudioSystem;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -15,7 +15,12 @@ public final class VoiceStreamPlayer implements AutoCloseable {
     private static final byte[] POISON = new byte[0];
 
     private final BlockingQueue<byte[]> queue = new ArrayBlockingQueue<>(32);
-    private final Map<UUID, Integer> lastSequences = new HashMap<>();
+    private final Map<UUID, Integer> lastSequences = new LinkedHashMap<>(128, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<UUID, Integer> eldest) {
+            return size() > 128;
+        }
+    };
     private volatile SourceDataLine line;
     private volatile boolean running;
     private volatile Thread worker;
