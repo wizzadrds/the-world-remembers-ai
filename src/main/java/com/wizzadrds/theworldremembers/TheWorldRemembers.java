@@ -173,6 +173,7 @@ public class TheWorldRemembers implements ModInitializer {
             inventories.synchronizeFromVillager(villager);
             equipment.sync(villager);
             pickupNearbyItems(world, villager);
+            consumeFoodIfNeeded(villager);
             NpcHome home=homes.get(villager.getUUID());
             if(home==null) {
                 BlockPos pos=findNearbyHomePoi(world,villager.blockPosition());
@@ -233,6 +234,24 @@ public class TheWorldRemembers implements ModInitializer {
             if (remainder.isEmpty()) entity.discard();
             break;
         }
+    }
+
+    /** Lets a villager actually use food it carries when injured instead of keeping food as inert inventory state. */
+    private static void consumeFoodIfNeeded(Villager villager) {
+        if (!villager.isAlive() || villager.isBaby() || villager.getHealth() >= villager.getMaxHealth() - 4.0f) return;
+        var inventory = villager.getInventory();
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (!isVillagerFood(stack)) continue;
+            stack.shrink(1);
+            inventory.setItem(slot, stack);
+            villager.heal(4.0f);
+            return;
+        }
+    }
+
+    private static boolean isVillagerFood(ItemStack stack) {
+        return stack.is(Items.BREAD) || stack.is(Items.CARROT) || stack.is(Items.POTATO) || stack.is(Items.BEETROOT);
     }
 
     /** Keeps the live pickup path compatible with vanilla villager priorities. */
