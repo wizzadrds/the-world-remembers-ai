@@ -8,6 +8,7 @@ import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.item.ItemStack;
 import java.util.*;
 
 public final class NpcInventoryManager extends SavedData {
@@ -55,6 +56,36 @@ public final class NpcInventoryManager extends SavedData {
         if (moved > 0) setDirty();
         return moved;
     }
+
+    /**
+     * Moves important persistent possessions and materializes the moved stacks in the
+     * live heir inventory so the next simulation mirror cannot erase the inheritance.
+     */
+    public int inheritImportantItems(UUID from, Villager heir) {
+        NpcInventory source = getOrCreate(from);
+        NpcInventory target = getOrCreate(heir.getUUID());
+        int moved = 0;
+        for (NpcItemStack stack : source.items()) {
+            if (!isImportantItem(stack.itemId())) continue;
+            if (!source.remove(stack.itemId(), stack.count())) continue;
+
+            int remaining = stack.count();
+            var item = BuiltInRegistries.ITEM.get(net.minecraft.resources.Identifier.parse(stack.itemId()));
+            ItemStack live = new ItemStack(item, remaining);
+            ItemStack remainder = heir.getInventory().addItem(live);
+            int materialized = remaining - remainder.getCount();
+            if (materialized > 0) {
+                target.add(stack.itemId(), materialized);
+                moved += materialized;
+            }
+            if (!remainder.isEmpty()) {
+                target.add(stack.itemId(), remainder.getCount());
+            }
+        }
+        if (moved > 0) setDirty();
+        return moved;
+    }
+
     static boolean isImportantItem(String itemId) {
         return itemId.equals("minecraft:diamond")
             || itemId.equals("minecraft:emerald")
