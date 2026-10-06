@@ -65,11 +65,11 @@ public class TheWorldRemembers implements ModInitializer {
     public static final Logger LOGGER=LoggerFactory.getLogger(MOD_ID);
     private static final int TICK_INTERVAL=1;
     /** Maximum number of villagers whose expensive TWR simulation is advanced by one live tick. */
-    private static final int VILLAGER_BUDGET_PER_TICK=8;
+    private static final int VILLAGER_BUDGET_PER_TICK=4;
     /** Item pickup is staggered to avoid running spatial item queries for every villager every tick. */
-    private static final int ITEM_PICKUP_INTERVAL=10;
+    private static final int ITEM_PICKUP_INTERVAL=20;
     private static final int EQUIPMENT_SYNC_INTERVAL=20;
-    private static final int SOCIAL_BEHAVIOR_INTERVAL=5;
+    private static final int SOCIAL_BEHAVIOR_INTERVAL=20;
     /** Global village scans are deliberately much less frequent than individual NPC simulation. */
     private static final int VILLAGE_SCAN_INTERVAL=100;
     /** A village observation processes only a bounded number of village clusters per live tick. */
@@ -81,6 +81,7 @@ public class TheWorldRemembers implements ModInitializer {
     private static final int KNOWLEDGE_DECAY_INTERVAL=400;
     private static final int INTRUSION_COOLDOWN=200;
     private static final java.util.Map<ServerLevel,Integer> VILLAGER_CURSORS = new java.util.WeakHashMap<>();
+    private static final java.util.Map<ServerLevel,Integer> ITEM_PICKUP_CURSORS = new java.util.WeakHashMap<>();
     private static final java.util.Map<ServerLevel,Integer> SOCIAL_CURSORS = new java.util.WeakHashMap<>();
     private static final java.util.Map<ServerLevel,Integer> VILLAGE_CURSORS = new java.util.WeakHashMap<>();
     private static final java.util.Map<ServerLevel,java.util.List<UUID>> VILLAGER_REGISTRY = new java.util.WeakHashMap<>();
@@ -299,14 +300,19 @@ public class TheWorldRemembers implements ModInitializer {
      * The operation is bounded to the villager's local area and to one item entity per simulation pass.
      */
     private static boolean shouldRunItemPickup(ServerLevel world, Villager villager) {
-        long phase = world.getGameTime() + villager.getUUID().getLeastSignificantBits();
-        return Math.floorMod(phase, ITEM_PICKUP_INTERVAL) == 0;
+        if (world.getGameTime() % ITEM_PICKUP_INTERVAL != 0) return false;
+        java.util.List<UUID> ids = VILLAGER_REGISTRY.get(world);
+        if (ids == null || ids.isEmpty()) return false;
+        int cursor = ITEM_PICKUP_CURSORS.getOrDefault(world, 0) % ids.size();
+        UUID selected = ids.get(cursor);
+        ITEM_PICKUP_CURSORS.put(world, (cursor + 1) % ids.size());
+        return selected.equals(villager.getUUID());
     }
 
     private static void pickupNearbyItems(ServerLevel world, Villager villager) {
         if (!villager.isAlive() || villager.isSleeping() || villager.isTrading()) return;
         java.util.List<ItemEntity> items = world.getEntitiesOfClass(ItemEntity.class,
-                villager.getBoundingBox().inflate(2.5),
+                villager.getBoundingBox().inflate(2.0),
                 item -> item.isAlive() && !item.hasPickUpDelay() && !item.getItem().isEmpty());
         ItemEntity nearest = null;
         double nearestDistance = Double.MAX_VALUE;
