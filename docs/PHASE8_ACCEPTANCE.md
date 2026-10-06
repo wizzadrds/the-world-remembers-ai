@@ -1,15 +1,12 @@
 # Phase 8 Acceptance
 
-Phase 8 is complete only when local STT, local TTS, spatial audio, voice scheduling and state-driven delivery are implemented behind modular adapters and demonstrated by automated tests plus a headless Fabric server smoke test.
+Phase 8 is complete only when local STT/TTS adapters are usable without an online provider, voice profiles are persistent, speech is scheduled by priority, spatial delivery metadata is deterministic, and delivery state changes are covered by unit tests plus a headless Fabric smoke test.
 
-## Acceptance
-- [ ] Local STT adapter contract and deterministic test double
-- [ ] Local TTS adapter contract and deterministic test double
-- [x] Persistent voice profile foundation
-- [x] Personality-driven temperament foundation
-- [ ] Spatial audio delivery
-- [ ] Priority-aware voice scheduling
-- [ ] State-driven delivery for timid, nervous, tired, angry and excited states
-- [ ] Voice integration GameTests
-- [ ] Performance validation with bounded queue/cache behavior
-- [ ] CI build, tests and headless Fabric smoke test
+- [ ] Local STT adapter contract and executable integration
+- [ ] Local TTS adapter contract and executable integration
+- [x] Voice profile model foundation
+- [x] Personality-driven voice temperament model
+- [ ] Spatial audio model and client delivery
+- [ ] Priority-aware voice scheduler
+- [ ] State-driven delivery
+- [ ] End-to-end local voice smoke validation
