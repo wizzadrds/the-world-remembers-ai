@@ -265,6 +265,7 @@ public class TheWorldRemembers implements ModInitializer {
     private static void depositInventoryIntoHomeStorage(ServerLevel world, Villager villager, BlockPos storagePos) {
         if (storagePos == null || !villager.isAlive() || villager.isTrading()) return;
         if (villager.blockPosition().distSqr(storagePos) > 4 * 4) return;
+        if (!world.hasChunkAt(storagePos)) return;
         if (!(world.getBlockEntity(storagePos) instanceof Container container)) return;
         var inventory = villager.getInventory();
         for (int sourceSlot = 0; sourceSlot < inventory.getContainerSize(); sourceSlot++) {
