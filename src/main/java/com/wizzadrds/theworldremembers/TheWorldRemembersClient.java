@@ -4,6 +4,7 @@ import com.wizzadrds.theworldremembers.chronicle.*;
 import com.wizzadrds.theworldremembers.voice.VoiceClientConfig;
 import com.wizzadrds.theworldremembers.voice.VoicePacket;
 import com.wizzadrds.theworldremembers.voice.VoiceSettingsScreen;
+import com.wizzadrds.theworldremembers.voice.VoiceHud;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -36,6 +37,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     public void onInitializeClient() {
         voiceConfig = VoiceClientConfig.load(Minecraft.getInstance().gameDirectory.toPath());
 
+        VoiceHud.register(VOICE_KEY);
         ClientPlayNetworking.registerGlobalReceiver(VoicePacket.TYPE, (payload, context) -> lastVoice = payload);
         ClientPlayNetworking.registerGlobalReceiver(ChronicleResponsePacket.TYPE, (payload, context) ->
                 Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.setScreen(new ChronicleScreen(payload.lines()))));
@@ -46,9 +48,6 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             }
             while (SETTINGS_KEY.consumeClick()) {
                 client.setScreen(new VoiceSettingsScreen(client.screen, voiceConfig));
-            }
-            if (client.player != null && client.screen == null && VOICE_KEY.isDown()) {
-                client.gui.setOverlayMessage(net.minecraft.network.chat.Component.literal("[MIC] LISTENING"), false);
             }
         });
     }
