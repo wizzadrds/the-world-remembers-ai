@@ -39,37 +39,40 @@ public final class OpenAiResponsesAdapter implements AiChatAdapter {
     }
 
     private static String extractOutputText(String json) throws IOException {
-        String marker = "\"output_text\":";
+        String marker = "\"type\":\"output_text\",\"text\":";
         int start = json.indexOf(marker);
-        if (start < 0) throw new IOException("OpenAI response did not contain output_text");
-        start = json.indexOf('"', start + marker.length());
+        if (start < 0) {
+            marker = "\"text\":";
+            start = json.indexOf(marker);
+        }
+        if (start < 0) throw new IOException("OpenAI response did not contain output text");
+        start = json.indexOf('\"', start + marker.length());
         if (start < 0) throw new IOException("Invalid OpenAI response");
         StringBuilder out = new StringBuilder();
         boolean escaped = false;
         for (int i = start + 1; i < json.length(); i++) {
-            char c = json.charAt(i);
+            char ch = json.charAt(i);
             if (escaped) {
-                switch (c) {
-                    case '"', '\', '/' -> out.append(c);
+                switch (ch) {
+                    case '\"', '\\', '/' -> out.append(ch);
                     case 'n' -> out.append('\n');
                     case 'r' -> out.append('\r');
                     case 't' -> out.append('\t');
                     case 'b' -> out.append('\b');
                     case 'f' -> out.append('\f');
-                    default -> out.append(c);
+                    default -> out.append(ch);
                 }
                 escaped = false;
-            } else if (c == '\\') {
+            } else if (ch == '\\') {
                 escaped = true;
-            } else if (c == '"') {
+            } else if (ch == '\"') {
                 return out.toString().trim();
             } else {
-                out.append(c);
+                out.append(ch);
             }
         }
         throw new IOException("Invalid OpenAI response");
     }
-
     private static String json(String value) {
         return value.replace("\\", "\\\\")
             .replace("\"", "\\\"")
