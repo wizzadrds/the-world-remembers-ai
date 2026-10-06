@@ -61,5 +61,13 @@
 - Fear dreams
 - Nostalgia
 
+## v1.0.0-rc1 — The World Remembers Release Candidate
+- Full-system regression validation
+- Persistence/reload validation
+- Server and client GameTests
+- Headless server smoke test
+- Population-scale performance validation
+- Release artifact validation
+
 ## v1.0.0 — The World Remembers
 Integrated stable experience.
