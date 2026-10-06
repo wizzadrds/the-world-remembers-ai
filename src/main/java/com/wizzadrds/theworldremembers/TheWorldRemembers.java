@@ -127,7 +127,7 @@ public class TheWorldRemembers implements ModInitializer {
             activities.set(villager.getUUID(),villager.isSleeping()?NpcActivity.SLEEPING:(villager.getNavigation().isInProgress()?NpcActivity.WALKING:NpcActivity.IDLE),10,villager.blockPosition(),world.getGameTime());
             if(villager.getNavigation().isInProgress())fatigue.increase(villager.getUUID(),1);else fatigue.recover(villager.getUUID(),1);
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress);
-            applyLiveSocialBehavior(world, villager, relationships, stress, behavior, homes);
+            applyLiveSocialBehavior(world, villager, relationships, stress, behavior, homes, homeStorage);
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
             for(ServerPlayer player:world.players()) {
                 if(player.blockPosition().distSqr(entrance)>HOME_RADIUS*HOME_RADIUS) continue;
@@ -151,8 +151,13 @@ public class TheWorldRemembers implements ModInitializer {
             synchronizeFamilyHome(villager, families, homes);
         }
     }
-    private static void applyLiveSocialBehavior(ServerLevel world, Villager villager, RelationshipManager relationships, NpcStressManager stress, NpcBehaviorEngine behavior, NpcHomeManager homes) {
+    private static void applyLiveSocialBehavior(ServerLevel world, Villager villager, RelationshipManager relationships, NpcStressManager stress, NpcBehaviorEngine behavior, NpcHomeManager homes, NpcHomeStorageManager homeStorage) {
         if (!villager.getNavigation().isDone() && !villager.isTrading()) return;
+        String role=villager.getVillagerData().toString().toLowerCase(java.util.Locale.ROOT);
+        boolean worker=role.contains("farmer")||role.contains("librarian")||role.contains("cleric")||role.contains("armorer")||role.contains("toolsmith")||role.contains("weaponsmith");
+        boolean danger=!world.getEntitiesOfClass(net.minecraft.world.entity.monster.Monster.class,villager.getBoundingBox().inflate(8),m->m.isAlive()).isEmpty();
+        if(danger){NpcHome home=homes.get(villager.getUUID());if(home!=null)villager.getNavigation().moveTo(home.homePos().getX(),home.homePos().getY(),home.homePos().getZ(),1.15);stress.increase(villager.getUUID(),2);return;}
+        if(worker && !villager.getInventory().isEmpty() && homeStorage.get(villager.getUUID())!=null){BlockPos storage=homeStorage.get(villager.getUUID());if(villager.blockPosition().distSqr(storage)>4*4)villager.getNavigation().moveTo(storage.getX(),storage.getY(),storage.getZ(),0.8);}
         for (ServerPlayer player : world.getEntitiesOfClass(ServerPlayer.class, villager.getBoundingBox().inflate(12), p -> p.isAlive())) {
             Relationship relationship=relationships.get(villager.getUUID(),player.getUUID());
             if(relationship==null) continue;
