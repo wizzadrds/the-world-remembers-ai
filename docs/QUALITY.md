@@ -85,4 +85,4 @@ A pull-request CI run must pass `gradle build` and the headless Fabric server sm
 - [x] State-driven delivery modifies rate, pitch and expressiveness.
 - [x] Local adapter failures degrade without blocking gameplay.
 - [x] Live client/server voice payload integration GameTest.
-- [x] Final CI #344: Gradle build/tests, headless Fabric server smoke test and client GameTests passed.
+- [x] Final CI #348: Gradle build/tests, headless Fabric server smoke test and client GameTests passed.
