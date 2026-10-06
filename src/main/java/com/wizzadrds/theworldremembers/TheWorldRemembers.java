@@ -64,6 +64,8 @@ public class TheWorldRemembers implements ModInitializer {
     private static final int TICK_INTERVAL=1;
     /** Maximum number of villagers whose expensive TWR simulation is advanced by one live tick. */
     private static final int VILLAGER_BUDGET_PER_TICK=12;
+    /** Item pickup is staggered to avoid running spatial item queries for every villager every tick. */
+    private static final int ITEM_PICKUP_INTERVAL=5;
     /** Global village scans are deliberately much less frequent than individual NPC simulation. */
     private static final int VILLAGE_SCAN_INTERVAL=40;
     /** A village observation processes only a bounded number of village clusters per live tick. */
@@ -232,7 +234,7 @@ public class TheWorldRemembers implements ModInitializer {
             if (!villager.isBaby()) maintainFamilyProtection(villager, families, protection);
             inventories.synchronizeFromVillager(villager);
             equipment.sync(villager);
-            pickupNearbyItems(world, villager);
+            if (shouldRunItemPickup(world, villager)) pickupNearbyItems(world, villager);
             consumeFoodIfNeeded(villager);
             NpcHome home=homes.get(villager.getUUID());
             if(home==null) {
@@ -285,6 +287,11 @@ public class TheWorldRemembers implements ModInitializer {
      * Gives villagers an actual gameplay pickup path instead of only mirroring whatever is already in their inventory.
      * The operation is bounded to the villager's local area and to one item entity per simulation pass.
      */
+    private static boolean shouldRunItemPickup(ServerLevel world, Villager villager) {
+        long phase = world.getGameTime() + villager.getUUID().getLeastSignificantBits();
+        return Math.floorMod(phase, ITEM_PICKUP_INTERVAL) == 0;
+    }
+
     private static void pickupNearbyItems(ServerLevel world, Villager villager) {
         if (!villager.isAlive() || villager.isSleeping() || villager.isTrading()) return;
         java.util.List<ItemEntity> items = world.getEntitiesOfClass(ItemEntity.class,
@@ -292,10 +299,9 @@ public class TheWorldRemembers implements ModInitializer {
                 item -> item.isAlive() && !item.hasPickUpDelay() && !item.getItem().isEmpty());
         for (ItemEntity entity : items) {
             ItemStack offered = entity.getItem();
-            if (offered.isEmpty() || !villagerCanUseItem(offered)) continue;
-            ItemStack before = offered.copy();
+            if (offered.isEmpty()) continue;
             ItemStack remainder = villager.getInventory().addItem(offered.copy());
-            int picked = before.getCount() - remainder.getCount();
+            int picked = offered.getCount() - remainder.getCount();
             if (picked <= 0) continue;
             entity.setItem(remainder);
             if (remainder.isEmpty()) entity.discard();
@@ -321,13 +327,6 @@ public class TheWorldRemembers implements ModInitializer {
         return stack.is(Items.BREAD) || stack.is(Items.CARROT) || stack.is(Items.POTATO) || stack.is(Items.BEETROOT);
     }
 
-    /** Keeps the live pickup path compatible with vanilla villager priorities. */
-    private static boolean villagerCanUseItem(ItemStack stack) {
-        return stack.is(Items.BREAD) || stack.is(Items.WHEAT) || stack.is(Items.WHEAT_SEEDS)
-                || stack.is(Items.CARROT) || stack.is(Items.POTATO) || stack.is(Items.BEETROOT)
-                || stack.is(Items.BEETROOT_SEEDS) || stack.is(Items.EMERALD);
-    }
-
     /** A linked home chest is now a real destination: the villager must reach it before depositing one stack. */
     private static void depositInventoryIntoHomeStorage(ServerLevel world, Villager villager, BlockPos storagePos) {
         if (storagePos == null || !villager.isAlive() || villager.isTrading()) return;
@@ -337,7 +336,7 @@ public class TheWorldRemembers implements ModInitializer {
         var inventory = villager.getInventory();
         for (int sourceSlot = 0; sourceSlot < inventory.getContainerSize(); sourceSlot++) {
             ItemStack source = inventory.getItem(sourceSlot);
-            if (source.isEmpty() || !villagerCanUseItem(source)) continue;
+            if (source.isEmpty()) continue;
             for (int targetSlot = 0; targetSlot < container.getContainerSize(); targetSlot++) {
                 ItemStack target = container.getItem(targetSlot);
                 if (!target.isEmpty() && !ItemStack.isSameItemSameComponents(source, target)) continue;
@@ -564,6 +563,27 @@ public class TheWorldRemembers implements ModInitializer {
         var protection=FamilyProtectionManager.get(world.getServer());
         protection.clearProtector(villager.getUUID());
         var inventories=NpcInventoryManager.get(world.getServer());
+
+        // Player kills are intentionally different from natural NPC death: if the villager
+        // was carrying loot, make that loot physically recoverable at the death location.
+        if (damageSource.getEntity() instanceof ServerPlayer) {
+            inventories.captureImportantItemsIfMissing(villager);
+            java.util.List<ItemStack> carried = new java.util.ArrayList<>();
+            var liveInventory = villager.getInventory();
+            for (int slot = 0; slot < liveInventory.getContainerSize(); slot++) {
+                ItemStack stack = liveInventory.getItem(slot);
+                if (!stack.isEmpty()) carried.add(stack.copy());
+            }
+            if (carried.isEmpty()) carried = inventories.snapshot(villager.getUUID());
+            for (ItemStack stack : carried) {
+                if (stack.isEmpty()) continue;
+                ItemEntity drop = new ItemEntity(world, villager.getX(), villager.getY(), villager.getZ(), stack);
+                world.addFreshEntity(drop);
+            }
+            inventories.clear(villager.getUUID());
+            return;
+        }
+
         java.util.List<java.util.UUID> related = families.getRelations(villager.getUUID()).stream()
             .map(r -> r.npcId().equals(villager.getUUID()) ? r.relatedNpcId() : r.npcId()).distinct().toList();
         for(java.util.UUID id : related) {
