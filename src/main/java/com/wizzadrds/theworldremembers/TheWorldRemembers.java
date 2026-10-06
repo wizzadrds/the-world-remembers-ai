@@ -65,20 +65,20 @@ public class TheWorldRemembers implements ModInitializer {
     public static final Logger LOGGER=LoggerFactory.getLogger(MOD_ID);
     private static final int TICK_INTERVAL=1;
     /** Maximum number of villagers whose expensive TWR simulation is advanced by one live tick. */
-    private static final int VILLAGER_BUDGET_PER_TICK=12;
+    private static final int VILLAGER_BUDGET_PER_TICK=8;
     /** Item pickup is staggered to avoid running spatial item queries for every villager every tick. */
     private static final int ITEM_PICKUP_INTERVAL=10;
     private static final int EQUIPMENT_SYNC_INTERVAL=20;
     private static final int SOCIAL_BEHAVIOR_INTERVAL=5;
     /** Global village scans are deliberately much less frequent than individual NPC simulation. */
-    private static final int VILLAGE_SCAN_INTERVAL=40;
+    private static final int VILLAGE_SCAN_INTERVAL=100;
     /** A village observation processes only a bounded number of village clusters per live tick. */
-    private static final int VILLAGE_SCAN_BUDGET=2;
+    private static final int VILLAGE_SCAN_BUDGET=1;
     /** Registry discovery is much less frequent than the per-tick simulation rotation. */
-    private static final int VILLAGER_DISCOVERY_INTERVAL=200;
-    private static final int SOCIAL_BUDGET_PER_TICK=8;
-    private static final int SOCIAL_INTERVAL=10;
-    private static final int KNOWLEDGE_DECAY_INTERVAL=200;
+    private static final int VILLAGER_DISCOVERY_INTERVAL=400;
+    private static final int SOCIAL_BUDGET_PER_TICK=4;
+    private static final int SOCIAL_INTERVAL=20;
+    private static final int KNOWLEDGE_DECAY_INTERVAL=400;
     private static final int INTRUSION_COOLDOWN=200;
     private static final java.util.Map<ServerLevel,Integer> VILLAGER_CURSORS = new java.util.WeakHashMap<>();
     private static final java.util.Map<ServerLevel,Integer> SOCIAL_CURSORS = new java.util.WeakHashMap<>();
@@ -237,7 +237,7 @@ public class TheWorldRemembers implements ModInitializer {
             if (!villager.isBaby() && ages.get(villager.getUUID()).isAdult() && !families.hasSpouse(villager.getUUID()) && (!budgeted || world.getGameTime() % 20 == 0)) processCourtship(world, villager, families, courtship, memories, ages);
             if (!villager.isBaby()) maintainFamilyProtection(villager, families, protection);
             if (!budgeted || shouldRunItemPickup(world, villager)) pickupNearbyItems(world, villager);
-            equipWarriorLoot(villager);
+            if (!budgeted || world.getGameTime() % ITEM_PICKUP_INTERVAL == 0) equipWarriorLoot(villager);
             consumeFoodIfNeeded(villager);
             // Mirror after pickup/equipment so a death on the next tick cannot lose newly acquired loot.
             inventories.synchronizeFromVillager(villager);
@@ -254,10 +254,12 @@ public class TheWorldRemembers implements ModInitializer {
             if(homeStorage.get(villager.getUUID())==null){BlockPos storage=findNearestContainer(world,home.homePos(),8);if(storage!=null)homeStorage.link(villager.getUUID(),storage);}
             activities.set(villager.getUUID(),villager.isSleeping()?NpcActivity.SLEEPING:(villager.getNavigation().isInProgress()?NpcActivity.WALKING:NpcActivity.IDLE),10,villager.blockPosition(),world.getGameTime());
             if(villager.getNavigation().isInProgress())fatigue.increase(villager.getUUID(),1);else fatigue.recover(villager.getUUID(),1);
-            java.util.List<ServerPlayer> nearbyPlayers = world.players().stream().filter(p -> p.isAlive() && villager.distanceToSqr(p) <= 12*12).toList();
+            java.util.List<ServerPlayer> nearbyPlayers = world.getGameTime() % SOCIAL_BEHAVIOR_INTERVAL == 0
+                    ? world.players().stream().filter(p -> p.isAlive() && villager.distanceToSqr(p) <= 12*12).toList()
+                    : java.util.List.of();
+            var personality = PersonalityGenerator.generate(villager.getUUID());
             if (!budgeted || world.getGameTime() % SOCIAL_BEHAVIOR_INTERVAL == 0) {
                 applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress, behavior);
-                var personality = PersonalityGenerator.generate(villager.getUUID());
                 applyLiveSocialBehavior(world, villager, relationships, stress, behavior, homes, homeStorage, nearbyPlayers, personality);
             }
             if (!budgeted || world.getGameTime() % ITEM_PICKUP_INTERVAL == 0) depositInventoryIntoHomeStorage(world, villager, homeStorage.get(villager.getUUID()));
@@ -632,8 +634,7 @@ public class TheWorldRemembers implements ModInitializer {
                 world.addFreshEntity(new ItemEntity(world, villager.getX(), villager.getY(), villager.getZ(), stack.copy()));
             }
             for (EquipmentSlot slot : EquipmentSlot.values()) {
-                if (slot.getType() != EquipmentSlot.Type.HUMANOID_ARMOR
-                        && slot != EquipmentSlot.MAINHAND && slot != EquipmentSlot.OFFHAND) continue;
+                if (!slot.isArmorSlot() && slot != EquipmentSlot.MAINHAND && slot != EquipmentSlot.OFFHAND) continue;
                 ItemStack equipped = villager.getItemBySlot(slot);
                 if (equipped.isEmpty()) continue;
                 world.addFreshEntity(new ItemEntity(world, villager.getX(), villager.getY(), villager.getZ(), equipped.copy()));
