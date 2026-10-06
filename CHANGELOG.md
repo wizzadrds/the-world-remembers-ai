@@ -8,10 +8,6 @@
 - Added Phase 10 Minecraft GameTests and CI validation.
 
 ## v0.9.0-alpha — Phase 9 Chronicles
-- Completed timeline, people, relationships, families and village history browsing.
-
-
-## v0.9.0-alpha — Phase 9 Chronicles
 - Added a bounded Chronicle aggregation layer over persistent memory, relationships, families and village history.
 - Added server/client Chronicle networking with read-only world-history snapshots.
 - Added a client Chronicle screen opened with the J key.
