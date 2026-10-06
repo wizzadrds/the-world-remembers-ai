@@ -62,7 +62,7 @@ public final class VoiceConversationController implements AutoCloseable {
             Path output,
             VoiceAudioPlayer player,
             float outputVolume,
-            Consumer<Path> completed) {
+            Consumer<Path> completed) {\n        synthesizeAndSpeak(text, service, profile, output, player, outputVolume, "Default", completed);\n    }\n\n    public void synthesizeAndSpeak(\n            String text, VoiceService service, VoiceProfile profile, Path output,\n            VoiceAudioPlayer player, float outputVolume, String outputDevice, Consumer<Path> completed) {
         setState(VoiceConversationState.PROCESSING);
         final long generation = sessionGeneration;
         worker.submit(() -> {
@@ -77,7 +77,7 @@ public final class VoiceConversationController implements AutoCloseable {
                 }
                 setState(VoiceConversationState.SPEAKING);
                 if (generation != sessionGeneration) return;
-                player.play(audio, outputVolume);
+                player.play(audio, outputVolume, outputDevice);
                 completed.accept(audio);
                 finishSpeaking();
             } catch (InterruptedException e) {
