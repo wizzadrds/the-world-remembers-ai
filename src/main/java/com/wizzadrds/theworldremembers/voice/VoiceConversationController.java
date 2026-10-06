@@ -16,7 +16,7 @@ public final class VoiceConversationController implements AutoCloseable {
 
     private volatile VoiceConversationState state = VoiceConversationState.IDLE;
     private volatile Consumer<VoiceConversationState> stateListener = ignored -> {};
-    private long sessionGeneration;
+    private volatile long sessionGeneration;
 
     public VoiceConversationState state() {
         return state;
@@ -48,7 +48,9 @@ public final class VoiceConversationController implements AutoCloseable {
                 if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
                 transcriptConsumer.accept(transcript);
             } catch (RuntimeException e) {
-                fail();
+                if (generation == sessionGeneration && state == VoiceConversationState.PROCESSING) {
+                    fail();
+                }
             }
         });
     }
@@ -80,9 +82,13 @@ public final class VoiceConversationController implements AutoCloseable {
                 finishSpeaking();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                fail();
+                if (generation == sessionGeneration) {
+                    fail();
+                }
             } catch (Exception e) {
-                fail();
+                if (generation == sessionGeneration) {
+                    fail();
+                }
             } finally {
                 if (audio != null) {
                     try {
