@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.0 — The World Remembers
+- Integrated the completed memory, personality, relationships, behavior, families, villages, rumors, local voice, chronicles and dreams systems.
+- Added explicit v1.0 release acceptance criteria and final CI gates.
+- Release remains a candidate until final Gradle, Minecraft GameTest and headless-server validation are green.
+
 ## v0.10.0-alpha — Phase 10 Dreams
 - Added persistent bounded dream history per NPC.
 - Added memory, fear, nostalgia and explicitly surreal impossible dream types.
