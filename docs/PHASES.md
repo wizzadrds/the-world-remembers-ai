@@ -117,8 +117,8 @@ The project follows a staged implementation plan. Features are documented before
 **Status: COMPLETE — v0.7.0-alpha — CI validated on PR #104**
 
 ## Phase 8 — Local Voice
-- [ ] Local STT
-- [ ] Local TTS
+- [ ] Local STT adapter
+- [ ] Local TTS adapter
 - [x] Voice profile model foundation
 - [x] Personality-driven voice temperament model
 - [ ] Spatial audio
