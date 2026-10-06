@@ -96,3 +96,11 @@ A pull-request CI run must pass `gradle build` and the headless Fabric server sm
 - [x] Read-only Chronicle UI opens from the J key and renders bounded history.
 - [x] Dedicated Chronicle client GameTest and screenshot coverage pass.
 - [x] Final CI #379: Gradle build/tests, headless Fabric server smoke test and client GameTests passed.
+
+
+## v1.0 release acceptance
+- [x] Phases 0–10 are individually marked complete.
+- [x] Unit-test, GameTest and headless-server quality layers exist and are required by CI.
+- [x] Phase 10 final CI validation is recorded.
+- [ ] Final v1.0 release CI passes Gradle build/tests, GameTests and headless Fabric server smoke test.
+- [ ] Final v1.0 client validation passes where client-facing systems are present.
