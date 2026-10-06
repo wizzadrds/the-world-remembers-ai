@@ -90,14 +90,23 @@ public class TheWorldRemembers implements ModInitializer {
                 return InteractionResult.SUCCESS;
             }
             if (!serverPlayer.getItemInHand(hand).is(Items.BREAD)) return InteractionResult.PASS;
-            if (memories.findMostRecentMemory(villager.getUUID(),serverPlayer.getUUID(),MemoryEventType.PLAYER_GAVE_BREAD).isPresent()) {
-                serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" remembers you: you gave me bread."));
-                return InteractionResult.PASS;
+            var bread = serverPlayer.getItemInHand(hand).copy();
+            bread.setCount(1);
+            if (!villager.getInventory().canAddItem(bread)) {
+                serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" has no room for more bread."));
+                return InteractionResult.SUCCESS;
             }
-            Memory memory=memories.rememberBreadGift(serverPlayer,villager);
-            RelationshipManager.get(serverPlayer.level().getServer()).apply(new MemoryEvent(memory.npcId(),memory.playerId(),memory.type(),memory.gameTime(),memory.importance()));
-            serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" will remember this."));
-            return InteractionResult.PASS;
+            var remainder = villager.getInventory().addItem(bread);
+            if (!remainder.isEmpty()) return InteractionResult.PASS;
+            serverPlayer.getItemInHand(hand).shrink(1);
+            if (memories.findMostRecentMemory(villager.getUUID(),serverPlayer.getUUID(),MemoryEventType.PLAYER_GAVE_BREAD).isEmpty()) {
+                Memory memory=memories.rememberBreadGift(serverPlayer,villager);
+                RelationshipManager.get(serverPlayer.level().getServer()).apply(new MemoryEvent(memory.npcId(),memory.playerId(),memory.type(),memory.gameTime(),memory.importance()));
+                serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" remembers that you gave them bread."));
+            } else {
+                serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" remembers you."));
+            }
+            return InteractionResult.SUCCESS;
         });
         ServerTickEvents.END_LEVEL_TICK.register(TheWorldRemembers::tickWorld);
         ServerLivingEntityEvents.AFTER_DEATH.register(TheWorldRemembers::handleDeath);
