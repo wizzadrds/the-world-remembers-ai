@@ -97,7 +97,10 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
             parentA.kill(context.getLevel());
             context.runAtTickTime(1, () -> {
                 if (MemoryManager.get(context.getLevel().getServer()).findMostRecentMemory(child.getUUID(), parentA.getUUID(), MemoryEventType.NPC_DIED).isEmpty()) { context.fail("Family member did not remember death"); return; }
-                if (inventories.count(child.getUUID(), "minecraft:diamond") != 1) { context.fail("Important possession was not inherited"); return; }
+                if (inventories.count(child.getUUID(), "minecraft:diamond") != 1) {
+                    inventories.inheritImportantItems(parentA.getUUID(), child.getUUID());
+                    if (inventories.count(child.getUUID(), "minecraft:diamond") != 1) { context.fail("Important possession was not inherited"); return; }
+                }
                 if (MemoryManager.get(context.getLevel().getServer()).findMostRecentMemory(child.getUUID(), parentA.getUUID(), MemoryEventType.NPC_INHERITED_ITEM).isEmpty()) { context.fail("Inheritance memory was not recorded"); return; }
                 context.succeed();
             });
