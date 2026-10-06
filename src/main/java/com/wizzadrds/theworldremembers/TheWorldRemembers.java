@@ -9,6 +9,9 @@ import com.wizzadrds.theworldremembers.family.FamilyProtectionManager;
 import com.wizzadrds.theworldremembers.behavior.NpcBehaviorEngine;
 import com.wizzadrds.theworldremembers.behavior.NpcDecision;
 import com.wizzadrds.theworldremembers.behavior.NpcActivity;
+import com.wizzadrds.theworldremembers.behavior.NpcActivityManager;
+import com.wizzadrds.theworldremembers.behavior.NpcTravelManager;
+import com.wizzadrds.theworldremembers.stress.NpcFatigueManager;
 import com.wizzadrds.theworldremembers.stress.NpcStress;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
 import com.wizzadrds.theworldremembers.inventory.NpcInventoryManager;
@@ -83,6 +86,12 @@ public class TheWorldRemembers implements ModInitializer {
         NpcHomeManager homes=NpcHomeManager.get(world);
         NpcAgeManager ages=NpcAgeManager.get(world.getServer());
         NpcStressManager stress=NpcStressManager.get(world);
+        NpcFatigueManager fatigue=NpcFatigueManager.get(world.getServer());
+        NpcActivityManager activities=NpcActivityManager.get(world.getServer());
+        NpcTravelManager travel=NpcTravelManager.get(world.getServer());
+        NpcInventoryManager inventories=NpcInventoryManager.get(world.getServer());
+        com.wizzadrds.theworldremembers.equipment.NpcEquipmentManager equipment=com.wizzadrds.theworldremembers.equipment.NpcEquipmentManager.get(world.getServer());
+        NpcHomeStorageManager homeStorage=NpcHomeStorageManager.get(world.getServer());
         NpcBehaviorEngine behavior=new NpcBehaviorEngine();
         MemoryManager memories=MemoryManager.get(world.getServer());
         RelationshipManager relationships=RelationshipManager.get(world.getServer());
@@ -105,6 +114,8 @@ public class TheWorldRemembers implements ModInitializer {
             if (villager.isBaby() && !families.hasParents(villager.getUUID())) linkBabyToNearbyParents(world, villager, families, memories);
             if (!villager.isBaby() && ages.get(villager.getUUID()).isAdult() && !families.hasSpouse(villager.getUUID())) processCourtship(world, villager, families, courtship, memories, ages);
             if (!villager.isBaby()) maintainFamilyProtection(villager, families, protection);
+            inventories.synchronizeFromVillager(villager);
+            equipment.sync(villager);
             NpcHome home=homes.get(villager.getUUID());
             if(home==null) {
                 BlockPos pos=villager.blockPosition();
@@ -112,6 +123,9 @@ public class TheWorldRemembers implements ModInitializer {
             }
             synchronizeFamilyHome(villager, families, homes);
             home=homes.get(villager.getUUID());
+            if(homeStorage.get(villager.getUUID())==null){BlockPos storage=findNearestContainer(world,home.homePos(),8);if(storage!=null)homeStorage.link(villager.getUUID(),storage);}
+            activities.set(villager.getUUID(),villager.isSleeping()?NpcActivity.SLEEPING:(villager.getNavigation().isInProgress()?NpcActivity.WALKING:NpcActivity.IDLE),10,villager.blockPosition(),world.getGameTime());
+            if(villager.getNavigation().isInProgress())fatigue.increase(villager.getUUID(),1);else fatigue.recover(villager.getUUID(),1);
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress);
             applyLiveSocialBehavior(world, villager, relationships, stress, behavior, homes);
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
