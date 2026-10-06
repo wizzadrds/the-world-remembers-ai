@@ -5,6 +5,7 @@ import com.wizzadrds.theworldremembers.voice.VoiceClientConfig;
 import com.wizzadrds.theworldremembers.voice.VoicePacket;
 import com.wizzadrds.theworldremembers.voice.VoiceSettingsScreen;
 import com.wizzadrds.theworldremembers.voice.VoiceHud;
+import com.wizzadrds.theworldremembers.voice.VoiceConversationController;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -25,6 +26,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
 
     private static volatile VoicePacket lastVoice;
     private static VoiceClientConfig voiceConfig;
+    private static VoiceConversationController voiceConversation;
 
     public static VoicePacket lastVoice() {
         return lastVoice;
@@ -36,6 +38,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
 
     public void onInitializeClient() {
         voiceConfig = VoiceClientConfig.load(Minecraft.getInstance().gameDirectory.toPath());
+        voiceConversation = new VoiceConversationController();
 
         VoiceHud.register(VOICE_KEY);
         ClientPlayNetworking.registerGlobalReceiver(VoicePacket.TYPE, (payload, context) -> lastVoice = payload);
