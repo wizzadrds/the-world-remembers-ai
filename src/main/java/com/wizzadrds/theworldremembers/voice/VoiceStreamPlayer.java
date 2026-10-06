@@ -8,17 +8,25 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 
 public final class VoiceStreamPlayer implements AutoCloseable {
     private static final AudioFormat FORMAT = new AudioFormat(16000.0f, 16, 1, true, false);
     private static final byte[] POISON = new byte[0];
     private static final int MAX_QUEUED_FRAMES = 12;
+    private static final int MAX_REORDER_FRAMES = 4;
 
     private final BlockingQueue<byte[]> queue = new ArrayBlockingQueue<>(MAX_QUEUED_FRAMES);
     private final Map<UUID, Integer> lastSequences = new LinkedHashMap<>(128, 0.75f, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry<UUID, Integer> eldest) {
+            return size() > 128;
+        }
+    };
+    private final Map<UUID, TreeMap<Integer, byte[]>> pendingSequences = new LinkedHashMap<>(128, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<UUID, TreeMap<Integer, byte[]>> eldest) {
             return size() > 128;
         }
     };
@@ -46,13 +54,20 @@ public final class VoiceStreamPlayer implements AutoCloseable {
         if (speaker == null || pcm == null || pcm.length == 0) return;
         Integer previous = lastSequences.get(speaker);
         if (previous != null && sequence <= previous) return;
-        lastSequences.put(speaker, sequence);
+        TreeMap<Integer, byte[]> pending = pendingSequences.computeIfAbsent(speaker, ignored -> new TreeMap<>());
+        if (pending.containsKey(sequence)) return;
+        pending.put(sequence, pcm.clone());
+        if (pending.size() < MAX_REORDER_FRAMES) return;
+
+        Map.Entry<Integer, byte[]> next = pending.pollFirstEntry();
+        if (next == null) return;
+        lastSequences.put(speaker, next.getKey());
+        if (pending.isEmpty()) pendingSequences.remove(speaker);
         start();
         if (!running) return;
-        byte[] copy = pcm.clone();
-        if (!queue.offer(copy)) {
+        if (!queue.offer(next.getValue())) {
             queue.poll();
-            queue.offer(copy);
+            queue.offer(next.getValue());
         }
     }
 
@@ -79,6 +94,7 @@ public final class VoiceStreamPlayer implements AutoCloseable {
         running = false;
         queue.clear();
         lastSequences.clear();
+        pendingSequences.clear();
         queue.offer(POISON);
         Thread current = worker;
         worker = null;
