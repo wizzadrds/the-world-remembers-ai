@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.voice; import java.nio.file.Path; import java.io.IOException; public interface SpeechToTextAdapter { String transcribe(Path audio) throws IOException, InterruptedException; }
