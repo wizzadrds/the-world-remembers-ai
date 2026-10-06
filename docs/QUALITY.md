@@ -73,3 +73,16 @@ A pull-request CI run must pass `gradle build` and the headless Fabric server sm
 - [x] Grounded dialogue exposes knowledge provenance and confidence.
 - [x] Live NPC-to-NPC rumor exchange GameTest.
 - [x] Final CI #314: Gradle build/GameTests and headless Fabric server smoke test passed.
+
+
+## Phase 8 acceptance
+
+- [x] Local STT adapter contract with no online dependency.
+- [x] Local TTS adapter contract with no online dependency.
+- [x] Stable voice profiles remain independent of runtime engines.
+- [x] Spatial delivery derives attenuation from world coordinates.
+- [x] Voice scheduler is deterministic, bounded and priority-aware.
+- [x] State-driven delivery modifies rate, pitch and expressiveness.
+- [x] Local adapter failures degrade without blocking gameplay.
+- [x] Live client/server voice payload integration GameTest.
+- [x] Final CI #344: Gradle build/tests, headless Fabric server smoke test and client GameTests passed.

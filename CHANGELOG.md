@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.8.0-alpha — Phase 8 Local Voice
+- Added provider-agnostic local STT and TTS adapter contracts.
+- Added local process adapters suitable for faster-whisper and Piper command wrappers.
+- Added deterministic bounded voice scheduling with priority handling.
+- Added spatial attenuation and state-driven delivery for timid, nervous, tired, angry and excited states.
+- Added graceful failure handling so unavailable local voice engines do not block gameplay.
+- Added real Fabric client/server voice payload networking and a live client GameTest.
+- Final CI run #344 passed Gradle build/tests, headless server smoke test and client GameTests.
+
 ## v0.7.0-alpha — Phase 7 Rumors & Conversations
 - Added persistent knowledge with direct/reported/rumored provenance.
 - Added confidence degradation for reported and rumored knowledge.
