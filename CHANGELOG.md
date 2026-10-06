@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.0 — The World Remembers
+- Promotes the integrated memory-driven world simulation to the v1.0 milestone.
+- Combines persistent memories, personalities, relationships, behavior, families, villages, rumors, local voice, chronicles and dreams.
+- Retains simulation state as the source of truth and keeps generative systems grounded in observed Minecraft state.
+- Final release CI validation is required before this version is declared complete.
+
 ## v0.10.0-alpha — Phase 10 Dreams
 - Added persistent bounded dream history per NPC.
 - Added memory, fear, nostalgia and explicitly surreal impossible dream types.
