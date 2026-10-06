@@ -38,7 +38,7 @@
 - Added grounded dialogue that exposes provenance and confidence.
 - Added live rumor exchange GameTest and final CI validation (PR #104).
 
-<!-- Final Phase 6 CI verification trigger -->
+<!-- Final Phase 6 CI verification trigger: 2026-10-06 -->
 
 ## v0.6.0-alpha — Phase 6 Villages & Society
 - Added persistent village identity, population and history.
