@@ -61,13 +61,16 @@ public class TheWorldRemembers implements ModInitializer {
     /** Maximum number of villagers whose expensive TWR simulation is advanced by one live tick. */
     private static final int VILLAGER_BUDGET_PER_TICK=12;
     /** Global village scans are deliberately much less frequent than individual NPC simulation. */
-    private static final int VILLAGE_SCAN_INTERVAL=200;
-    /** Social knowledge/conversation propagation is deliberately decoupled from the live behavior tick. */
-    private static final int VILLAGER_DISCOVERY_INTERVAL=40;
+    private static final int VILLAGE_SCAN_INTERVAL=40;
+    /** A village observation processes only a bounded number of village clusters per live tick. */
+    private static final int VILLAGE_SCAN_BUDGET=2;
+    /** Registry discovery is much less frequent than the per-tick simulation rotation. */
+    private static final int VILLAGER_DISCOVERY_INTERVAL=200;
     private static final int SOCIAL_BUDGET_PER_TICK=8;
     private static final int INTRUSION_COOLDOWN=200;
     private static final java.util.Map<ServerLevel,Integer> VILLAGER_CURSORS = new java.util.WeakHashMap<>();
     private static final java.util.Map<ServerLevel,Integer> SOCIAL_CURSORS = new java.util.WeakHashMap<>();
+    private static final java.util.Map<ServerLevel,Integer> VILLAGE_CURSORS = new java.util.WeakHashMap<>();
     private static final java.util.Map<ServerLevel,java.util.List<UUID>> VILLAGER_REGISTRY = new java.util.WeakHashMap<>();
     private static final double HOME_RADIUS=3.5;
 
@@ -131,14 +134,6 @@ public class TheWorldRemembers implements ModInitializer {
         VillageEventManager villageEvents=VillageEventManager.get(world.getServer());
         VillageStorageManager villageStorage=VillageStorageManager.get(world.getServer());
 
-        if (!budgeted || world.getGameTime() % VILLAGE_SCAN_INTERVAL == 0) {
-            observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks, migrations, villageEvents, villageStorage);
-        }
-        // The social pipeline is part of the live simulation: memory -> knowledge -> conversation -> rumor.
-        if (!budgeted || world.getGameTime() % CONVERSATION_INTERVAL == 0) {
-            processConversations(world, memories, knowledge, conversations);
-        }
-
         if (budgeted && (world.getGameTime() % VILLAGER_DISCOVERY_INTERVAL == 0 || !VILLAGER_REGISTRY.containsKey(world))) {
             refreshVillagerRegistry(world);
         }
@@ -152,8 +147,14 @@ public class TheWorldRemembers implements ModInitializer {
         if (budgeted) {
             processConversations(world, memories, knowledge, conversations,
                     nextBudgetedVillagers(world, SOCIAL_BUDGET_PER_TICK, SOCIAL_CURSORS));
+            if (world.getGameTime() % VILLAGE_SCAN_INTERVAL == 0) {
+                observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks, migrations, villageEvents, villageStorage,
+                        loadedVillagersFromRegistry(world), VILLAGE_SCAN_BUDGET, VILLAGE_CURSORS);
+            }
         } else {
             processConversations(world, memories, knowledge, conversations);
+            observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks, migrations, villageEvents, villageStorage,
+                    loadedVillagers, Integer.MAX_VALUE, VILLAGE_CURSORS);
         }
 
         for(Villager villager : loadedVillagers) {
@@ -255,15 +256,39 @@ public class TheWorldRemembers implements ModInitializer {
     }
 
     private static void refreshVillagerRegistry(ServerLevel world) {
-        java.util.List<UUID> ids = new java.util.ArrayList<>();
+        java.util.List<UUID> previous = VILLAGER_REGISTRY.getOrDefault(world, java.util.List.of());
+        java.util.Set<UUID> previousSet = new java.util.HashSet<>(previous);
+        java.util.List<UUID> discovered = new java.util.ArrayList<>();
         for (Villager villager : world.getEntitiesOfClass(Villager.class,
                 new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),
                 v -> v.isAlive() && !v.isRemoved())) {
-            ids.add(villager.getUUID());
+            discovered.add(villager.getUUID());
         }
+        java.util.Set<UUID> discoveredSet = new java.util.HashSet<>(discovered);
+        java.util.List<UUID> ids = new java.util.ArrayList<>(discovered.size());
+        // Preserve rotation order so discovery never resets the live scheduler to index zero.
+        for (UUID id : previous) if (discoveredSet.contains(id)) ids.add(id);
+        for (UUID id : discovered) if (!previousSet.contains(id)) ids.add(id);
         VILLAGER_REGISTRY.put(world, ids);
-        VILLAGER_CURSORS.put(world, 0);
-        SOCIAL_CURSORS.putIfAbsent(world, 0);
+        if (ids.isEmpty()) {
+            VILLAGER_CURSORS.put(world, 0);
+            SOCIAL_CURSORS.put(world, 0);
+            VILLAGE_CURSORS.put(world, 0);
+        } else {
+            VILLAGER_CURSORS.put(world, VILLAGER_CURSORS.getOrDefault(world, 0) % ids.size());
+            SOCIAL_CURSORS.put(world, SOCIAL_CURSORS.getOrDefault(world, 0) % ids.size());
+        }
+    }
+
+    private static java.util.List<Villager> loadedVillagersFromRegistry(ServerLevel world) {
+        java.util.List<Villager> result = new java.util.ArrayList<>();
+        java.util.List<UUID> ids = VILLAGER_REGISTRY.get(world);
+        if (ids == null) return result;
+        for (UUID id : ids) {
+            Entity entity = world.getEntity(id);
+            if (entity instanceof Villager villager && villager.isAlive() && !villager.isRemoved()) result.add(villager);
+        }
+        return result;
     }
 
     private static java.util.List<Villager> nextBudgetedVillagers(ServerLevel world, int budget, java.util.Map<ServerLevel,Integer> cursors) {
@@ -399,17 +424,26 @@ public class TheWorldRemembers implements ModInitializer {
             }
         }
     }
-    private static void observeVillages(ServerLevel world, VillageManager villages, VillageHistoryManager history, VillageResourceManager resources, VillageDefenseManager defense, VillageLandmarkManager landmarks, VillageMigrationManager migrations, VillageEventManager villageEvents, VillageStorageManager villageStorage) {
+    private static void observeVillages(ServerLevel world, VillageManager villages, VillageHistoryManager history,
+            VillageResourceManager resources, VillageDefenseManager defense, VillageLandmarkManager landmarks,
+            VillageMigrationManager migrations, VillageEventManager villageEvents, VillageStorageManager villageStorage,
+            java.util.List<Villager> source, int budget, java.util.Map<ServerLevel,Integer> cursors) {
         java.util.Map<Long, java.util.List<Villager>> clusters = new java.util.HashMap<>();
-        for (Villager v : world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),v -> v.isAlive()&&!v.isRemoved())) {
+        for (Villager v : source) {
             long key=(((long)(v.blockPosition().getX()>>5))<<32)^((v.blockPosition().getZ()>>5)&0xffffffffL);
             clusters.computeIfAbsent(key,ignored->new java.util.ArrayList<>()).add(v);
         }
-        java.util.Set<java.util.UUID> claimed=new java.util.HashSet<>();
-        for(var entry:clusters.entrySet()){
-            var members=entry.getValue(); if(members.isEmpty()) continue;
+        if (clusters.isEmpty()) return;
+        java.util.List<Long> keys = new java.util.ArrayList<>(clusters.keySet());
+        java.util.Collections.sort(keys);
+        int start = cursors.getOrDefault(world, 0) % keys.size();
+        int processed = 0;
+        for (int offset=0; offset<keys.size() && processed<budget; offset++) {
+            int index=(start+offset)%keys.size();
+            var members=clusters.get(keys.get(index)); if(members==null||members.isEmpty()) continue;
             long sx=0,sz=0; for(var v:members){sx+=v.blockPosition().getX();sz+=v.blockPosition().getZ();}
             BlockPos center=new BlockPos((int)(sx/members.size()),members.get(0).blockPosition().getY(),(int)(sz/members.size()));
+            java.util.Set<UUID> claimed=new java.util.HashSet<>();
             VillageState previous=villages.findNearest(center,claimed);
             BlockPos previousCenter=previous==null?null:previous.center();
             VillageState state=villages.observeNearest(center,members.size(),world.getGameTime(),claimed);
@@ -420,13 +454,25 @@ public class TheWorldRemembers implements ModInitializer {
                 villageEvents.record(villageId,new VillageEvent("migration",world.getGameTime(),villageId,center));
             }
             int food=members.stream().mapToInt(v->v.getInventory().countItem(Items.BREAD)).sum();
-            int containers=0,occupied=0,capacity=0; for(BlockPos p:BlockPos.betweenClosed(center.offset(-16,-4,-16),center.offset(16,8,16))){var be=world.getBlockEntity(p);if(be instanceof net.minecraft.world.Container container){containers++;capacity+=container.getContainerSize();for(int slot=0;slot<container.getContainerSize();slot++)if(!container.getItem(slot).isEmpty())occupied++;}} villageStorage.observe(villageId,new VillageStorage(containers,occupied,capacity));
+            int containers=0,occupied=0,capacity=0;
+            for(BlockPos p:BlockPos.betweenClosed(center.offset(-16,-4,-16),center.offset(16,8,16))){
+                var be=world.getBlockEntity(p);
+                if(be instanceof net.minecraft.world.Container container){
+                    containers++; capacity+=container.getContainerSize();
+                    for(int slot=0;slot<container.getContainerSize();slot++)if(!container.getItem(slot).isEmpty())occupied++;
+                }
+            }
+            villageStorage.observe(villageId,new VillageStorage(containers,occupied,capacity));
             resources.observe(villageId,new VillageResources(food,0,occupied,capacity));
             int golems=world.getEntitiesOfClass(IronGolem.class,new net.minecraft.world.phys.AABB(center).inflate(32),g->g.isAlive()).size();
             defense.observe(villageId,new VillageDefense(golems,0,0));
-            for(var pos:world.getPoiManager().findAllWithType(type->type.is(PoiTypeTags.VILLAGE),pos->true,center,32,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).map(pair->pair.getSecond()).toList()) landmarks.add(villageId,new VillageLandmark("village_poi",pos,world.getGameTime()));
+            for(var pos:world.getPoiManager().findAllWithType(type->type.is(PoiTypeTags.VILLAGE),pos->true,center,32,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).map(pair->pair.getSecond()).toList())
+                landmarks.add(villageId,new VillageLandmark("village_poi",pos,world.getGameTime()));
+            processed++;
         }
+        cursors.put(world,(start+Math.max(1,processed))%keys.size());
     }
+
     private static BlockPos findNearbyHomePoi(ServerLevel world,BlockPos pos){return world.getPoiManager().findClosest(type->type.is(net.minecraft.world.entity.ai.village.poi.PoiTypes.HOME),pos,16,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).orElse(null);}
     private static BlockPos findNearbyDoor(ServerLevel world,BlockPos pos){BlockPos best=null;double d=257;for(BlockPos p:BlockPos.betweenClosed(pos.offset(-8,-2,-8),pos.offset(8,4,8)))if(world.getBlockState(p).is(net.minecraft.tags.BlockTags.DOORS)){double x=p.distSqr(pos);if(x<d){d=x;best=p.immutable();}}return best;}
     private static BlockPos findNearestContainer(ServerLevel world,BlockPos center,int radius){BlockPos best=null;double d=Double.MAX_VALUE;for(BlockPos p:BlockPos.betweenClosed(center.offset(-radius,-3,-radius),center.offset(radius,3,radius)))if(world.getBlockEntity(p) instanceof net.minecraft.world.Container){double x=p.distSqr(center);if(x<d){d=x;best=p.immutable();}}return best;}
