@@ -11,6 +11,6 @@ Phase 6 is complete only when the implementation and the live Minecraft validati
 - Migration preserves village identity and records movement: validated.
 - Village-scale GameTests: validated.
 - Population-scale performance: validated.
-- Final CI run #267 passed Gradle build/GameTests and the headless Fabric server smoke test.
+- Final CI run #277 passed Gradle build/GameTests and the headless Fabric server smoke test.
 
 The release version is v0.6.0-alpha.
