@@ -90,6 +90,8 @@ public class TheWorldRemembers implements ModInitializer {
         NpcActivityManager activities=NpcActivityManager.get(world.getServer());
         NpcTravelManager travel=NpcTravelManager.get(world.getServer());
         NpcInventoryManager inventories=NpcInventoryManager.get(world.getServer());
+        com.wizzadrds.theworldremembers.equipment.NpcEquipmentManager equipment=com.wizzadrds.theworldremembers.equipment.NpcEquipmentManager.get(world.getServer());
+        NpcHomeStorageManager homeStorage=NpcHomeStorageManager.get(world.getServer());
         MemoryManager memories=MemoryManager.get(world.getServer());
         RelationshipManager relationships=RelationshipManager.get(world.getServer());
         FamilyManager families=FamilyManager.get(world.getServer());
@@ -108,6 +110,7 @@ public class TheWorldRemembers implements ModInitializer {
 
         for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),villager -> villager.isAlive()&&!villager.isRemoved())) {
             inventories.synchronizeFromVillager(villager);
+            equipment.sync(villager);
             ages.assignIfAbsent(villager.getUUID(), villager.isBaby() ? NpcAgeGenerator.generateChildAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())) : NpcAgeGenerator.generateAdultAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())));
             if (villager.isBaby() && !families.hasParents(villager.getUUID())) linkBabyToNearbyParents(world, villager, families, memories);
             if (!villager.isBaby() && ages.get(villager.getUUID()).isAdult() && !families.hasSpouse(villager.getUUID())) processCourtship(world, villager, families, courtship, memories, ages);
@@ -122,8 +125,10 @@ public class TheWorldRemembers implements ModInitializer {
             }
             synchronizeFamilyHome(villager, families, homes);
             home=homes.get(villager.getUUID());
+            if(homeStorage.get(villager.getUUID())==null){ BlockPos storage=findNearestContainer(world,home.homePos(),8); if(storage!=null) homeStorage.link(villager.getUUID(),storage); }
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress);
             activities.set(villager.getUUID(), villager.getNavigation().isDone() ? com.wizzadrds.theworldremembers.behavior.NpcActivity.IDLE : com.wizzadrds.theworldremembers.behavior.NpcActivity.WALKING, 10, villager.blockPosition(), world.getGameTime());
+            for(ServerPlayer player:world.players()){ if(villager.distanceToSqr(player)>12*12) continue; Relationship rel=relationships.getOrCreate(villager.getUUID(),player.getUUID()); NpcDecision decision=com.wizzadrds.theworldremembers.behavior.NpcLiveBehaviorController.decide(villager,player,relationships,stress); if(activities.canInterrupt(villager.getUUID(),50)) { com.wizzadrds.theworldremembers.behavior.NpcLiveBehaviorController.apply(world,villager,player,decision,homes); activities.set(villager.getUUID(),decision==NpcDecision.FOLLOW?com.wizzadrds.theworldremembers.behavior.NpcActivity.FOLLOWING_PLAYER:decision==NpcDecision.LEAVE?com.wizzadrds.theworldremembers.behavior.NpcActivity.TRAVELLING:com.wizzadrds.theworldremembers.behavior.NpcActivity.IDLE,50,player.blockPosition(),world.getGameTime()); }}
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
             for(ServerPlayer player:world.players()) {
                 if(player.blockPosition().distSqr(entrance)>HOME_RADIUS*HOME_RADIUS) continue;
@@ -308,6 +313,10 @@ public class TheWorldRemembers implements ModInitializer {
         }
         return best;
     }
+
+    private static BlockPos findNearestBed(ServerLevel world, BlockPos center, int radius) { BlockPos best=null; double d=Double.MAX_VALUE; for(BlockPos p:BlockPos.betweenClosed(center.offset(-radius,-4,-radius),center.offset(radius,4,radius))) if(world.getBlockState(p).is(net.minecraft.tags.BlockTags.BEDS)){double x=p.distSqr(center);if(x<d){d=x;best=p.immutable();}} return best; }
+    private static BlockPos findNearestDoor(ServerLevel world, BlockPos center, int radius) { BlockPos best=null; double d=Double.MAX_VALUE; for(BlockPos p:BlockPos.betweenClosed(center.offset(-radius,-2,-radius),center.offset(radius,2,radius))) if(world.getBlockState(p).is(net.minecraft.tags.BlockTags.DOORS)){double x=p.distSqr(center);if(x<d){d=x;best=p.immutable();}} return best; }
+    private static BlockPos findNearestContainer(ServerLevel world, BlockPos center, int radius) { BlockPos best=null; double d=Double.MAX_VALUE; for(BlockPos p:BlockPos.betweenClosed(center.offset(-radius,-3,-radius),center.offset(radius,3,radius))) if(world.getBlockEntity(p) instanceof net.minecraft.world.Container){double x=p.distSqr(center);if(x<d){d=x;best=p.immutable();}} return best; }
 
     private static boolean hasRecentIntrusion(MemoryManager memories,Villager villager,ServerPlayer player,long gameTime){
         return memories.findMostRecentMemory(villager.getUUID(),player.getUUID(),MemoryEventType.PLAYER_ENTERED_NPC_HOME).map(m->gameTime-m.gameTime()<INTRUSION_COOLDOWN).orElse(false);
