@@ -47,6 +47,7 @@ A pull-request CI run must pass `gradle build` and the headless Fabric server sm
 - [x] Persistent family protector assignment and release after protector death.
 - [x] Family protection decisions drive live villager navigation.
 - [x] Dedicated Minecraft GameTests cover sibling formation, spouse inheritance, family homes and protection navigation.
+- [x] Final Phase 5 CI validation passed on PR #23 (Gradle build/tests + headless Fabric server smoke test).
 
 ## Phase 6 acceptance
 
