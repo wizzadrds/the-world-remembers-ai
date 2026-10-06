@@ -117,14 +117,11 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static void processVoice(byte[] pcm) {
         var sttCommand = VoiceCommandParser.parse(voiceConfig.sttCommand);
         var ttsCommand = VoiceCommandParser.parse(voiceConfig.ttsCommand);
-        if (sttCommand.isEmpty() || ttsCommand.isEmpty()) {
+        var service = VoiceAutoSetup.create(voiceConfig, sttCommand, ttsCommand);
+        if (service == null) {
             voiceConversation.fail();
             return;
         }
-
-        var service = new VoiceService(
-                new LocalProcessSttAdapter(sttCommand),
-                new LocalProcessTtsAdapter(ttsCommand));
 
         voiceConversation.finishListening(pcm, service, transcript -> {
             try {
