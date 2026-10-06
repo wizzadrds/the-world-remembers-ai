@@ -72,7 +72,6 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             if (client.player != null && client.gui.screen() == null) {
                 boolean down = VOICE_KEY.isDown();
                 if (down && !voiceKeyWasDown) {
-                    voiceSequence = 0;
                     boolean started = microphone.start(voiceConfig.microphone, voiceConfig.inputVolume, frame ->
                             sendVoiceFrame(client, frame));
                     if (started) voiceConversation.beginListening();
