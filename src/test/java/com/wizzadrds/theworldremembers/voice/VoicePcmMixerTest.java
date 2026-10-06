@@ -30,7 +30,7 @@ class VoicePcmMixerTest {
         byte[] full = pcm(100, 200, 300);
         byte[] shortFrame = pcm(-50);
 
-        assertArrayEquals(pcm(50), VoicePcmMixer.mix(List.of(null, full, shortFrame)));
+        assertArrayEquals(pcm(50), VoicePcmMixer.mix(java.util.Arrays.asList(null, full, shortFrame)));
     }
 
     @Test
