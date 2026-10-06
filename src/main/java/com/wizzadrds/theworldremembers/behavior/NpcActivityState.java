@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.behavior; import net.minecraft.core.BlockPos; import java.util.UUID; public record NpcActivityState(UUID npcId,NpcActivity activity,int priority,boolean interruptible,BlockPos target,long sinceTick){public NpcActivityState{if(priority<0)throw new IllegalArgumentException("priority");}}
