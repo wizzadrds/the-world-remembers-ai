@@ -110,8 +110,8 @@ public final class VoiceSettingsScreen extends Screen {
     private void resetDefaults() {
         microphoneIndex = Math.max(0, indexOfIgnoreCase(microphones, MicrophoneCapture.detectDefaultDevice()));
         providerIndex = Math.max(0, indexOfIgnoreCase(providers, "openai"));
-        microphoneButton.setMessage(microphoneLabel());
-        providerButton.setMessage(providerLabel());
+        microphoneButton.setMessage(Component.literal(microphoneLabel()));
+        providerButton.setMessage(Component.literal(providerLabel()));
         model.setValue("");
         sttCommand.setValue("");
         ttsCommand.setValue("");
