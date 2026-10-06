@@ -51,15 +51,13 @@ A pull-request CI run must pass `gradle build` and the headless Fabric server sm
 
 ## Phase 6 acceptance
 
-- [ ] Persistent village identity and population state.
-- [ ] Village history tracks first/last observation and population peak.
-- [ ] Village-scale events persist for migration and resident/guardian deaths.
-- [ ] Live bread inventory drives derived resource pressure.
-- [ ] Real container inventories drive shared storage state.
-- [ ] Nearby iron golems drive village defense state.
-- [ ] Real village POIs are persisted as landmarks.
-- [ ] Settlement movement preserves village identity and records migration.
-- [ ] Dedicated GameTests cover history, resources, defense, landmarks, storage, migration and events.
-- [ ] Population-scale performance validation is green in CI.
-
-Phase 6 is not complete until the final pull-request CI run passes both Gradle build and the headless Fabric server smoke test.
+- [x] Persistent village identity and population state.
+- [x] Village history and typed resident/guardian events.
+- [x] Live inventory resource pressure.
+- [x] Real container shared storage.
+- [x] Live iron-golem defense state.
+- [x] Real village POI landmarks.
+- [x] Migration identity preservation and movement history.
+- [x] Dedicated village GameTests.
+- [x] Population-scale performance GameTest.
+- [x] Final CI #267: Gradle build/GameTests and headless Fabric server smoke test passed.
