@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.voice; import java.io.IOException; import java.nio.file.Path; public interface TtsAdapter {Path synthesize(String text,VoiceProfile profile,Path output) throws IOException,InterruptedException;}
