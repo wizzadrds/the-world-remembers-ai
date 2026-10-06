@@ -23,6 +23,7 @@ public final class VoiceClientConfig {
     public String sttCommand = "";
     public String ttsCommand = "";
     public String ttsModel = "piper";
+    public String systemPrompt = "You are a Minecraft NPC. Answer briefly, naturally, and stay in character.";
 
     public static VoiceClientConfig load(Path gameDir) {
         Path file = file(gameDir);
