@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.voice; import java.nio.file.Path; import java.io.IOException; public interface TextToSpeechAdapter { Path synthesize(String text, VoiceProfile profile, Path output) throws IOException, InterruptedException; }
