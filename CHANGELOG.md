@@ -13,14 +13,6 @@
 - Added bounded stress/fatigue integration and role-aware work/threat navigation.
 - Added deterministic Phase 4 GameTest coverage and CI validation.
 
-
-## v0.6.0-alpha — Phase 6 Village Society
-- Added persistent village identity, population and historical state.
-- Added village-scale migration, event, resource, storage, defense and landmark state.
-- Added real container inventory observation and derived resource pressure.
-- Added live migration identity preservation and guardian/resident death events.
-- Added village-scale GameTests and population-scale validation.
-
 ## v0.5.0-alpha — Phase 5 Families & Generations
 - Completed live parent, sibling, spouse and child relationships.
 - Added idempotent family linking and sibling formation from shared parents.
