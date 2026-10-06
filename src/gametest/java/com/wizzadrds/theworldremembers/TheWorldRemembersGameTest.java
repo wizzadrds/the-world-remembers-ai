@@ -45,6 +45,7 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
     @GameTest
     public void villagerReceivesPersistentHome(GameTestHelper context) {
         Villager villager = context.spawn(EntityTypes.VILLAGER, 2, 1, 2);
+        NpcAgeManager.get(context.getLevel().getServer()).assignIfAbsent(villager.getUUID(), 24);
         context.runAtTickTime(1, () -> {
             TheWorldRemembers.processWorld(context.getLevel());
             if (!NpcHomeManager.get(context.getLevel()).hasHome(villager.getUUID())) {
