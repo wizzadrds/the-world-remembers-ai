@@ -45,6 +45,8 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -169,6 +171,7 @@ public class TheWorldRemembers implements ModInitializer {
             if (!villager.isBaby()) maintainFamilyProtection(villager, families, protection);
             inventories.synchronizeFromVillager(villager);
             equipment.sync(villager);
+            pickupNearbyItems(world, villager);
             NpcHome home=homes.get(villager.getUUID());
             if(home==null) {
                 BlockPos pos=findNearbyHomePoi(world,villager.blockPosition());
@@ -208,6 +211,31 @@ public class TheWorldRemembers implements ModInitializer {
             }
         }
     }
+    /**
+     * Gives villagers an actual gameplay pickup path instead of only mirroring whatever is already in their inventory.
+     * The operation is bounded to the villager's local area and to one item entity per simulation pass.
+     */
+    private static void pickupNearbyItems(ServerLevel world, Villager villager) {
+        if (!villager.isAlive() || villager.isSleeping() || villager.isTrading()) return;
+        if (!villager.getInventory().canAddItem(new ItemStack(Items.AIR))) return;
+        java.util.List<ItemEntity> items = world.getEntitiesOfClass(ItemEntity.class,
+                villager.getBoundingBox().inflate(2.5),
+                item -> item.isAlive() && !item.hasPickUpDelay() && !item.getItem().isEmpty());
+        for (ItemEntity entity : items) {
+            ItemStack offered = entity.getItem();
+            if (offered.isEmpty()) continue;
+            ItemStack before = offered.copy();
+            ItemStack remainder = villager.getInventory().addItem(offered);
+            int picked = before.getCount() - remainder.getCount();
+            if (picked <= 0) continue;
+            entity.setItem(remainder);
+            entity.setPickUpDelay(0);
+            villager.take(entity, picked);
+            if (remainder.isEmpty()) entity.discard();
+            break;
+        }
+    }
+
     private static void applyLiveSocialBehavior(ServerLevel world, Villager villager, RelationshipManager relationships, NpcStressManager stress, NpcBehaviorEngine behavior, NpcHomeManager homes, NpcHomeStorageManager homeStorage) {
         if (!villager.getNavigation().isDone() && !villager.isTrading()) return;
         String role=villager.getVillagerData().toString().toLowerCase(java.util.Locale.ROOT);
