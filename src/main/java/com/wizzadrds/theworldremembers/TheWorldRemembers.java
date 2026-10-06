@@ -67,6 +67,8 @@ public class TheWorldRemembers implements ModInitializer {
     /** Registry discovery is much less frequent than the per-tick simulation rotation. */
     private static final int VILLAGER_DISCOVERY_INTERVAL=200;
     private static final int SOCIAL_BUDGET_PER_TICK=8;
+    private static final int SOCIAL_INTERVAL=10;
+    private static final int KNOWLEDGE_DECAY_INTERVAL=200;
     private static final int INTRUSION_COOLDOWN=200;
     private static final java.util.Map<ServerLevel,Integer> VILLAGER_CURSORS = new java.util.WeakHashMap<>();
     private static final java.util.Map<ServerLevel,Integer> SOCIAL_CURSORS = new java.util.WeakHashMap<>();
@@ -145,8 +147,10 @@ public class TheWorldRemembers implements ModInitializer {
                     new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),
                     villager -> villager.isAlive() && !villager.isRemoved()));
         if (budgeted) {
-            processConversations(world, memories, knowledge, conversations,
-                    nextBudgetedVillagers(world, SOCIAL_BUDGET_PER_TICK, SOCIAL_CURSORS));
+            if (world.getGameTime() % SOCIAL_INTERVAL == 0) {
+                processConversations(world, memories, knowledge, conversations,
+                        nextBudgetedVillagers(world, SOCIAL_BUDGET_PER_TICK, SOCIAL_CURSORS));
+            }
             if (world.getGameTime() % VILLAGE_SCAN_INTERVAL == 0) {
                 observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks, migrations, villageEvents, villageStorage,
                         loadedVillagersFromRegistry(world), VILLAGE_SCAN_BUDGET, VILLAGE_CURSORS);
@@ -240,8 +244,8 @@ public class TheWorldRemembers implements ModInitializer {
                         villager.getUUID(), KnowledgeOrigin.DIRECT, 100, memory.gameTime()));
             }
         }
-        knowledge.decay(world.getGameTime());
-        if (world.getGameTime() % 40 != 0) return;
+        if (world.getGameTime() % KNOWLEDGE_DECAY_INTERVAL == 0) knowledge.decay(world.getGameTime());
+        if (world.getGameTime() % SOCIAL_INTERVAL != 0) return;
         for (Villager first : villagers) {
             Villager second = world.getEntitiesOfClass(Villager.class, first.getBoundingBox().inflate(4),
                     v -> v.isAlive() && !v.getUUID().equals(first.getUUID())).stream().findFirst().orElse(null);
