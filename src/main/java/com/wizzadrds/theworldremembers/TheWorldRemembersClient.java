@@ -7,6 +7,9 @@ import com.wizzadrds.theworldremembers.voice.VoiceSettingsScreen;
 import com.wizzadrds.theworldremembers.voice.VoiceHud;
 import com.wizzadrds.theworldremembers.voice.VoiceConversationController;
 import com.wizzadrds.theworldremembers.voice.MicrophoneCapture;
+import com.wizzadrds.theworldremembers.voice.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -30,6 +33,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static VoiceConversationController voiceConversation;
     private static MicrophoneCapture microphone;
     private static boolean voiceKeyWasDown;
+    private static VoiceAudioPlayer voicePlayer;
 
     public static VoicePacket lastVoice() {
         return lastVoice;
@@ -43,6 +47,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         voiceConfig = VoiceClientConfig.load(Minecraft.getInstance().gameDirectory.toPath());
         voiceConversation = new VoiceConversationController();
         microphone = new MicrophoneCapture();
+        voicePlayer = new VoiceAudioPlayer();
 
         VoiceHud.register(VOICE_KEY);
         ClientPlayNetworking.registerGlobalReceiver(VoicePacket.TYPE, (payload, context) -> lastVoice = payload);
@@ -67,12 +72,32 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 } else if (!down && voiceKeyWasDown) {
                     byte[] pcm = microphone.stop();
                     if (pcm.length > 0) {
-                        voiceConversation.reset();
+                        processVoice(pcm);
                     } else {
                         voiceConversation.fail();
                     }
                 }
                 voiceKeyWasDown = down;
+            }
+        });
+    }
+
+    private static void processVoice(byte[] pcm) {
+        var sttCommand = VoiceCommandParser.parse(voiceConfig.sttCommand);
+        if (sttCommand.isEmpty()) { voiceConversation.fail(); return; }
+        var ttsCommand = VoiceCommandParser.parse(voiceConfig.ttsCommand);
+        if (ttsCommand.isEmpty()) { voiceConversation.fail(); return; }
+        var service = new VoiceService(new LocalProcessSttAdapter(sttCommand), new LocalProcessTtsAdapter(ttsCommand));
+        voiceConversation.finishListening(pcm, service, transcript -> {
+            try {
+                AiChatAdapter ai = new OpenAiResponsesAdapter(voiceConfig.apiKey, voiceConfig.model);
+                String reply = ai.respond(transcript, voiceConfig.systemPrompt);
+                if (reply == null || reply.isBlank()) { voiceConversation.fail(); return; }
+                VoiceProfile profile = new VoiceProfile("es-ES", voiceConfig.ttsModel, VoiceTemperament.NORMAL, 1.0f, 1.0f, 0.5f);
+                Path output = Minecraft.getInstance().gameDirectory.toPath().resolve("config").resolve("the_world_remembers_voice_response.wav");
+                voiceConversation.synthesizeAndSpeak(reply, service, profile, output, voicePlayer, ignored -> {});
+            } catch (Exception e) {
+                voiceConversation.fail();
             }
         });
     }
