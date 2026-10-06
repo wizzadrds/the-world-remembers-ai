@@ -47,10 +47,8 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             while (SETTINGS_KEY.consumeClick()) {
                 client.setScreen(new VoiceSettingsScreen(client.screen, voiceConfig));
             }
-            while (VOICE_KEY.consumeClick()) {
-                if (client.player != null) {
-                    client.gui.setOverlayMessage(net.minecraft.network.chat.Component.literal("🎙 Listening…"), false);
-                }
+            if (client.player != null && client.screen == null && VOICE_KEY.isDown()) {
+                client.gui.setOverlayMessage(net.minecraft.network.chat.Component.literal("[MIC] LISTENING"), false);
             }
         });
     }
