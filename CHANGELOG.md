@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.0-rc1 — The World Remembers Release Candidate
+- Begins final release hardening across memory, relationships, families, villages, rumors, voice, chronicles and dreams.
+- Adds an explicit v1.0 acceptance gate covering regression, persistence, GameTests, performance and release artifacts.
+
+
 ## v0.10.0-alpha — Phase 10 Dreams
 - Added persistent bounded dream history per NPC.
 - Added memory, fear, nostalgia and explicitly surreal impossible dream types.
