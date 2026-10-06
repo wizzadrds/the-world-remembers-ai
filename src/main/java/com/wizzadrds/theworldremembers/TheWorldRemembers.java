@@ -310,7 +310,7 @@ public class TheWorldRemembers implements ModInitializer {
     }
 
     private static void pickupNearbyItems(ServerLevel world, Villager villager) {
-        if (!villager.isAlive() || villager.isSleeping() || villager.isTrading()) return;
+        if (!villager.isAlive() || villager.isSleeping() || villager.isTrading() || !hasFreeInventorySpace(villager)) return;
         java.util.List<ItemEntity> items = world.getEntitiesOfClass(ItemEntity.class,
                 villager.getBoundingBox().inflate(2.0),
                 item -> item.isAlive() && !item.hasPickUpDelay() && !item.getItem().isEmpty());
@@ -330,6 +330,14 @@ public class TheWorldRemembers implements ModInitializer {
         if (picked <= 0) return;
         nearest.setItem(remainder);
         if (remainder.isEmpty()) nearest.discard();
+    }
+
+    private static boolean hasFreeInventorySpace(Villager villager) {
+        var inventory = villager.getInventory();
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            if (inventory.getItem(slot).isEmpty() || inventory.getItem(slot).getCount() < inventory.getItem(slot).getMaxStackSize()) return true;
+        }
+        return false;
     }
 
     /** Warriors equip armor and a useful weapon found in their inventory. */
