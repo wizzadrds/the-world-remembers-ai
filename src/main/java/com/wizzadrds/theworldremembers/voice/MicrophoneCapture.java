@@ -117,9 +117,6 @@ public final class MicrophoneCapture implements AutoCloseable {
     private static Mixer findMixer(String requested) {
         if (requested == null || requested.isBlank() || requested.equalsIgnoreCase("Default")) return null;
         for (Mixer.Info info : AudioSystem.getMixerInfo()) {
-            if (info.getName().equalsIgnoreCase(requested)) return null;
-        }
-        for (Mixer.Info info : AudioSystem.getMixerInfo()) {
             if (info.getName().equalsIgnoreCase(requested)) return AudioSystem.getMixer(info);
         }
         return null;
