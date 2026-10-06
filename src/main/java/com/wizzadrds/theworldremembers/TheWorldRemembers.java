@@ -56,7 +56,13 @@ import org.slf4j.LoggerFactory;
 public class TheWorldRemembers implements ModInitializer {
     public static final String MOD_ID="the_world_remembers";
     public static final Logger LOGGER=LoggerFactory.getLogger(MOD_ID);
-    private static final int TICK_INTERVAL=20;
+    private static final int TICK_INTERVAL=1;
+    /** Maximum number of villagers whose expensive TWR simulation is advanced by one live tick. */
+    private static final int VILLAGER_BUDGET_PER_TICK=12;
+    /** Global village scans are deliberately much less frequent than individual NPC simulation. */
+    private static final int VILLAGE_SCAN_INTERVAL=200;
+    /** Social knowledge/conversation propagation is deliberately decoupled from the live behavior tick. */
+    private static final int CONVERSATION_INTERVAL=100;
     private static final int INTRUSION_COOLDOWN=200;
     private static final double HOME_RADIUS=3.5;
 
@@ -82,11 +88,18 @@ public class TheWorldRemembers implements ModInitializer {
     }
 
     static void tickWorld(ServerLevel world) {
+        // Keep the live server loop cheap: expensive global systems are scheduled independently,
+        // and only a bounded number of villagers advance through the full simulation each tick.
         if (world.getGameTime() % TICK_INTERVAL != 0) return;
-        processWorld(world);
+        processWorld(world, true);
     }
 
+    /** Full processing entry point retained for GameTests and deterministic validation. */
     static void processWorld(ServerLevel world) {
+        processWorld(world, false);
+    }
+
+    private static void processWorld(ServerLevel world, boolean budgeted) {
         NpcHomeManager homes=NpcHomeManager.get(world);
         NpcAgeManager ages=NpcAgeManager.get(world.getServer());
         NpcStressManager stress=NpcStressManager.get(world);
@@ -113,11 +126,17 @@ public class TheWorldRemembers implements ModInitializer {
         VillageEventManager villageEvents=VillageEventManager.get(world.getServer());
         VillageStorageManager villageStorage=VillageStorageManager.get(world.getServer());
 
-        observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks, migrations, villageEvents, villageStorage);
+        if (!budgeted || world.getGameTime() % VILLAGE_SCAN_INTERVAL == 0) {
+            observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks, migrations, villageEvents, villageStorage);
+        }
         // The social pipeline is part of the live simulation: memory -> knowledge -> conversation -> rumor.
-        processConversations(world, memories, knowledge, conversations);
+        if (!budgeted || world.getGameTime() % CONVERSATION_INTERVAL == 0) {
+            processConversations(world, memories, knowledge, conversations);
+        }
 
+        int processedVillagers = 0;
         for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),villager -> villager.isAlive()&&!villager.isRemoved())) {
+            if (budgeted && processedVillagers++ >= VILLAGER_BUDGET_PER_TICK) break;
             if(villager.isSleeping() && dreams.latest(villager.getUUID()).map(d -> world.getGameTime()-d.generatedAt() >= 1200).orElse(true)) dreams.generateForSleepingNpc(villager.getUUID(),world.getGameTime(),memories.memoriesOf(villager.getUUID()));
             ages.assignIfAbsent(villager.getUUID(), villager.isBaby() ? NpcAgeGenerator.generateChildAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())) : NpcAgeGenerator.generateAdultAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())));
             if (villager.isBaby() && !families.hasParents(villager.getUUID())) linkBabyToNearbyParents(world, villager, families, memories);
@@ -156,10 +175,12 @@ public class TheWorldRemembers implements ModInitializer {
             if(world.getGameTime()%200==0&&!world.getEntitiesOfClass(ServerPlayer.class,villager.getBoundingBox().inflate(8),p->true).iterator().hasNext()) stress.recover(villager.getUUID(),1);
         }
 
-        for (Villager villager : world.getEntitiesOfClass(Villager.class,
-                new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),
-                v -> v.isAlive() && !v.isRemoved())) {
-            synchronizeFamilyHome(villager, families, homes);
+        if (!budgeted) {
+            for (Villager villager : world.getEntitiesOfClass(Villager.class,
+                    new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),
+                    v -> v.isAlive() && !v.isRemoved())) {
+                synchronizeFamilyHome(villager, families, homes);
+            }
         }
     }
     private static void applyLiveSocialBehavior(ServerLevel world, Villager villager, RelationshipManager relationships, NpcStressManager stress, NpcBehaviorEngine behavior, NpcHomeManager homes, NpcHomeStorageManager homeStorage) {
