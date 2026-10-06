@@ -54,20 +54,43 @@ public final class VoiceStreamPlayer implements AutoCloseable {
         if (speaker == null || pcm == null || pcm.length == 0) return;
         Integer previous = lastSequences.get(speaker);
         if (previous != null && sequence <= previous) return;
-        TreeMap<Integer, byte[]> pending = pendingSequences.computeIfAbsent(speaker, ignored -> new TreeMap<>());
-        if (pending.containsKey(sequence)) return;
-        pending.put(sequence, pcm.clone());
-        if (pending.size() < MAX_REORDER_FRAMES) return;
 
-        Map.Entry<Integer, byte[]> next = pending.pollFirstEntry();
-        if (next == null) return;
-        lastSequences.put(speaker, next.getKey());
+        TreeMap<Integer, byte[]> pending = pendingSequences.computeIfAbsent(speaker, ignored -> new TreeMap<>());
+        if (previous == null || sequence == previous + 1) {
+            enqueueReadyFrame(speaker, sequence, pcm.clone());
+            flushContiguous(speaker, pending);
+            return;
+        }
+
+        if (pending.putIfAbsent(sequence, pcm.clone()) != null) return;
+        if (pending.size() >= MAX_REORDER_FRAMES) {
+            Map.Entry<Integer, byte[]> next = pending.pollFirstEntry();
+            if (next != null) {
+                enqueueReadyFrame(speaker, next.getKey(), next.getValue());
+            }
+        }
         if (pending.isEmpty()) pendingSequences.remove(speaker);
+    }
+
+    private void flushContiguous(UUID speaker, TreeMap<Integer, byte[]> pending) {
+        Integer last = lastSequences.get(speaker);
+        while (last != null) {
+            Map.Entry<Integer, byte[]> next = pending.firstEntry();
+            if (next == null || next.getKey() != last + 1) break;
+            pending.pollFirstEntry();
+            enqueueReadyFrame(speaker, next.getKey(), next.getValue());
+            last = next.getKey();
+        }
+        if (pending.isEmpty()) pendingSequences.remove(speaker);
+    }
+
+    private void enqueueReadyFrame(UUID speaker, int sequence, byte[] pcm) {
+        lastSequences.put(speaker, sequence);
         start();
         if (!running) return;
-        if (!queue.offer(next.getValue())) {
+        if (!queue.offer(pcm)) {
             queue.poll();
-            queue.offer(next.getValue());
+            queue.offer(pcm);
         }
     }
 
