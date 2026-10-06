@@ -70,7 +70,7 @@ public final class NpcInventoryManager extends SavedData {
             if (!source.remove(stack.itemId(), stack.count())) continue;
 
             int remaining = stack.count();
-            var item = BuiltInRegistries.ITEM.get(net.minecraft.resources.Identifier.parse(stack.itemId()));
+            var item = BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.parse(stack.itemId()));
             ItemStack live = new ItemStack(item, remaining);
             ItemStack remainder = heir.getInventory().addItem(live);
             int materialized = remaining - remainder.getCount();
