@@ -35,7 +35,9 @@ public final class VoiceSettingsScreen extends Screen {
         microphone = field(left, top, "Microphone", config.microphone);
         provider = field(right, top, "AI Provider", config.provider);
         apiKey = field(left, top + 42, "API Key", config.apiKey);
-        apiKey.setSuggestion("optional for local providers");
+        apiKey.setMaxLength(512);
+        apiKey.setSuggestion("OpenAI API key (stored locally)");
+        apiKey.setPasswordInput(true);
         model = field(right, top + 42, "AI Model", config.model);
         sttCommand = field(left, top + 84, "STT command", config.sttCommand);
         sttCommand.setSuggestion("e.g. faster-whisper --model ...");
