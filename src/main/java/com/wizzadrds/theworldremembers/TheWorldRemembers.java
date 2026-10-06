@@ -64,8 +64,12 @@ public class TheWorldRemembers implements ModInitializer {
         ChronicleNetworking.init();
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             if (world.isClientSide() || !(player instanceof ServerPlayer serverPlayer) || !(entity instanceof Villager villager)) return InteractionResult.PASS;
-            if (!serverPlayer.getItemInHand(hand).is(Items.BREAD)) return InteractionResult.PASS;
             MemoryManager memories=MemoryManager.get(serverPlayer.level().getServer());
+            if (serverPlayer.getItemInHand(hand).isEmpty()) {
+                talkToVillager(serverPlayer, villager, memories);
+                return InteractionResult.PASS;
+            }
+            if (!serverPlayer.getItemInHand(hand).is(Items.BREAD)) return InteractionResult.PASS;
             if (memories.findMostRecentMemory(villager.getUUID(),serverPlayer.getUUID(),MemoryEventType.PLAYER_GAVE_BREAD).isPresent()) {
                 serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" remembers you: you gave me bread."));
                 return InteractionResult.PASS;
@@ -77,6 +81,7 @@ public class TheWorldRemembers implements ModInitializer {
         });
         ServerTickEvents.END_LEVEL_TICK.register(TheWorldRemembers::tickWorld);
         ServerLivingEntityEvents.AFTER_DEATH.register(TheWorldRemembers::handleDeath);
+        ServerLivingEntityEvents.AFTER_DAMAGE.register(TheWorldRemembers::handleDamage);
         com.wizzadrds.theworldremembers.voice.VoiceNetworking.init();
         LOGGER.info("The World Remembers v0.4.0-alpha initialized.");
     }
@@ -114,6 +119,7 @@ public class TheWorldRemembers implements ModInitializer {
         VillageStorageManager villageStorage=VillageStorageManager.get(world.getServer());
 
         observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks, migrations, villageEvents, villageStorage);
+        processConversations(world, memories, knowledge, conversations);
 
         for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),villager -> villager.isAlive()&&!villager.isRemoved())) {
             if(villager.isSleeping() && dreams.latest(villager.getUUID()).map(d -> world.getGameTime()-d.generatedAt() >= 1200).orElse(true)) dreams.generateForSleepingNpc(villager.getUUID(),world.getGameTime(),memories.memoriesOf(villager.getUUID()));
@@ -160,6 +166,78 @@ public class TheWorldRemembers implements ModInitializer {
             synchronizeFamilyHome(villager, families, homes);
         }
     }
+    private static void talkToVillager(ServerPlayer player, Villager villager, MemoryManager memories) {
+        RelationshipManager relationships = RelationshipManager.get(player.level().getServer());
+        Relationship relationship = relationships.getOrCreate(villager.getUUID(), player.getUUID());
+        java.util.Optional<Memory> previous = memories.memoriesOf(villager.getUUID()).stream()
+            .filter(m -> m.playerId().equals(player.getUUID()) && m.type() != MemoryEventType.PLAYER_TALKED)
+            .max(java.util.Comparator.comparingLong(Memory::gameTime));
+        String line;
+        if (previous.isPresent()) {
+            line = switch (previous.get().type()) {
+                case PLAYER_GAVE_BREAD -> "I remember the bread you gave me.";
+                case PLAYER_ATTACKED_NPC -> "I haven't forgotten that you hurt me.";
+                case PLAYER_ENTERED_NPC_HOME -> "Please respect my home.";
+                case NPC_SAVED_NPC -> "I remember when you helped me.";
+                default -> "I remember something you did.";
+            };
+        } else if (relationship.isHostile()) {
+            line = "I don't trust you yet.";
+        } else if (relationship.isTrusted()) {
+            line = "Good to see you again.";
+        } else {
+            line = "Hello. I am " + villager.getName().getString() + ".";
+        }
+        Memory memory = memories.rememberEvent(villager.getUUID(), player.getUUID(), MemoryEventType.PLAYER_TALKED,
+            player.level().getGameTime(), MemoryImportance.TRIVIAL);
+        relationships.apply(new MemoryEvent(memory.npcId(), memory.playerId(), memory.type(), memory.gameTime(), memory.importance()));
+        player.sendSystemMessage(Component.literal(villager.getName().getString() + ": " + line));
+    }
+
+    private static void handleDamage(LivingEntity entity, net.minecraft.world.damagesource.DamageSource source,
+                                      float baseDamage, float damageTaken, boolean blocked) {
+        if (!(entity instanceof Villager villager) || !(entity.level() instanceof ServerLevel world)) return;
+        if (!(source.getEntity() instanceof ServerPlayer attacker)) return;
+        MemoryManager memories = MemoryManager.get(world.getServer());
+        RelationshipManager relationships = RelationshipManager.get(world.getServer());
+        NpcStressManager stress = NpcStressManager.get(world);
+        Memory memory = memories.rememberEvent(villager.getUUID(), attacker.getUUID(), MemoryEventType.PLAYER_ATTACKED_NPC,
+            world.getGameTime(), MemoryImportance.IMPORTANT);
+        Relationship relationship = relationships.apply(new MemoryEvent(memory.npcId(), memory.playerId(), memory.type(), memory.gameTime(), memory.importance()));
+        stress.increase(villager.getUUID(), Math.max(3, (int)Math.ceil(damageTaken)));
+        var personality = PersonalityGenerator.generate(villager.getUUID());
+        boolean flee = personality.strength(PersonalityTrait.COWARDLY) >= 60 || relationship.fear() >= 45;
+        if (flee) {
+            BlockPos away = villager.blockPosition().offset(
+                villager.blockPosition().getX() < attacker.blockPosition().getX() ? -12 : 12, 0,
+                villager.blockPosition().getZ() < attacker.blockPosition().getZ() ? -12 : 12);
+            villager.getNavigation().moveTo(away.getX(), away.getY(), away.getZ(), 1.25);
+            attacker.sendSystemMessage(Component.literal(villager.getName().getString() + " panics and runs away."));
+            return;
+        }
+        boolean defend = personality.strength(PersonalityTrait.BRAVE) >= 60
+            || personality.strength(PersonalityTrait.HOT_TEMPERED) >= 65
+            || personality.strength(PersonalityTrait.PROTECTIVE) >= 65;
+        if (defend) {
+            villager.getNavigation().moveTo(attacker, 1.15);
+            java.util.List<IronGolem> golems = world.getEntitiesOfClass(IronGolem.class,
+                villager.getBoundingBox().inflate(24), g -> g.isAlive());
+            if (!golems.isEmpty()) {
+                IronGolem golem = golems.get(0);
+                golem.setTarget(attacker);
+                Memory alert = memories.rememberEvent(villager.getUUID(), attacker.getUUID(),
+                    MemoryEventType.GOLEM_CALLED_FOR_HELP, world.getGameTime(), MemoryImportance.IMPORTANT);
+                relationships.apply(new MemoryEvent(alert.npcId(), alert.playerId(), alert.type(), alert.gameTime(), alert.importance()));
+                attacker.sendSystemMessage(Component.literal(villager.getName().getString() + " calls the iron golem for help!"));
+            } else {
+                attacker.sendSystemMessage(Component.literal(villager.getName().getString() + " stands its ground."));
+            }
+        } else {
+            villager.getNavigation().moveTo(villager.blockPosition().getX() + 6, villager.blockPosition().getY(),
+                villager.blockPosition().getZ() + 6, 1.0);
+        }
+    }
+
     private static void applyLiveSocialBehavior(ServerLevel world, Villager villager, RelationshipManager relationships, NpcStressManager stress, NpcBehaviorEngine behavior, NpcHomeManager homes, NpcHomeStorageManager homeStorage) {
         if (!villager.getNavigation().isDone() && !villager.isTrading()) return;
         String role=villager.getVillagerData().toString().toLowerCase(java.util.Locale.ROOT);
