@@ -6,7 +6,7 @@
 - Added a client Chronicle screen opened with the J key.
 - Added timeline, people, relationships, families and village-history sections.
 - Added a live client GameTest with screenshot coverage.
-- Final CI run #377 passed Gradle build/tests, server GameTests, headless server smoke test and client GameTests.
+- Final CI run #379 passed Gradle build/tests, server GameTests, headless server smoke test and client GameTests.
 
 
 ## v0.8.0-alpha — Phase 8 Local Voice
