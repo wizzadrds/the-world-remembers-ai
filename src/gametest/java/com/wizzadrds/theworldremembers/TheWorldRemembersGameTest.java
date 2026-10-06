@@ -101,6 +101,7 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
                 context.succeed();
             });
         });
+        });
     }
 
     @GameTest
