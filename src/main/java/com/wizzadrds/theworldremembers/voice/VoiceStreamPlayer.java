@@ -13,8 +13,9 @@ import java.util.UUID;
 public final class VoiceStreamPlayer implements AutoCloseable {
     private static final AudioFormat FORMAT = new AudioFormat(16000.0f, 16, 1, true, false);
     private static final byte[] POISON = new byte[0];
+    private static final int MAX_QUEUED_FRAMES = 12;
 
-    private final BlockingQueue<byte[]> queue = new ArrayBlockingQueue<>(32);
+    private final BlockingQueue<byte[]> queue = new ArrayBlockingQueue<>(MAX_QUEUED_FRAMES);
     private final Map<UUID, Integer> lastSequences = new LinkedHashMap<>(128, 0.75f, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry<UUID, Integer> eldest) {
