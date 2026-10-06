@@ -1,6 +1,7 @@
 # Changelog
 
 <!-- Final Phase 6 CI verification trigger -->
+<!-- Final Phase 6 CI rerun: 2026-10-06 -->
 
 ## v0.6.0-alpha — Phase 6 Villages & Society
 - Added persistent village identity, population and history.
