@@ -1,72 +1,65 @@
 # Roadmap
 
-## v0.1-alpha — The First Memory
+## v0.2.0-alpha — The First Memory
 - Event model
 - Memory storage
 - Memory importance
 - NPC/player references
 - Basic recall
 
-## v0.2 — Personality
+## v0.3.0-alpha — Personality
 - Personality traits
 - Behavioral modifiers
 - Emotional response seeds
 
-## v0.3 — Relationships
-- Trust
-- Gratitude
-- Fear
-- Respect
-- Resentment
-
-## v0.4 — NPC Behavior
+## v0.4.0-alpha — Relationships & Behavior
+- Trust, gratitude, fear, respect and resentment
 - Activity states
-- Conversation availability
-- Interruptibility
-- Persistent conversations
-- Leaving when annoyed
-- Following / stopping
-- Contextual animations
-- Social distance
+- Decision engine
+- Persistent homes and access rules
+- Stress and fatigue
+- Real navigation
+- Role-aware work and threat behavior
+- Inventory/equipment synchronization
 
-## v0.5 — Families & Generations
+## v0.5.0-alpha — Families & Generations
 - Parents, children, partners, siblings
 - Birth/death records
 - Family trees
 - Intergenerational memory
 
-## v0.6 — Villages & Society
+## v0.6.0-alpha — Villages & Society
 - Village identity
 - Population pressure
 - Food/security priorities
+- Shared storage
+- Defense and landmarks
 - Migration
-- Leadership
-- Conflicts
 
-## v0.7 — Rumors & Conversations
+## v0.7.0-alpha — Rumors & Conversations
 - Witnesses
 - Knowledge propagation
 - Rumor degradation
 - NPC-to-NPC conversations
 - Lies and secrets
 
-## v0.8 — Voice
+## v0.8.0-alpha — Voice
 - Local speech-to-text
 - Local TTS
 - Voice profiles
 - Spatial audio
 - Push-to-talk
 
-## v0.9 — Chronicles
+## v0.9.0-alpha — Chronicles
 - Timeline
 - People browser
 - Family trees
 - Village history
 
-## v0.10 — Dreams
+## v0.10.0-alpha — Dreams
 - Memory dreams
 - Fear dreams
 - Nostalgia
 
-## v1.0 — The World Remembers
+## v1.0.0 — The World Remembers
 Integrated stable experience.
