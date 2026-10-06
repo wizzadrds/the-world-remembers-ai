@@ -62,9 +62,9 @@ public class TheWorldRemembers implements ModInitializer {
     private static final double HOME_RADIUS=3.5;
 
     @Override public void onInitialize() {
-        PayloadTypeRegistry.playS2C().register(ChroniclePacket.TYPE, ChroniclePacket.CODEC);
-        PayloadTypeRegistry.playC2S().register(ChronicleRequestPacket.TYPE, ChronicleRequestPacket.CODEC);
-        ServerPlayNetworking.registerGlobalReceiver(ChronicleRequestPacket.TYPE,(payload,context)->ServerPlayNetworking.send(context.player(),new ChroniclePacket(ChronicleBuilder.build(context.player().server).encode())));
+        PayloadTypeRegistry.clientboundPlay().register(ChroniclePacket.TYPE, ChroniclePacket.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(ChronicleRequestPacket.TYPE, ChronicleRequestPacket.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(ChronicleRequestPacket.TYPE,(payload,context)->ServerPlayNetworking.send(context.player(),new ChroniclePacket(ChronicleBuilder.build(context.server()).encode())));
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             if (world.isClientSide() || !(player instanceof ServerPlayer serverPlayer) || !(entity instanceof Villager villager)) return InteractionResult.PASS;
             if (!serverPlayer.getItemInHand(hand).is(Items.BREAD)) return InteractionResult.PASS;
