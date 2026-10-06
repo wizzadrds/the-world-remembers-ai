@@ -21,27 +21,38 @@ public final class NpcInventoryManager extends SavedData {
     private static final Codec<NpcInventory> INVENTORY_CODEC=NpcItemStack.CODEC.listOf().xmap(NpcInventory::new,NpcInventory::items);
     private static final Codec<Map<UUID,NpcInventory>> INVENTORIES_CODEC =
             Codec.unboundedMap(Codec.STRING.xmap(UUID::fromString, UUID::toString), INVENTORY_CODEC);
+
+    private record PersistedState(Map<UUID,NpcInventory> inventories, Map<UUID,NpcInventory> pendingInherited) {}
+    private static final Codec<PersistedState> PERSISTED_STATE_CODEC = RecordCodecBuilder.create(
+            (RecordCodecBuilder.Instance<PersistedState> instance) -> instance.group(
+                    INVENTORIES_CODEC.fieldOf("inventories").forGetter(PersistedState::inventories),
+                    INVENTORIES_CODEC.optionalFieldOf("pending_inherited", Map.of()).forGetter(PersistedState::pendingInherited)
+            ).apply(instance, PersistedState::new)
+    );
+
+    /*
+     * Accept the pre-overflow format (a bare UUID -> inventory map) so existing worlds
+     * continue to load, while new saves use the explicit persisted-state object.
+     */
     private static final Codec<NpcInventoryManager> CODEC = Codec.either(
             INVENTORIES_CODEC,
-            RecordCodecBuilder.create(instance -> instance.group(
-                    INVENTORIES_CODEC.fieldOf("inventories").forGetter(x -> x.inventories),
-                    INVENTORIES_CODEC.optionalFieldOf("pending_inherited", Map.of()).forGetter(x -> x.pendingInherited)
-            ).apply(instance, (inventories, pending) -> {
-                NpcInventoryManager x = new NpcInventoryManager();
-                x.inventories.putAll(inventories);
-                x.pendingInherited.putAll(pending);
-                return x;
-            }))
+            PERSISTED_STATE_CODEC
     ).xmap(
-            either -> either.map(
+            value -> value.map(
                     inventories -> {
-                        NpcInventoryManager x = new NpcInventoryManager();
-                        x.inventories.putAll(inventories);
-                        return x;
+                        NpcInventoryManager manager = new NpcInventoryManager();
+                        manager.inventories.putAll(inventories);
+                        return manager;
                     },
-                    x -> x
+                    state -> {
+                        NpcInventoryManager manager = new NpcInventoryManager();
+                        manager.inventories.putAll(state.inventories());
+                        manager.pendingInherited.putAll(state.pendingInherited());
+                        return manager;
+                    }
             ),
-            x -> Either.right(x)
+            manager -> com.mojang.datafixers.util.Either.right(
+                    new PersistedState(manager.inventories, manager.pendingInherited))
     );
 
     private static final SavedDataType<NpcInventoryManager> TYPE=new SavedDataType<>(
