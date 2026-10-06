@@ -70,6 +70,23 @@ public class TheWorldRemembers implements ModInitializer {
                 talkToVillager(serverPlayer, villager, memories);
                 return InteractionResult.PASS;
             }
+            if (!serverPlayer.getItemInHand(hand).is(Items.BREAD) && serverPlayer.isShiftKeyDown()) {
+                var offered = serverPlayer.getItemInHand(hand).copy();
+                offered.setCount(1);
+                if (villager.getInventory().canAddItem(offered)) {
+                    var remainder = villager.getInventory().addItem(offered);
+                    if (remainder.isEmpty()) {
+                        String itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(offered.getItem()).toString();
+                        serverPlayer.getItemInHand(hand).shrink(1);
+                        Memory memory = memories.rememberItemGift(villager.getUUID(), serverPlayer.getUUID(), itemId, serverPlayer.level().getGameTime());
+                        RelationshipManager.get(serverPlayer.level().getServer()).apply(new MemoryEvent(memory.npcId(), memory.playerId(), memory.type(), memory.gameTime(), memory.importance()));
+                        serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" remembers the "+itemId+" you gave them."));
+                        return InteractionResult.SUCCESS;
+                    }
+                }
+                serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" has no room for that item."));
+                return InteractionResult.SUCCESS;
+            }
             if (!serverPlayer.getItemInHand(hand).is(Items.BREAD)) return InteractionResult.PASS;
             if (memories.findMostRecentMemory(villager.getUUID(),serverPlayer.getUUID(),MemoryEventType.PLAYER_GAVE_BREAD).isPresent()) {
                 serverPlayer.sendSystemMessage(Component.literal(villager.getName().getString()+" remembers you: you gave me bread."));
