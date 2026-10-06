@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.9.0-alpha — Phase 9 Chronicles
+- Added a bounded Chronicle aggregation layer over persistent memory, relationships, families and village history.
+- Added server/client Chronicle networking with read-only world-history snapshots.
+- Added a client Chronicle screen opened with the J key.
+- Added timeline, people, relationships, families and village-history sections.
+- Added a live client GameTest with screenshot coverage.
+- Final CI run #377 passed Gradle build/tests, server GameTests, headless server smoke test and client GameTests.
+
+
 ## v0.8.0-alpha — Phase 8 Local Voice
 - Added provider-agnostic local STT and TTS adapter contracts.
 - Added local process adapters suitable for faster-whisper and Piper command wrappers.
