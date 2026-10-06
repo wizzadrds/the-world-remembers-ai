@@ -39,7 +39,7 @@ public final class VoiceNetworking {
                     sender.getZ(), volume, distance, payload.sequence(), payload.pcm());
 
             double radiusSquared = distance * distance;
-            for (ServerPlayer recipient : sender.serverLevel().players()) {
+            for (ServerPlayer recipient : sender.level().players()) {
                 if (recipient == sender || !recipient.isAlive()) continue;
                 if (recipient.distanceToSqr(sender) > radiusSquared) continue;
                 if (ServerPlayNetworking.canSend(recipient, VoiceAudioPacket.TYPE)) {
