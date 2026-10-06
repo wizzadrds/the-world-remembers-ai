@@ -32,7 +32,6 @@ The mod is not considered production-ready for a milestone until the following l
 - [x] Stress/fatigue are integrated with live activity.
 - [x] Phase 4 GameTests and CI validation pass.
 
-
 ## CI validation
 A pull-request CI run must pass `gradle build` and the headless Fabric server smoke test before a milestone can be marked complete.
 
@@ -49,30 +48,17 @@ A pull-request CI run must pass `gradle build` and the headless Fabric server sm
 - [x] Family protection decisions drive live villager navigation.
 - [x] Dedicated Minecraft GameTests cover sibling formation, spouse inheritance, family homes and protection navigation.
 
-
 ## Phase 6 acceptance
 
-- [x] Persistent village identity and population state.
-- [x] Village history tracks first/last observation and population peak.
-- [x] Village-scale events persist for migration and resident/guardian deaths.
-- [x] Live bread inventory drives derived resource pressure.
-- [x] Real container inventories drive shared storage state.
-- [x] Nearby iron golems drive village defense state.
-- [x] Real village POIs are persisted as landmarks.
-- [x] Settlement movement preserves village identity and records migration.
-- [x] Dedicated GameTests cover history, resources, defense, landmarks, storage, migration and events.
-- [x] Population-scale performance validation is green in CI.
+- [ ] Persistent village identity and population state.
+- [ ] Village history tracks first/last observation and population peak.
+- [ ] Village-scale events persist for migration and resident/guardian deaths.
+- [ ] Live bread inventory drives derived resource pressure.
+- [ ] Real container inventories drive shared storage state.
+- [ ] Nearby iron golems drive village defense state.
+- [ ] Real village POIs are persisted as landmarks.
+- [ ] Settlement movement preserves village identity and records migration.
+- [ ] Dedicated GameTests cover history, resources, defense, landmarks, storage, migration and events.
+- [ ] Population-scale performance validation is green in CI.
 
-Phase 6 is not marked complete until the final pull-request CI run passes both gradle build and the headless Fabric server smoke test.
-
-
-## Phase 6 acceptance
-- [x] Persistent village identity and population
-- [x] Village history and typed events
-- [x] Resource pressure from live inventories
-- [x] Shared storage derived from real containers
-- [x] Defense state from live iron golems
-- [x] Landmarks from real village POIs
-- [x] Migration identity preservation
-- [x] Village-scale GameTests
-- [x] Population-scale performance GameTest
+Phase 6 is not complete until the final pull-request CI run passes both Gradle build and the headless Fabric server smoke test.
