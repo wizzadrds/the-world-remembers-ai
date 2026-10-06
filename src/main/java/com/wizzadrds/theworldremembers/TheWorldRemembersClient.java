@@ -2,7 +2,6 @@ package com.wizzadrds.theworldremembers;
 
 import com.wizzadrds.theworldremembers.chronicle.*;
 import com.wizzadrds.theworldremembers.voice.*;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 import net.fabricmc.api.ClientModInitializer;
@@ -27,17 +26,13 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static VoiceClientConfig voiceConfig;
     private static VoiceConversationController voiceConversation;
     private static MicrophoneCapture microphone;
-    private static boolean voiceKeyWasDown;
+    private static VoiceStreamPlayer voiceStreamPlayer;
     private static VoiceAudioPlayer voicePlayer;
+    private static boolean voiceKeyWasDown;
+    private static int voiceSequence;
 
-    public static VoicePacket lastVoice() {
-        return lastVoice;
-    }
-
-    public static VoiceClientConfig voiceConfig() {
-        return voiceConfig;
-    }
-
+    public static VoicePacket lastVoice() { return lastVoice; }
+    public static VoiceClientConfig voiceConfig() { return voiceConfig; }
     public static VoiceConversationState voiceState() {
         return voiceConversation == null ? VoiceConversationState.IDLE : voiceConversation.state();
     }
@@ -46,9 +41,22 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         voiceConfig = VoiceClientConfig.load(Minecraft.getInstance().gameDirectory.toPath());
         voiceConversation = new VoiceConversationController();
         microphone = new MicrophoneCapture();
+        voiceStreamPlayer = new VoiceStreamPlayer();
         voicePlayer = new VoiceAudioPlayer();
 
         VoiceHud.register(VOICE_KEY, voiceConversation);
+        ClientPlayNetworking.registerGlobalReceiver(VoiceAudioPacket.TYPE, (payload, context) -> {
+            Minecraft client = context.client();
+            client.execute(() -> {
+                if (client.player == null || payload.speaker().equals(client.player.getUUID())) return;
+                double distance = client.player.distanceToSqr(payload.x(), payload.y(), payload.z());
+                double radius = Math.max(1.0, Math.min(64.0, payload.maxDistance()));
+                if (distance >= radius * radius) return;
+                float attenuation = (float) Math.max(0.0, 1.0 - Math.sqrt(distance) / radius);
+                float gain = Math.max(0.0f, Math.min(2.0f, payload.volume() * voiceConfig.outputVolume * attenuation));
+                voiceStreamPlayer.enqueue(scalePcm(payload.pcm(), gain));
+            });
+        });
         ClientPlayNetworking.registerGlobalReceiver(VoicePacket.TYPE, (payload, context) -> lastVoice = payload);
         ClientPlayNetworking.registerGlobalReceiver(ChronicleResponsePacket.TYPE, (payload, context) ->
                 Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.setScreen(new ChronicleScreen(payload.lines()))));
@@ -64,32 +72,50 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             if (client.player != null && client.gui.screen() == null) {
                 boolean down = VOICE_KEY.isDown();
                 if (down && !voiceKeyWasDown) {
-                    if (microphone.start(voiceConfig.microphone)) {
-                        voiceConversation.beginListening();
-                    } else {
-                        voiceConversation.fail();
-                    }
+                    voiceSequence = 0;
+                    boolean started = microphone.start(voiceConfig.microphone, voiceConfig.inputVolume, frame ->
+                            sendVoiceFrame(client, frame));
+                    if (started) voiceConversation.beginListening();
+                    else voiceConversation.fail();
                 } else if (!down && voiceKeyWasDown) {
                     byte[] pcm = microphone.stop();
-                    if (pcm.length > 0) {
-                        processVoice(pcm);
-                    } else {
-                        voiceConversation.fail();
-                    }
+                    if (pcm.length > 0) processVoice(pcm);
+                    else voiceConversation.fail();
                 }
                 voiceKeyWasDown = down;
             }
         });
     }
 
+    private static void sendVoiceFrame(Minecraft client, byte[] pcm) {
+        if (client.player == null || !ClientPlayNetworking.canSend(VoiceAudioPacket.TYPE)) return;
+        ClientPlayNetworking.send(new VoiceAudioPacket(
+                client.player.getUUID(),
+                client.player.getX(),
+                client.player.getY() + client.player.getEyeHeight(),
+                client.player.getZ(),
+                1.0f,
+                Math.max(1.0f, Math.min(64.0f, voiceConfig.voiceDistance)),
+                voiceSequence++,
+                pcm));
+    }
+
+    private static byte[] scalePcm(byte[] pcm, float gain) {
+        byte[] result = pcm.clone();
+        if (gain == 1.0f) return result;
+        for (int i = 0; i + 1 < result.length; i += 2) {
+            short sample = (short) (((result[i + 1] & 0xFF) << 8) | (result[i] & 0xFF));
+            int scaled = Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(sample * gain)));
+            result[i] = (byte) scaled;
+            result[i + 1] = (byte) (scaled >> 8);
+        }
+        return result;
+    }
+
     private static void processVoice(byte[] pcm) {
         var sttCommand = VoiceCommandParser.parse(voiceConfig.sttCommand);
-        if (sttCommand.isEmpty()) {
-            voiceConversation.fail();
-            return;
-        }
         var ttsCommand = VoiceCommandParser.parse(voiceConfig.ttsCommand);
-        if (ttsCommand.isEmpty()) {
+        if (sttCommand.isEmpty() || ttsCommand.isEmpty()) {
             voiceConversation.fail();
             return;
         }
@@ -108,31 +134,17 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 }
 
                 VoiceProfile profile = new VoiceProfile(
-                        "es-ES",
-                        voiceConfig.ttsModel,
-                        VoiceTemperament.CALM,
-                        1.0f,
-                        1.0f,
-                        0.5f);
-
+                        "es-ES", voiceConfig.ttsModel, VoiceTemperament.CALM, 1.0f, 1.0f, 0.5f);
                 Path output = Minecraft.getInstance().gameDirectory.toPath()
                         .resolve("config")
                         .resolve("the_world_remembers_voice_response_" + UUID.randomUUID() + ".wav");
                 voiceConversation.synthesizeAndSpeak(
-                        reply,
-                        service,
-                        profile,
-                        output,
-                        voicePlayer,
-                        voiceConfig.outputVolume,
-                        ignored -> {});
+                        reply, service, profile, output, voicePlayer, voiceConfig.outputVolume, ignored -> {});
             } catch (Exception e) {
                 voiceConversation.fail();
             }
         });
     }
 
-    public static void openChronicles() {
-        ChronicleNetworking.request();
-    }
+    public static void openChronicles() { ChronicleNetworking.request(); }
 }
