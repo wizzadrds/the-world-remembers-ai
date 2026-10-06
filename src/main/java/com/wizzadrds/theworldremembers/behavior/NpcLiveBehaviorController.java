@@ -20,7 +20,7 @@ public final class NpcLiveBehaviorController {
     }
     public static NpcDecision decide(Villager villager, ServerPlayer player, RelationshipManager relationships, NpcStressManager stress) {
         Relationship relationship=relationships.getOrCreate(villager.getUUID(),player.getUUID());
-        return new NpcBehaviorEngine().decide(activity(villager),relationship,PersonalityGenerator.generate(villager.getUUID()),new com.wizzadrds.theworldremembers.stress.NpcStress(stress.value(villager.getUUID())));
+        NpcActivity a=activity(villager); String role=villager.getVillagerData().profession().toString().toLowerCase(java.util.Locale.ROOT); if(role.contains("farmer")||role.contains("librarian")||role.contains("cleric")) a=NpcActivity.WORKING; if(role.contains("nitwit")) a=NpcActivity.SOCIALIZING; return new NpcBehaviorEngine().decide(a,relationship,PersonalityGenerator.generate(villager.getUUID()),new com.wizzadrds.theworldremembers.stress.NpcStress(stress.value(villager.getUUID())));
     }
     public static void apply(ServerLevel world,Villager villager,ServerPlayer player,NpcDecision decision,NpcHomeManager homes) {
         switch(decision) {
