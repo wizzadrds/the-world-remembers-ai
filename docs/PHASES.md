@@ -88,21 +88,19 @@ The project follows a staged implementation plan. Features are documented before
 **Status: COMPLETE — v0.5.0-alpha**
 
 ## Phase 6 — Villages & Society
-- [x] Village identity and persistent village state
-- [x] Population tracking
-- [x] Village history and important events
-- [x] Wealth and resource pressure
-- [x] Shared village resources and storage
-- [x] Village defense state
-- [x] Migration and settlement change
-- [x] Important buildings and landmarks
-- [x] Iron golems as social guardians
-- [x] Village-scale GameTests
-- [x] Population-scale performance validation
+- [ ] Village identity and persistent village state — live migration/identity audit still open
+- [ ] Population tracking — performance and correctness audit still open
+- [ ] Village history and important events — live event coverage still open
+- [ ] Wealth and resource pressure — resource model still needs broader real-world coverage
+- [ ] Shared village resources and storage — real-container coverage exists, but final integration is not validated
+- [ ] Village defense state — live guardian response still needs end-to-end validation
+- [ ] Migration and settlement change — identity/migration fixes require final CI/GameTest validation
+- [ ] Important buildings and landmarks — landmark persistence needs final validation
+- [ ] Iron golems as social guardians — player-threat response is being completed
+- [ ] Village-scale GameTests — additional interaction tests required
+- [ ] Population-scale performance validation — final performance run required
 
-**[Phase 6 complete]**
-
-**Status: COMPLETE — v0.6.0-alpha — CI run #287 validated**
+**Status: INCOMPLETE — reality pass in progress; previous completion marker was premature**
 
 ## Phase 7 — Rumors & Conversations
 - [x] Witness-based knowledge
@@ -158,12 +156,10 @@ Phase 8 acceptance is satisfied by local adapter contracts, deterministic bounde
 **Status: COMPLETE — v0.10.0-alpha — CI run #403 validated**
 
 ## v1.0 — The World Remembers
-- [x] Integrate Phases 0-10 as one release line
+- [ ] Integrate validated Phases 0-10 as one release line
 - [x] Release acceptance criteria documented
-- [x] Final cross-system CI validation
-- [x] Final release artifact validation
+- [ ] Final cross-system CI validation
+- [ ] Final release artifact validation
 - [ ] Release tag
 
-**[v1.0 integration complete]**
-
-**Status: INTEGRATED — v1.0.0 documentation line; release tag/artifact publication pending**
+**Status: NOT RELEASE-READY — live gameplay audit and final CI still required**
