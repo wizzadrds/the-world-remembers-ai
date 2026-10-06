@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.7.0-alpha — Phase 7 Rumors & Conversations
+- Added persistent knowledge with direct/reported/rumored provenance.
+- Added confidence degradation for reported and rumored knowledge.
+- Added persistent NPC-to-NPC conversations.
+- Added grounded dialogue that exposes provenance and confidence.
+- Added live rumor exchange GameTest and final CI validation (PR #102).
+
 <!-- Final Phase 6 CI verification trigger -->
 
 ## v0.6.0-alpha — Phase 6 Villages & Society
