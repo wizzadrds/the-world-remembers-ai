@@ -266,7 +266,10 @@ public class TheWorldRemembers implements ModInitializer {
                     player.sendSystemMessage(Component.literal(villager.getName().getString()+" is upset that you entered their home."));
                 } else if(access==HomeAccess.ALLOWED&&stress.value(villager.getUUID())>0) stress.recover(villager.getUUID(),1);
             }
-            if(world.getGameTime()%200==0&&world.getEntitiesOfClass(ServerPlayer.class,villager.getBoundingBox().inflate(8),p->true).isEmpty()) stress.recover(villager.getUUID(),1);
+            if(world.getGameTime()%200==0
+                    && nearbyPlayers.stream().noneMatch(player -> villager.distanceToSqr(player) <= 8 * 8)) {
+                stress.recover(villager.getUUID(),1);
+            }
         }
         if (budgeted) metrics.recordVillagers(System.nanoTime() - villagersStarted);
 
