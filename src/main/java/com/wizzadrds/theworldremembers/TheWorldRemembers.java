@@ -440,7 +440,7 @@ public class TheWorldRemembers implements ModInitializer {
         if (candidates.isEmpty()) return;
         Villager partner = candidates.stream().min(java.util.Comparator.comparingDouble(villager::distanceToSqr)).orElse(null);
         if (partner == null || villager.getUUID().compareTo(partner.getUUID()) > 0) return;
-        int progress = courtship.advance(villager.getUUID(), partner.getUUID(), TICK_INTERVAL);
+        int progress = courtship.advance(villager.getUUID(), partner.getUUID(), 20);
         if (progress < 1200) return;
         if (!families.addSpouses(villager.getUUID(), partner.getUUID())) { courtship.clear(villager.getUUID(), partner.getUUID()); return; }
         long time = world.getGameTime();
