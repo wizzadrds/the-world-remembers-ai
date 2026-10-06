@@ -171,6 +171,11 @@ public class TheWorldRemembers implements ModInitializer {
         RelationshipManager relationships = RelationshipManager.get(player.level().getServer());
         Relationship relationship = relationships.getOrCreate(villager.getUUID(), player.getUUID());
         String line = NpcDialogue.reply(villager.getName().getString(), relationship, memories.memoriesOf(villager.getUUID()).stream().filter(m -> m.playerId().equals(player.getUUID())).toList());
+        if (memories.findMostRecentMemory(villager.getUUID(), player.getUUID(), MemoryEventType.PLAYER_TALKED)
+            .map(m -> player.level().getGameTime() - m.gameTime() < 20).orElse(false)) {
+            player.sendSystemMessage(Component.literal(villager.getName().getString() + ": " + line));
+            return;
+        }
         Memory memory = memories.rememberEvent(villager.getUUID(), player.getUUID(), MemoryEventType.PLAYER_TALKED,
             player.level().getGameTime(), MemoryImportance.TRIVIAL);
         relationships.apply(new MemoryEvent(memory.npcId(), memory.playerId(), memory.type(), memory.gameTime(), memory.importance()));
@@ -184,6 +189,8 @@ public class TheWorldRemembers implements ModInitializer {
         MemoryManager memories = MemoryManager.get(world.getServer());
         RelationshipManager relationships = RelationshipManager.get(world.getServer());
         NpcStressManager stress = NpcStressManager.get(world);
+        if (memories.findMostRecentMemory(villager.getUUID(), attacker.getUUID(), MemoryEventType.PLAYER_ATTACKED_NPC)
+            .map(m -> world.getGameTime() - m.gameTime() < 10).orElse(false)) return;
         Memory memory = memories.rememberEvent(villager.getUUID(), attacker.getUUID(), MemoryEventType.PLAYER_ATTACKED_NPC,
             world.getGameTime(), MemoryImportance.IMPORTANT);
         Relationship relationship = relationships.apply(new MemoryEvent(memory.npcId(), memory.playerId(), memory.type(), memory.gameTime(), memory.importance()));
