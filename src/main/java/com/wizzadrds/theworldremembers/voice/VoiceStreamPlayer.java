@@ -4,8 +4,9 @@ import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.DataLine;
 import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.AudioSystem;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.TreeMap;
@@ -13,11 +14,10 @@ import java.util.UUID;
 
 public final class VoiceStreamPlayer implements AutoCloseable {
     private static final AudioFormat FORMAT = new AudioFormat(16000.0f, 16, 1, true, false);
-    private static final byte[] POISON = new byte[0];
-    private static final int MAX_QUEUED_FRAMES = 12;
+    private static final int MAX_SPEAKER_QUEUED_FRAMES = 6;
     private static final int MAX_REORDER_FRAMES = 4;
+    private static final int IDLE_SLEEP_MILLIS = 5;
 
-    private final BlockingQueue<byte[]> queue = new ArrayBlockingQueue<>(MAX_QUEUED_FRAMES);
     private final Map<UUID, Integer> lastSequences = new LinkedHashMap<>(128, 0.75f, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry<UUID, Integer> eldest) {
@@ -30,6 +30,13 @@ public final class VoiceStreamPlayer implements AutoCloseable {
             return size() > 128;
         }
     };
+    private final Map<UUID, Deque<byte[]>> speakerQueues = new LinkedHashMap<>(128, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<UUID, Deque<byte[]>> eldest) {
+            return size() > 128;
+        }
+    };
+
     private volatile SourceDataLine line;
     private volatile boolean running;
     private volatile Thread worker;
@@ -55,7 +62,8 @@ public final class VoiceStreamPlayer implements AutoCloseable {
         Integer previous = lastSequences.get(speaker);
         if (previous != null && sequence <= previous) return;
 
-        TreeMap<Integer, byte[]> pending = pendingSequences.computeIfAbsent(speaker, ignored -> new TreeMap<>());
+        TreeMap<Integer, byte[]> pending =
+                pendingSequences.computeIfAbsent(speaker, ignored -> new TreeMap<>());
         if (previous == null || sequence == previous + 1) {
             enqueueReadyFrame(speaker, sequence, pcm.clone());
             flushContiguous(speaker, pending);
@@ -88,18 +96,45 @@ public final class VoiceStreamPlayer implements AutoCloseable {
         lastSequences.put(speaker, sequence);
         start();
         if (!running) return;
-        if (!queue.offer(pcm)) {
-            queue.poll();
-            queue.offer(pcm);
+
+        Deque<byte[]> queue = speakerQueues.computeIfAbsent(speaker, ignored -> new ArrayDeque<>());
+        if (queue.size() >= MAX_SPEAKER_QUEUED_FRAMES) {
+            queue.pollFirst();
         }
+        queue.offerLast(pcm);
+    }
+
+    private byte[] nextMixedFrame() {
+        if (speakerQueues.isEmpty()) return null;
+
+        ArrayList<byte[]> frames = new ArrayList<>(speakerQueues.size());
+        var iterator = speakerQueues.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, Deque<byte[]>> entry = iterator.next();
+            Deque<byte[]> queue = entry.getValue();
+            byte[] frame = queue.pollFirst();
+            if (frame != null) {
+                frames.add(frame);
+            }
+            if (queue.isEmpty()) {
+                iterator.remove();
+            }
+        }
+        return VoicePcmMixer.mix(frames);
     }
 
     private void playLoop(SourceDataLine output) {
         try {
             while (running && line == output) {
-                byte[] pcm = queue.take();
-                if (pcm == POISON) break;
-                output.write(pcm, 0, pcm.length);
+                byte[] mixed;
+                synchronized (this) {
+                    mixed = nextMixedFrame();
+                }
+                if (mixed == null) {
+                    Thread.sleep(IDLE_SLEEP_MILLIS);
+                    continue;
+                }
+                output.write(mixed, 0, mixed.length);
             }
         } catch (InterruptedException ignored) {
             Thread.currentThread().interrupt();
@@ -115,15 +150,16 @@ public final class VoiceStreamPlayer implements AutoCloseable {
 
     public synchronized void stop() {
         running = false;
-        queue.clear();
         lastSequences.clear();
         pendingSequences.clear();
-        queue.offer(POISON);
+        speakerQueues.clear();
+
         Thread current = worker;
         worker = null;
         if (current != null && current != Thread.currentThread()) {
             current.interrupt();
         }
+
         SourceDataLine currentLine = line;
         line = null;
         if (currentLine != null) {
