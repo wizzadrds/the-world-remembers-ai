@@ -20,6 +20,7 @@ import com.wizzadrds.theworldremembers.relationship.*;
 import com.wizzadrds.theworldremembers.stress.NpcStressManager;
 import com.wizzadrds.theworldremembers.village.VillageManager;
 import com.wizzadrds.theworldremembers.knowledge.KnowledgeManager;
+import com.wizzadrds.theworldremembers.knowledge.ConversationManager;
 import com.wizzadrds.theworldremembers.village.VillageHistoryManager;
 import com.wizzadrds.theworldremembers.village.VillageResourceManager;
 import com.wizzadrds.theworldremembers.village.VillageResources;
@@ -104,6 +105,9 @@ public class TheWorldRemembers implements ModInitializer {
         VillageLandmarkManager landmarks=VillageLandmarkManager.get(world.getServer());
         VillageMigrationManager migrations=VillageMigrationManager.get(world.getServer());
         VillageEventManager villageEvents=VillageEventManager.get(world.getServer());
+        KnowledgeManager knowledge=KnowledgeManager.get(world.getServer());
+        ConversationManager conversations=ConversationManager.get(world.getServer());
+        if(world.getGameTime()%200==0) socialKnowledgeTick(world,knowledge,conversations);
         VillageStorageManager villageStorage=VillageStorageManager.get(world.getServer());
 
         observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks, migrations, villageEvents, villageStorage);
@@ -324,6 +328,16 @@ public class TheWorldRemembers implements ModInitializer {
     private static BlockPos findNearbyHomePoi(ServerLevel world,BlockPos pos){return world.getPoiManager().findClosest(type->type.is(net.minecraft.world.entity.ai.village.poi.PoiTypes.HOME),pos,16,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).orElse(null);}
     private static BlockPos findNearbyDoor(ServerLevel world,BlockPos pos){BlockPos best=null;double d=257;for(BlockPos p:BlockPos.betweenClosed(pos.offset(-8,-2,-8),pos.offset(8,4,8)))if(world.getBlockState(p).is(net.minecraft.tags.BlockTags.DOORS)){double x=p.distSqr(pos);if(x<d){d=x;best=p.immutable();}}return best;}
     private static BlockPos findNearestContainer(ServerLevel world,BlockPos center,int radius){BlockPos best=null;double d=Double.MAX_VALUE;for(BlockPos p:BlockPos.betweenClosed(center.offset(-radius,-3,-radius),center.offset(radius,3,radius)))if(world.getBlockEntity(p) instanceof net.minecraft.world.Container){double x=p.distSqr(center);if(x<d){d=x;best=p.immutable();}}return best;}
+
+    private static void socialKnowledgeTick(ServerLevel world, KnowledgeManager knowledge, ConversationManager conversations){
+        for(Villager speaker:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),v->v.isAlive()&&!v.isRemoved())){
+            var facts=knowledge.factsOf(speaker.getUUID()); if(facts.isEmpty()) continue;
+            Villager listener=world.getEntitiesOfClass(Villager.class,speaker.getBoundingBox().inflate(6),v->v.isAlive()&&!v.getUUID().equals(speaker.getUUID())).stream().findFirst().orElse(null);
+            if(listener==null) continue;
+            if(conversations.talk(speaker.getUUID(),listener.getUUID(),facts.get(0).eventId(),world.getGameTime())) break;
+        }
+        knowledge.degrade(world.getGameTime(),1200);
+    }
 
     private static boolean hasRecentIntrusion(MemoryManager memories,Villager villager,ServerPlayer player,long gameTime){
         return memories.findMostRecentMemory(villager.getUUID(),player.getUUID(),MemoryEventType.PLAYER_ENTERED_NPC_HOME).map(m->gameTime-m.gameTime()<INTRUSION_COOLDOWN).orElse(false);
