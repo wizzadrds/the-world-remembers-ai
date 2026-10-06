@@ -117,13 +117,16 @@ The project follows a staged implementation plan. Features are documented before
 **Status: COMPLETE — v0.7.0-alpha — CI validated on PR #104**
 
 ## Phase 8 — Local Voice
-- [ ] Local STT adapter
-- [ ] Local TTS adapter
+- [ ] Local STT
+- [ ] Local TTS
 - [x] Voice profile model foundation
 - [x] Personality-driven voice temperament model
 - [ ] Spatial audio
 - [ ] Voice scheduling
 - [ ] State-driven delivery (timid, nervous, tired, angry, excited)
+
+Phase 8 acceptance requires local adapter contracts, deterministic voice scheduling, spatial delivery parameters, and live client/server integration tests. External online voice services are not required for core gameplay.
+
 
 ## Phase 9 — Chronicles
 - [ ] Timeline UI
