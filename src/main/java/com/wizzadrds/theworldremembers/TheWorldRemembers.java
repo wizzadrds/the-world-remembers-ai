@@ -601,3 +601,115 @@ public class TheWorldRemembers implements ModInitializer {
             break;
         }
         if(entity instanceof IronGolem) return;
+        if (!(entity instanceof Villager villager)) return;
+        var families=FamilyManager.get(world.getServer());
+        var memories=MemoryManager.get(world.getServer());
+        var protection=FamilyProtectionManager.get(world.getServer());
+        protection.clearProtector(villager.getUUID());
+        var inventories=NpcInventoryManager.get(world.getServer());
+
+        // Player kills are intentionally different from natural NPC death: if the villager
+        // was carrying loot, make that loot physically recoverable at the death location.
+        if (damageSource.getEntity() instanceof ServerPlayer) {
+            inventories.captureImportantItemsIfMissing(villager);
+            java.util.List<ItemStack> carried = new java.util.ArrayList<>();
+            var liveInventory = villager.getInventory();
+            for (int slot = 0; slot < liveInventory.getContainerSize(); slot++) {
+                ItemStack stack = liveInventory.getItem(slot);
+                if (!stack.isEmpty()) carried.add(stack.copy());
+            }
+            if (carried.isEmpty()) carried = inventories.snapshot(villager.getUUID());
+            for (ItemStack stack : carried) {
+                if (stack.isEmpty()) continue;
+                world.addFreshEntity(new ItemEntity(world, villager.getX(), villager.getY(), villager.getZ(), stack.copy()));
+            }
+            for (EquipmentSlot slot : EquipmentSlot.values()) {
+                if (slot.getType() != EquipmentSlot.Type.HUMANOID_ARMOR
+                        && slot != EquipmentSlot.MAINHAND && slot != EquipmentSlot.OFFHAND) continue;
+                ItemStack equipped = villager.getItemBySlot(slot);
+                if (equipped.isEmpty()) continue;
+                world.addFreshEntity(new ItemEntity(world, villager.getX(), villager.getY(), villager.getZ(), equipped.copy()));
+            }
+            inventories.clear(villager.getUUID());
+            return;
+        }
+
+        java.util.List<java.util.UUID> related = families.getRelations(villager.getUUID()).stream()
+            .map(r -> r.npcId().equals(villager.getUUID()) ? r.relatedNpcId() : r.npcId()).distinct().toList();
+        for(java.util.UUID id : related) {
+            memories.rememberEvent(id, villager.getUUID(), MemoryEventType.NPC_DIED, world.getGameTime(), MemoryImportance.IMPORTANT);
+            memories.rememberEvent(id, villager.getUUID(), MemoryEventType.NPC_FAMILY_LOST, world.getGameTime(), MemoryImportance.IMPORTANT);
+        }
+        java.util.UUID heir = families.childrenOf(villager.getUUID()).stream().findFirst()
+            .orElseGet(() -> families.spouseOf(villager.getUUID()));
+        if (heir != null) {
+            // AFTER_DEATH may run after vanilla has already cleared the live inventory.
+            // Prefer the persistent mirror, but capture any important live item that was
+            // missed by the regular simulation loop before attempting inheritance.
+            inventories.captureImportantItemsIfMissing(villager);
+            Villager liveHeir = world.getEntity(heir) instanceof Villager candidate ? candidate : null;
+            int inherited = liveHeir != null
+                ? inventories.inheritImportantItems(villager.getUUID(), liveHeir)
+                : inventories.inheritImportantItems(villager.getUUID(), heir);
+            if (inherited > 0) {
+                memories.rememberEvent(heir, villager.getUUID(), MemoryEventType.NPC_INHERITED_ITEM, world.getGameTime(), MemoryImportance.HISTORICAL);
+            }
+        }
+    }
+    private static void observeVillages(ServerLevel world, VillageManager villages, VillageHistoryManager history,
+            VillageResourceManager resources, VillageDefenseManager defense, VillageLandmarkManager landmarks,
+            VillageMigrationManager migrations, VillageEventManager villageEvents, VillageStorageManager villageStorage,
+            java.util.List<Villager> source, int budget, java.util.Map<ServerLevel,Integer> cursors) {
+        java.util.Map<Long, java.util.List<Villager>> clusters = new java.util.HashMap<>();
+        for (Villager v : source) {
+            long key=(((long)(v.blockPosition().getX()>>5))<<32)^((v.blockPosition().getZ()>>5)&0xffffffffL);
+            clusters.computeIfAbsent(key,ignored->new java.util.ArrayList<>()).add(v);
+        }
+        if (clusters.isEmpty()) return;
+        java.util.List<Long> keys = new java.util.ArrayList<>(clusters.keySet());
+        java.util.Collections.sort(keys);
+        int start = cursors.getOrDefault(world, 0) % keys.size();
+        int processed = 0;
+        for (int offset=0; offset<keys.size() && processed<budget; offset++) {
+            int index=(start+offset)%keys.size();
+            var members=clusters.get(keys.get(index)); if(members==null||members.isEmpty()) continue;
+            long sx=0,sz=0; for(var v:members){sx+=v.blockPosition().getX();sz+=v.blockPosition().getZ();}
+            BlockPos center=new BlockPos((int)(sx/members.size()),members.get(0).blockPosition().getY(),(int)(sz/members.size()));
+            java.util.Set<UUID> claimed=new java.util.HashSet<>();
+            VillageState previous=villages.findNearest(center,claimed);
+            BlockPos previousCenter=previous==null?null:previous.center();
+            VillageState state=villages.observeNearest(center,members.size(),world.getGameTime(),claimed);
+            UUID villageId=state.villageId();
+            history.observe(villageId,members.size(),world.getGameTime());
+            if(previousCenter!=null&&previousCenter.distSqr(center)>32*32){
+                migrations.record(new com.wizzadrds.theworldremembers.village.VillageMigration(villageId,previousCenter,center,world.getGameTime(),members.size()));
+                villageEvents.record(villageId,new VillageEvent("migration",world.getGameTime(),villageId,center));
+            }
+            int food=members.stream().mapToInt(v->v.getInventory().countItem(Items.BREAD)).sum();
+            int containers=0,occupied=0,capacity=0;
+            for(BlockPos p:BlockPos.betweenClosed(center.offset(-16,-4,-16),center.offset(16,8,16))){
+                var be=world.getBlockEntity(p);
+                if(be instanceof net.minecraft.world.Container container){
+                    containers++; capacity+=container.getContainerSize();
+                    for(int slot=0;slot<container.getContainerSize();slot++)if(!container.getItem(slot).isEmpty())occupied++;
+                }
+            }
+            villageStorage.observe(villageId,new VillageStorage(containers,occupied,capacity));
+            resources.observe(villageId,new VillageResources(food,0,occupied,capacity));
+            int golems=world.getEntitiesOfClass(IronGolem.class,new net.minecraft.world.phys.AABB(center).inflate(32),g->g.isAlive()).size();
+            defense.observe(villageId,new VillageDefense(golems,0,0));
+            for(var pos:world.getPoiManager().findAllWithType(type->type.is(PoiTypeTags.VILLAGE),pos->true,center,32,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).map(pair->pair.getSecond()).toList())
+                landmarks.add(villageId,new VillageLandmark("village_poi",pos,world.getGameTime()));
+            processed++;
+        }
+        cursors.put(world,(start+Math.max(1,processed))%keys.size());
+    }
+
+    private static BlockPos findNearbyHomePoi(ServerLevel world,BlockPos pos){return world.getPoiManager().findClosest(type->type.is(net.minecraft.world.entity.ai.village.poi.PoiTypes.HOME),pos,16,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).orElse(null);}
+    private static BlockPos findNearbyDoor(ServerLevel world,BlockPos pos){BlockPos best=null;double d=257;for(BlockPos p:BlockPos.betweenClosed(pos.offset(-8,-2,-8),pos.offset(8,4,8)))if(world.getBlockState(p).is(net.minecraft.tags.BlockTags.DOORS)){double x=p.distSqr(pos);if(x<d){d=x;best=p.immutable();}}return best;}
+    private static BlockPos findNearestContainer(ServerLevel world,BlockPos center,int radius){BlockPos best=null;double d=Double.MAX_VALUE;for(BlockPos p:BlockPos.betweenClosed(center.offset(-radius,-3,-radius),center.offset(radius,3,radius)))if(world.getBlockEntity(p) instanceof net.minecraft.world.Container){double x=p.distSqr(center);if(x<d){d=x;best=p.immutable();}}return best;}
+
+    private static boolean hasRecentIntrusion(MemoryManager memories,Villager villager,ServerPlayer player,long gameTime){
+        return memories.findMostRecentMemory(villager.getUUID(),player.getUUID(),MemoryEventType.PLAYER_ENTERED_NPC_HOME).map(m->gameTime-m.gameTime()<INTRUSION_COOLDOWN).orElse(false);
+    }
+}
