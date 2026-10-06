@@ -22,7 +22,7 @@ class VoicePcmMixerTest {
 
         assertArrayEquals(
                 pcm(Short.MAX_VALUE, Short.MIN_VALUE),
-                VoicePcmMixer.mix(List.of(positive, negative, pcm(10_000, -10_000))));
+                VoicePcmMixer.mix(List.of(positive, pcm(10_000, 10_000), negative)));
     }
 
     @Test
@@ -38,7 +38,7 @@ class VoicePcmMixerTest {
         assertNull(VoicePcmMixer.mix(null));
         assertNull(VoicePcmMixer.mix(List.of()));
         assertNull(VoicePcmMixer.mix(List.of(new byte[0])));
-        assertNull(VoicePcmMixer.mix(List.of((byte[]) null)));
+        assertNull(VoicePcmMixer.mix(java.util.Collections.singletonList(null)));
     }
 
     private static byte[] pcm(int... samples) {
