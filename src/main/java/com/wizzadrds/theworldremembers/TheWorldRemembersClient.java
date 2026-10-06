@@ -154,7 +154,6 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         voiceConversation.reset();
         voiceStreamPlayer.stop();
         voicePlayer.stop();
-        voiceConversation.close();
     }
 
     public static void openChronicles() { ChronicleNetworking.request(); }
