@@ -79,7 +79,10 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
         Villager parentB = context.spawn(EntityTypes.VILLAGER, 4, 1, 2);
         Villager child = context.spawn(EntityTypes.VILLAGER, 3, 1, 3);
         child.setBaby(true);
-        context.runAtTickTime(1, () -> {
+        parentA.setNoAi(true);
+        parentB.setNoAi(true);
+        child.setNoAi(true);
+        context.runAtTickTime(2, () -> {
             MemoryManager memories = MemoryManager.get(context.getLevel().getServer());
             memories.rememberEvent(parentA.getUUID(), parentB.getUUID(), MemoryEventType.NPC_MARRIED,
                 context.getLevel().getGameTime(), com.wizzadrds.theworldremembers.memory.MemoryImportance.IMPORTANT);
