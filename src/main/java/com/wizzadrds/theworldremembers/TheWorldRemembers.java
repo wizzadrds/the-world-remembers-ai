@@ -77,7 +77,26 @@ public class TheWorldRemembers implements ModInitializer {
     private static final java.util.Map<ServerLevel,Integer> SOCIAL_CURSORS = new java.util.WeakHashMap<>();
     private static final java.util.Map<ServerLevel,Integer> VILLAGE_CURSORS = new java.util.WeakHashMap<>();
     private static final java.util.Map<ServerLevel,java.util.List<UUID>> VILLAGER_REGISTRY = new java.util.WeakHashMap<>();
+    private static final java.util.Map<ServerLevel,SchedulerMetrics> SCHEDULER_METRICS = new java.util.WeakHashMap<>();
     private static final double HOME_RADIUS=3.5;
+
+    private static final class SchedulerMetrics {
+        long samples;
+        long totalNanos;
+        long maxNanos;
+
+        void record(long elapsedNanos) {
+            samples++;
+            totalNanos += elapsedNanos;
+            maxNanos = Math.max(maxNanos, elapsedNanos);
+        }
+
+        void reset() {
+            samples = 0;
+            totalNanos = 0;
+            maxNanos = 0;
+        }
+    }
 
     @Override public void onInitialize() {
         ChronicleNetworking.init();
@@ -104,7 +123,17 @@ public class TheWorldRemembers implements ModInitializer {
         // Keep the live server loop cheap: expensive global systems are scheduled independently,
         // and only a bounded number of villagers advance through the full simulation each tick.
         if (world.getGameTime() % TICK_INTERVAL != 0) return;
+        long started = System.nanoTime();
         processWorld(world, true);
+        long elapsed = System.nanoTime() - started;
+        SchedulerMetrics metrics = SCHEDULER_METRICS.computeIfAbsent(world, ignored -> new SchedulerMetrics());
+        metrics.record(elapsed);
+        if (world.getGameTime() % 200 == 0 && metrics.samples > 0) {
+            long averageMicros = metrics.totalNanos / metrics.samples / 1_000L;
+            long maxMicros = metrics.maxNanos / 1_000L;
+            LOGGER.info("Live simulation scheduler: samples={}, avg={}us, max={}us", metrics.samples, averageMicros, maxMicros);
+            metrics.reset();
+        }
     }
 
     /** Full processing entry point retained for GameTests and deterministic validation. */
