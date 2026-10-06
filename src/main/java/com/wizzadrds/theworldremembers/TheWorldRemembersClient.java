@@ -54,7 +54,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 if (distance >= radius * radius) return;
                 float attenuation = (float) Math.max(0.0, 1.0 - Math.sqrt(distance) / radius);
                 float gain = Math.max(0.0f, Math.min(2.0f, payload.volume() * voiceConfig.outputVolume * attenuation));
-                voiceStreamPlayer.enqueue(scalePcm(payload.pcm(), gain));
+                voiceStreamPlayer.enqueue(payload.speaker(), payload.sequence(), scalePcm(payload.pcm(), gain));
             });
         });
         ClientPlayNetworking.registerGlobalReceiver(VoicePacket.TYPE, (payload, context) -> lastVoice = payload);
