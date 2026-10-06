@@ -1,1 +1,43 @@
-package com.wizzadrds.theworldremembers.dream; import com.wizzadrds.theworldremembers.memory.*; import java.util.*; public final class DreamSelector {private DreamSelector(){} public static Optional<Memory> selectMemory(UUID sleeper,List<Memory> memories,long tick){return memories.stream().filter(m->m.npcId().equals(sleeper)).filter(m->m.importance().ordinal()>=MemoryImportance.IMPORTANT.ordinal()).sorted(Comparator.comparingLong(Memory::gameTime).reversed()).findFirst();} public static Optional<Memory> selectNostalgia(UUID sleeper,List<Memory> memories,long tick){return memories.stream().filter(m->m.npcId().equals(sleeper)).filter(m->m.importance()==MemoryImportance.HISTORICAL||m.importance()==MemoryImportance.LEGENDARY).filter(m->m.type()!=MemoryEventType.NPC_DIED&&m.type()!=MemoryEventType.NPC_FAMILY_LOST).sorted(Comparator.comparingLong(Memory::gameTime)).findFirst();} public static Optional<Memory> selectFear(UUID sleeper,List<Memory> memories,long tick,int stress){if(stress<50)return Optional.empty();return memories.stream().filter(m->m.npcId().equals(sleeper)).filter(m->m.type()==MemoryEventType.NPC_DIED||m->m.type()==MemoryEventType.NPC_FAMILY_LOST).sorted(Comparator.comparingLong(Memory::gameTime).reversed()).findFirst();} public static Optional<Memory> selectImpossible(UUID sleeper,List<Memory> memories,long tick){return selectMemory(sleeper,memories,tick);}}
+package com.wizzadrds.theworldremembers.dream;
+
+import com.wizzadrds.theworldremembers.memory.Memory;
+import com.wizzadrds.theworldremembers.memory.MemoryEventType;
+import com.wizzadrds.theworldremembers.memory.MemoryImportance;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+public final class DreamSelector {
+    private DreamSelector() {}
+
+    public static Optional<Memory> selectMemory(UUID sleeper, List<Memory> memories, long tick) {
+        return memories.stream()
+            .filter(m -> m.npcId().equals(sleeper))
+            .filter(m -> m.importance().ordinal() >= MemoryImportance.IMPORTANT.ordinal())
+            .sorted(Comparator.comparingLong(Memory::gameTime).reversed())
+            .findFirst();
+    }
+
+    public static Optional<Memory> selectNostalgia(UUID sleeper, List<Memory> memories, long tick) {
+        return memories.stream()
+            .filter(m -> m.npcId().equals(sleeper))
+            .filter(m -> m.importance() == MemoryImportance.HISTORICAL || m.importance() == MemoryImportance.LEGENDARY)
+            .filter(m -> m.type() != MemoryEventType.NPC_DIED && m.type() != MemoryEventType.NPC_FAMILY_LOST)
+            .sorted(Comparator.comparingLong(Memory::gameTime))
+            .findFirst();
+    }
+
+    public static Optional<Memory> selectFear(UUID sleeper, List<Memory> memories, long tick, int stress) {
+        if (stress < 50) return Optional.empty();
+        return memories.stream()
+            .filter(m -> m.npcId().equals(sleeper))
+            .filter(m -> m.type() == MemoryEventType.NPC_DIED || m.type() == MemoryEventType.NPC_FAMILY_LOST)
+            .sorted(Comparator.comparingLong(Memory::gameTime).reversed())
+            .findFirst();
+    }
+
+    public static Optional<Memory> selectImpossible(UUID sleeper, List<Memory> memories, long tick) {
+        return selectMemory(sleeper, memories, tick);
+    }
+}
