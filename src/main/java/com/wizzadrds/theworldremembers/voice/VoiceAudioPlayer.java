@@ -7,7 +7,7 @@ import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.Mixer;
 import java.util.ArrayList;
 import java.util.List;
-import javax.sound.sampled.FloatControl;
+import javax.sound.sampled.FloatControl;\nimport net.minecraft.client.Minecraft;
 import java.nio.file.Path;
 
 public final class VoiceAudioPlayer {
