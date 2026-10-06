@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.9.0-alpha — Phase 9 Chronicles
+- Added a server-authoritative chronicle aggregate built from persistent memories, relationships, families and village history.
+- Added an in-game Chronicle screen opened through the client keybind.
+- Added client/server chronicle request and response payloads.
+- Added deterministic timeline ordering and immutable chronicle sections.
+- Added Phase 9 acceptance and CI validation coverage.
+
+
 ## v0.8.0-alpha — Phase 8 Local Voice
 - Added provider-agnostic local STT and TTS adapter contracts.
 - Added local process adapters suitable for faster-whisper and Piper command wrappers.
