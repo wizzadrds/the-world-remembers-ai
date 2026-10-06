@@ -144,6 +144,7 @@ public final class NpcInventoryManager extends SavedData {
         NpcInventory target = getOrCreate(heir.getUUID());
         NpcInventory pending = pendingInherited.computeIfAbsent(heir.getUUID(), ignored -> new NpcInventory());
         int moved = 0;
+        int pendingMoved = 0;
 
         for (NpcItemStack stack : source.items()) {
             if (!isImportantItem(stack.itemId())) continue;
@@ -161,12 +162,13 @@ public final class NpcInventoryManager extends SavedData {
             if (!remainder.isEmpty()) {
                 pending.add(stack.itemId(), remainder.getCount());
                 target.add(stack.itemId(), remainder.getCount());
+                pendingMoved += remainder.getCount();
             }
         }
 
         if (pending.items().isEmpty()) pendingInherited.remove(heir.getUUID());
         if (moved > 0 || !pending.items().isEmpty()) setDirty();
-        return moved;
+        return moved + pendingMoved;
     }
 
     private void materializePending(Villager heir, NpcInventory pending) {
