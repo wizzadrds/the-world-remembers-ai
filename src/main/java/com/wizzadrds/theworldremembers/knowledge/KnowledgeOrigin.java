@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.knowledge; public enum KnowledgeOrigin { DIRECT, REPORTED, RUMORED }
