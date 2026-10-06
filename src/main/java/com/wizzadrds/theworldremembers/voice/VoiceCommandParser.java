@@ -7,23 +7,27 @@ public final class VoiceCommandParser {
     private VoiceCommandParser() {}
 
     public static List<String> parse(String command) {
-        List<String> parts = new ArrayList<>();
-        if (command == null || command.isBlank()) return parts;
-        boolean quoted = false;
-        char quote = 0;
+        if (command == null || command.isBlank()) return List.of();
+        List<String> args = new ArrayList<>();
         StringBuilder current = new StringBuilder();
-        for (char c : command.trim().toCharArray()) {
-            if ((c == '"' || c == '\\'') ) {
-                if (quoted && c == quote) quoted = false;
-                else if (!quoted) { quoted = true; quote = c; }
-                else current.append(c);
-            } else if (Character.isWhitespace(c) && !quoted) {
-                if (!current.isEmpty()) { parts.add(current.toString()); current.setLength(0); }
-            } else {
-                current.append(c);
-            }
+        char quote = 0;
+        for (int i = 0; i < command.length(); i++) {
+            char ch = command.charAt(i);
+            if (quote != 0) {
+                if (ch == quote) quote = 0;
+                else if (ch == '\\' && i + 1 < command.length()) {
+                    char next = command.charAt(++i);
+                    if (next == quote || next == '\\') current.append(next);
+                    else { current.append(ch); current.append(next); }
+                } else current.append(ch);
+            } else if (ch == '"' || ch == '\'') {
+                quote = ch;
+            } else if (Character.isWhitespace(ch)) {
+                if (!current.isEmpty()) { args.add(current.toString()); current.setLength(0); }
+            } else current.append(ch);
         }
-        if (!current.isEmpty()) parts.add(current.toString());
-        return parts;
+        if (quote != 0) throw new IllegalArgumentException("Unclosed quote in voice command");
+        if (!current.isEmpty()) args.add(current.toString());
+        return List.copyOf(args);
     }
 }
