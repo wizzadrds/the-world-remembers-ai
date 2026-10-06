@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.dream; import java.util.UUID; public record Dream(UUID npcId,DreamType type,String source,long seed){public Dream{if(npcId==null||type==null||source==null||source.isBlank())throw new IllegalArgumentException();}public boolean factual(){return false;}}
