@@ -26,6 +26,11 @@ import com.wizzadrds.theworldremembers.village.VillageDefenseManager;
 import com.wizzadrds.theworldremembers.village.VillageDefense;
 import com.wizzadrds.theworldremembers.village.VillageLandmarkManager;
 import com.wizzadrds.theworldremembers.village.VillageLandmark;
+import com.wizzadrds.theworldremembers.knowledge.KnowledgeManager;
+import com.wizzadrds.theworldremembers.knowledge.KnowledgeFact;
+import com.wizzadrds.theworldremembers.knowledge.KnowledgeProvenance;
+import com.wizzadrds.theworldremembers.knowledge.ConversationManager;
+import com.wizzadrds.theworldremembers.knowledge.Conversation;
 import com.wizzadrds.theworldremembers.village.VillageMigrationManager;
 import com.wizzadrds.theworldremembers.village.VillageEventManager;
 import com.wizzadrds.theworldremembers.village.VillageEvent;
@@ -101,6 +106,8 @@ public class TheWorldRemembers implements ModInitializer {
         VillageResourceManager villageResources=VillageResourceManager.get(world.getServer());
         VillageDefenseManager villageDefense=VillageDefenseManager.get(world.getServer());
         VillageLandmarkManager landmarks=VillageLandmarkManager.get(world.getServer());
+        KnowledgeManager knowledge=KnowledgeManager.get(world.getServer());
+        ConversationManager conversations=ConversationManager.get(world.getServer());
         VillageMigrationManager migrations=VillageMigrationManager.get(world.getServer());
         VillageEventManager villageEvents=VillageEventManager.get(world.getServer());
         VillageStorageManager villageStorage=VillageStorageManager.get(world.getServer());
@@ -271,6 +278,9 @@ public class TheWorldRemembers implements ModInitializer {
         var memories=MemoryManager.get(world.getServer());
         var protection=FamilyProtectionManager.get(world.getServer());
         protection.clearProtector(villager.getUUID());
+        var knowledge=KnowledgeManager.get(world.getServer());
+        for(var witness:world.getEntitiesOfClass(Villager.class,villager.getBoundingBox().inflate(16),v->v.isAlive()&&!v.getUUID().equals(villager.getUUID())))
+            knowledge.remember(new KnowledgeFact(witness.getUUID(),"npc_died",villager.getUUID(),villager.getUUID(),KnowledgeProvenance.DIRECT,world.getGameTime(),1.0,0));
         var inventories=NpcInventoryManager.get(world.getServer());
         java.util.List<java.util.UUID> related = families.getRelations(villager.getUUID()).stream()
             .map(r -> r.npcId().equals(villager.getUUID()) ? r.relatedNpcId() : r.npcId()).distinct().toList();
@@ -318,6 +328,14 @@ public class TheWorldRemembers implements ModInitializer {
     private static BlockPos findNearbyHomePoi(ServerLevel world,BlockPos pos){return world.getPoiManager().findClosest(type->type.is(net.minecraft.world.entity.ai.village.poi.PoiTypes.HOME),pos,16,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).orElse(null);}
     private static BlockPos findNearbyDoor(ServerLevel world,BlockPos pos){BlockPos best=null;double d=257;for(BlockPos p:BlockPos.betweenClosed(pos.offset(-8,-2,-8),pos.offset(8,4,8)))if(world.getBlockState(p).is(net.minecraft.tags.BlockTags.DOORS)){double x=p.distSqr(pos);if(x<d){d=x;best=p.immutable();}}return best;}
     private static BlockPos findNearestContainer(ServerLevel world,BlockPos center,int radius){BlockPos best=null;double d=Double.MAX_VALUE;for(BlockPos p:BlockPos.betweenClosed(center.offset(-radius,-3,-radius),center.offset(radius,3,radius)))if(world.getBlockEntity(p) instanceof net.minecraft.world.Container){double x=p.distSqr(center);if(x<d){d=x;best=p.immutable();}}return best;}
+
+    private static void processConversations(ServerLevel world, KnowledgeManager knowledge, ConversationManager conversations) {
+        var villagers=world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),v->v.isAlive()&&!v.isRemoved());
+        for(var first:villagers){var partner=villagers.stream().filter(v->v!=first&&v.isAlive()&&v.distanceToSqr(first)<=16*16).findFirst().orElse(null);if(partner==null)continue;
+            conversations.record(new Conversation(first.getUUID(),partner.getUUID(),world.getGameTime(),"local knowledge exchange"));
+            var facts=knowledge.facts(first.getUUID()); if(!facts.isEmpty()){var f=facts.get(0);knowledge.report(first.getUUID(),partner.getUUID(),f.eventType(),f.subject(),world.getGameTime());}
+        }
+    }
 
     private static boolean hasRecentIntrusion(MemoryManager memories,Villager villager,ServerPlayer player,long gameTime){
         return memories.findMostRecentMemory(villager.getUUID(),player.getUUID(),MemoryEventType.PLAYER_ENTERED_NPC_HOME).map(m->gameTime-m.gameTime()<INTRUSION_COOLDOWN).orElse(false);
