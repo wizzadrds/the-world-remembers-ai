@@ -1,10 +1,10 @@
 # Phase 7 Acceptance
 
-- [ ] Witnesses create direct knowledge.
-- [ ] NPC conversations transfer only grounded knowledge.
-- [ ] Reported knowledge is distinguishable from direct knowledge.
-- [ ] Rumor confidence degrades over time.
-- [ ] Conversation records persist.
-- [ ] Dialogue is generated only from known facts.
-- [ ] Live NPC-to-NPC conversation GameTest passes.
-- [ ] Final CI build/GameTests/server smoke passes.
+- [x] Witnesses create direct knowledge.
+- [x] NPC conversations transfer only grounded knowledge.
+- [x] Reported knowledge is distinguishable from direct knowledge.
+- [x] Rumor confidence degrades over time.
+- [x] Conversation records persist.
+- [x] Dialogue is generated only from known facts.
+- [x] Live NPC-to-NPC conversation GameTest passes.
+- [x] Final CI build/GameTests/server smoke passes.
