@@ -16,6 +16,7 @@ import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
 import com.wizzadrds.theworldremembers.inventory.NpcInventoryManager;
 import com.wizzadrds.theworldremembers.memory.*;
 import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
+import com.wizzadrds.theworldremembers.personality.PersonalityProfile;
 import com.wizzadrds.theworldremembers.relationship.*;
 import com.wizzadrds.theworldremembers.stress.NpcStressManager;
 import com.wizzadrds.theworldremembers.village.VillageManager;
@@ -354,7 +355,7 @@ public class TheWorldRemembers implements ModInitializer {
             }
         }
     }
-    private static void applyLiveSocialBehavior(ServerLevel world, Villager villager, RelationshipManager relationships, NpcStressManager stress, NpcBehaviorEngine behavior, NpcHomeManager homes, NpcHomeStorageManager homeStorage, java.util.List<ServerPlayer> nearbyPlayers, com.wizzadrds.theworldremembers.personality.Personality personality) {
+    private static void applyLiveSocialBehavior(ServerLevel world, Villager villager, RelationshipManager relationships, NpcStressManager stress, NpcBehaviorEngine behavior, NpcHomeManager homes, NpcHomeStorageManager homeStorage, java.util.List<ServerPlayer> nearbyPlayers, PersonalityProfile personality) {
         if (!villager.getNavigation().isDone() && !villager.isTrading()) return;
         String role=villager.getVillagerData().toString().toLowerCase(java.util.Locale.ROOT);
         boolean worker=role.contains("farmer")||role.contains("librarian")||role.contains("cleric")||role.contains("armorer")||role.contains("toolsmith")||role.contains("weaponsmith");
