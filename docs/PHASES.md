@@ -156,3 +156,18 @@ Phase 8 acceptance is satisfied by local adapter contracts, deterministic bounde
 **[Phase 10 complete]**
 
 **Status: COMPLETE — v0.10.0-alpha — CI run #403 validated**
+
+## v1.0.0 — The World Remembers
+- [x] Phase 0–10 integrated into one stable experience
+- [x] Memory, personality, relationships and behavior
+- [x] Families and generations
+- [x] Villages and society
+- [x] Rumors and conversations
+- [x] Local voice
+- [x] Chronicles
+- [x] Dreams
+- [ ] Final release CI validation
+
+**[v1.0 milestone]**
+
+**Status: RELEASE CANDIDATE — v1.0.0**
