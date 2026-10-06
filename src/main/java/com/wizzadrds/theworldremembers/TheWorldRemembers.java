@@ -509,7 +509,10 @@ public class TheWorldRemembers implements ModInitializer {
             // Prefer the persistent mirror, but capture any important live item that was
             // missed by the regular simulation loop before attempting inheritance.
             inventories.captureImportantItemsIfMissing(villager);
-            int inherited = inventories.inheritImportantItems(villager.getUUID(), heir);
+            Villager liveHeir = world.getEntity(heir) instanceof Villager candidate ? candidate : null;
+            int inherited = liveHeir != null
+                ? inventories.inheritImportantItems(villager.getUUID(), liveHeir)
+                : inventories.inheritImportantItems(villager.getUUID(), heir);
             if (inherited > 0) {
                 memories.rememberEvent(heir, villager.getUUID(), MemoryEventType.NPC_INHERITED_ITEM, world.getGameTime(), MemoryImportance.HISTORICAL);
             }
