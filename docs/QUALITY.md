@@ -61,3 +61,15 @@ A pull-request CI run must pass `gradle build` and the headless Fabric server sm
 - [x] Dedicated village GameTests.
 - [x] Population-scale performance GameTest.
 - [x] Final CI #287: Gradle build/GameTests and headless Fabric server smoke test passed.
+
+
+## Phase 7 acceptance
+
+- [x] Witness-based knowledge with explicit provenance.
+- [x] Direct, reported and rumored knowledge remain distinguishable.
+- [x] Reported knowledge degrades and becomes rumor on further propagation.
+- [x] Rumor confidence degrades with age.
+- [x] Persistent NPC-to-NPC conversation records.
+- [x] Grounded dialogue exposes knowledge provenance and confidence.
+- [x] Live NPC-to-NPC rumor exchange GameTest.
+- [x] Final CI #309: Gradle build/GameTests and headless Fabric server smoke test passed.

@@ -105,12 +105,16 @@ The project follows a staged implementation plan. Features are documented before
 **Status: COMPLETE — v0.6.0-alpha — CI run #287 validated**
 
 ## Phase 7 — Rumors & Conversations
-- [ ] Witness-based knowledge
-- [ ] Rumor degradation
-- [ ] Persistent conversations
-- [ ] NPC-to-NPC conversations
-- [ ] Grounded dialogue
-- [ ] Direct, reported and rumored knowledge
+- [x] Witness-based knowledge
+- [x] Rumor degradation
+- [x] Persistent conversations
+- [x] NPC-to-NPC conversations
+- [x] Grounded dialogue
+- [x] Direct, reported and rumored knowledge
+
+**[Phase 7 complete]**
+
+**Status: COMPLETE — v0.7.0-alpha — CI validated on PR #102**
 
 ## Phase 8 — Local Voice
 - [ ] Local STT
