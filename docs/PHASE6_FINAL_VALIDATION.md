@@ -13,3 +13,5 @@ Final acceptance is intentionally stricter than compilation.
 - Final CI must pass Gradle build, all automated tests, Minecraft GameTests and the headless Fabric server smoke test.
 
 The milestone is not considered complete if any of these checks is skipped or merely inferred.
+
+CI rerun gate: this document is intentionally changed only to force a fresh pull-request validation after fixing the flaky family GameTest.
