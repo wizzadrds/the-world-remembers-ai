@@ -19,6 +19,7 @@ import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
 import com.wizzadrds.theworldremembers.relationship.*;
 import com.wizzadrds.theworldremembers.stress.NpcStressManager;
 import com.wizzadrds.theworldremembers.village.VillageManager;
+import com.wizzadrds.theworldremembers.rumor.*;
 import com.wizzadrds.theworldremembers.village.VillageHistoryManager;
 import com.wizzadrds.theworldremembers.village.VillageResourceManager;
 import com.wizzadrds.theworldremembers.village.VillageResources;
@@ -97,6 +98,8 @@ public class TheWorldRemembers implements ModInitializer {
         FamilyCourtshipManager courtship=FamilyCourtshipManager.get(world.getServer());
         FamilyProtectionManager protection=FamilyProtectionManager.get(world.getServer());
         VillageManager villages=VillageManager.get(world.getServer());
+        KnowledgeManager knowledge=KnowledgeManager.get(world.getServer());
+        ConversationManager conversations=ConversationManager.get(world.getServer());
         VillageHistoryManager villageHistory=VillageHistoryManager.get(world.getServer());
         VillageResourceManager villageResources=VillageResourceManager.get(world.getServer());
         VillageDefenseManager villageDefense=VillageDefenseManager.get(world.getServer());
@@ -169,6 +172,23 @@ public class TheWorldRemembers implements ModInitializer {
                 if(home!=null) villager.getNavigation().moveTo(home.homePos().getX(),home.homePos().getY(),home.homePos().getZ(),1.0);
             }
             break;
+        }
+    }
+
+    private static void processConversations(ServerLevel world, MemoryManager memories, KnowledgeManager knowledge, ConversationManager conversations) {
+        for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),v->v.isAlive()&&!v.isRemoved())) {
+            for(Memory memory:memories.memoriesOf(villager.getUUID()).stream().limit(8).toList())
+                knowledge.learn(villager.getUUID(),new KnowledgeFact(memory.playerId(),memory.type(),memory.gameTime(),villager.getUUID(),KnowledgeOrigin.DIRECT,100,memory.gameTime()));
+        }
+        knowledge.decay(world.getGameTime());
+        if(world.getGameTime()%200!=0)return;
+        for(Villager first:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),v->v.isAlive()&&!v.isRemoved())) {
+            Villager second=world.getEntitiesOfClass(Villager.class,first.getBoundingBox().inflate(4),v->v.isAlive()&&!v.getUUID().equals(first.getUUID())).stream().findFirst().orElse(null);
+            if(second==null)continue;
+            java.util.List<KnowledgeFact> shared=knowledge.facts(first.getUUID()).stream().filter(f->f.confidence()>=20).limit(2).map(f->f.reported(world.getGameTime())).toList();
+            if(shared.isEmpty())continue;
+            for(KnowledgeFact fact:shared)knowledge.learn(second.getUUID(),fact);
+            conversations.record(new Conversation(first.getUUID(),second.getUUID(),world.getGameTime(),shared));
         }
     }
 
