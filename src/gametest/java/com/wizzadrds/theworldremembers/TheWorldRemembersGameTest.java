@@ -84,13 +84,14 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
             memories.rememberEvent(parentA.getUUID(), parentB.getUUID(), MemoryEventType.NPC_MARRIED,
                 context.getLevel().getGameTime(), com.wizzadrds.theworldremembers.memory.MemoryImportance.IMPORTANT);
             TheWorldRemembers.processWorld(context.getLevel());
-            FamilyManager families=FamilyManager.get(context.getLevel().getServer());
-            if (families.parentsOf(child.getUUID()).size()!=2) { context.fail("Live baby was not linked to exactly two nearby parents"); return; }
-            if (memories.memoriesOf(child.getUUID()).stream().noneMatch(m -> m.origin() == MemoryOrigin.INHERITED && m.type() == MemoryEventType.NPC_MARRIED)) {
-                context.fail("Child did not inherit an important family memory");
-                return;
-            }
-            NpcInventoryManager inventories = NpcInventoryManager.get(context.getLevel().getServer());
+            context.runAtTickTime(1, () -> {
+                TheWorldRemembers.processWorld(context.getLevel());
+                FamilyManager families=FamilyManager.get(context.getLevel().getServer());
+                if (families.parentsOf(child.getUUID()).size()!=2) { context.fail("Live baby was not linked to exactly two nearby parents"); return; }
+                if (memories.memoriesOf(child.getUUID()).stream().noneMatch(m -> m.origin() == MemoryOrigin.INHERITED && m.type() == MemoryEventType.NPC_MARRIED)) {
+                    context.fail("Child did not inherit an important family memory"); return;
+                }
+                NpcInventoryManager inventories = NpcInventoryManager.get(context.getLevel().getServer());
             inventories.transferIn(parentA.getUUID(), "minecraft:diamond", 1);
             parentA.kill(context.getLevel());
             context.runAtTickTime(1, () -> {
