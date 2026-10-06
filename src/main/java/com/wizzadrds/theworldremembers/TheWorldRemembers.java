@@ -74,6 +74,7 @@ public class TheWorldRemembers implements ModInitializer {
         });
         ServerTickEvents.END_LEVEL_TICK.register(TheWorldRemembers::tickWorld);
         ServerLivingEntityEvents.AFTER_DEATH.register(TheWorldRemembers::handleDeath);
+        com.wizzadrds.theworldremembers.voice.VoiceNetworking.init();
         LOGGER.info("The World Remembers v0.4.0-alpha initialized.");
     }
 

@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.voice; import java.io.IOException; public interface SttAdapter {String transcribe(byte[] pcm16kMono) throws IOException,InterruptedException;}
