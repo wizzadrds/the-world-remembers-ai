@@ -21,6 +21,7 @@ public final class RelationshipManager extends SavedData {
     public static RelationshipManager get(MinecraftServer server) { ServerLevel l=server.getLevel(ServerLevel.OVERWORLD); return l==null?new RelationshipManager():l.getDataStorage().computeIfAbsent(TYPE); }
     public Relationship get(UUID npc, UUID player) { return relationships.get(key(npc, player)); }
     public Relationship getOrCreate(UUID npc, UUID player) { return relationships.computeIfAbsent(key(npc,player), k -> new Relationship(npc,player,0,0,0,0,0,0,0)); }
+    public java.util.Collection<Relationship> all(){return java.util.List.copyOf(relationships.values());}
     public Relationship apply(MemoryEvent event) {
         Relationship current=getOrCreate(event.npcId(),event.playerId());
         RelationshipDelta d=RelationshipDelta.forEvent(event.type());
