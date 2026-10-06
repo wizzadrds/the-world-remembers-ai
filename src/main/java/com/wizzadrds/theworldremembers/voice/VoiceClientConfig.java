@@ -20,6 +20,8 @@ public final class VoiceClientConfig {
     public String apiKey = "";
     public String model = "";
     public String sttModel = "faster-whisper";
+    public String sttCommand = "";
+    public String ttsCommand = "";
     public String ttsModel = "piper";
 
     public static VoiceClientConfig load(Path gameDir) {
