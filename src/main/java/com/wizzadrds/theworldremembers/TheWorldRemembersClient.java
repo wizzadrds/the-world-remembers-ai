@@ -131,8 +131,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 AiChatAdapter ai = new OpenAiResponsesAdapter(voiceConfig.apiKey, voiceConfig.model);
                 String reply = ai.respond(transcript, voiceConfig.systemPrompt);
                 if (reply == null || reply.isBlank()) {
-                    voiceConversation.fail();
-                    return;
+                    throw new IllegalStateException("AI returned an empty reply");
                 }
 
                 VoiceProfile profile = new VoiceProfile(
@@ -142,8 +141,11 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                         .resolve("the_world_remembers_voice_response_" + UUID.randomUUID() + ".wav");
                 voiceConversation.synthesizeAndSpeak(
                         reply, service, profile, output, voicePlayer, voiceConfig.outputVolume, ignored -> {});
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Voice AI request interrupted", e);
             } catch (Exception e) {
-                voiceConversation.fail();
+                throw new RuntimeException("Voice AI request failed", e);
             }
         });
     }
