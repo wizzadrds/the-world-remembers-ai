@@ -48,6 +48,7 @@ public class TheWorldRemembers implements ModInitializer {
     public static final String MOD_ID="the_world_remembers";
     public static final Logger LOGGER=LoggerFactory.getLogger(MOD_ID);
     private static final int TICK_INTERVAL=20;
+    private static final int VILLAGE_SCAN_INTERVAL=100;
     private static final int INTRUSION_COOLDOWN=200;
     private static final double HOME_RADIUS=3.5;
 
@@ -92,7 +93,7 @@ public class TheWorldRemembers implements ModInitializer {
         VillageMigrationManager migrations=VillageMigrationManager.get(world.getServer());
         VillageEventManager villageEvents=VillageEventManager.get(world.getServer());
 
-        observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks, migrations, villageEvents);
+        if (world.getGameTime() % VILLAGE_SCAN_INTERVAL == 0) observeVillages(world, villages, villageHistory, villageResources, villageDefense, landmarks, migrations, villageEvents);
 
         for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),villager -> villager.isAlive()&&!villager.isRemoved())) {
             ages.assignIfAbsent(villager.getUUID(), villager.isBaby() ? NpcAgeGenerator.generateChildAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())) : NpcAgeGenerator.generateAdultAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())));
@@ -123,11 +124,6 @@ public class TheWorldRemembers implements ModInitializer {
             if(world.getGameTime()%200==0&&!world.getEntitiesOfClass(ServerPlayer.class,villager.getBoundingBox().inflate(8),p->true).iterator().hasNext()) stress.recover(villager.getUUID(),1);
         }
 
-        for (Villager villager : world.getEntitiesOfClass(Villager.class,
-                new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),
-                v -> v.isAlive() && !v.isRemoved())) {
-            synchronizeFamilyHome(villager, families, homes);
-        }
     }
     private static void maintainFamilyProtection(Villager villager, FamilyManager families, FamilyProtectionManager protection) {
         for (java.util.UUID child : families.childrenOf(villager.getUUID())) {
