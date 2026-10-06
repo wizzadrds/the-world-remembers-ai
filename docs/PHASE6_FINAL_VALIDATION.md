@@ -1,6 +1,6 @@
 # Phase 6 Final Validation
 
-Phase 6 is complete and validated by GitHub Actions run #267.
+Phase 6 is complete only when the implementation and the live Minecraft validation agree.
 
 - Persistent village identity and population: validated.
 - Village history and typed resident/guardian events: validated.
@@ -10,7 +10,7 @@ Phase 6 is complete and validated by GitHub Actions run #267.
 - Landmarks from real village POIs: validated.
 - Migration preserves village identity and records movement: validated.
 - Village-scale GameTests: validated.
-- Population-scale performance validation: validated.
-- Final Gradle build and headless Fabric server smoke test: passed in CI run #267.
+- Population-scale performance: validated.
+- Final CI run #267 passed Gradle build/GameTests and the headless Fabric server smoke test.
 
-No Phase 6 completion claim is based solely on unit tests.
+The release version is v0.6.0-alpha.

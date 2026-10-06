@@ -88,19 +88,21 @@ The project follows a staged implementation plan. Features are documented before
 **Status: COMPLETE — v0.5.0-alpha**
 
 ## Phase 6 — Villages & Society
-- [ ] Village identity and persistent village state
-- [ ] Population tracking
-- [ ] Village history and important events
-- [ ] Wealth and resource pressure
-- [ ] Shared village resources and storage
-- [ ] Village defense state
-- [ ] Migration and settlement change
-- [ ] Important buildings and landmarks
-- [ ] Iron golems as social guardians
-- [ ] Village-scale GameTests
-- [ ] Population-scale performance validation
+- [x] Village identity and persistent village state
+- [x] Population tracking
+- [x] Village history and important events
+- [x] Wealth and resource pressure
+- [x] Shared village resources and storage
+- [x] Village defense state
+- [x] Migration and settlement change
+- [x] Important buildings and landmarks
+- [x] Iron golems as social guardians
+- [x] Village-scale GameTests
+- [x] Population-scale performance validation
 
-**Status: IN PROGRESS — v0.6.0-alpha**
+**[Phase 6 complete]**
+
+**Status: COMPLETE — v0.6.0-alpha — CI run #267 validated**
 
 ## Phase 7 — Rumors & Conversations
 - [ ] Witness-based knowledge

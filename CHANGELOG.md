@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.6.0-alpha — Phase 6 Villages & Society
+- Added persistent village identity, population and history.
+- Added typed village events, migration history and resident/guardian death memory.
+- Added live resource pressure and shared storage derived from real Minecraft state.
+- Added village defense, landmarks and population-scale validation.
+- Added dedicated village GameTests and final CI validation.
+
 ## v0.4.0-alpha — Phase 4 Behavior
 - Completed live NPC behavior integration.
 - Added persistent homes, stress, travel state, inventory/equipment synchronization and role-aware behavior.
