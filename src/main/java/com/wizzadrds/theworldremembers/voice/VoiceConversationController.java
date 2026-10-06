@@ -16,6 +16,7 @@ public final class VoiceConversationController implements AutoCloseable {
 
     private volatile VoiceConversationState state = VoiceConversationState.IDLE;
     private volatile Consumer<VoiceConversationState> stateListener = ignored -> {};
+    private long sessionGeneration;
 
     public VoiceConversationState state() {
         return state;
@@ -25,8 +26,9 @@ public final class VoiceConversationController implements AutoCloseable {
         stateListener = Objects.requireNonNull(listener);
     }
 
-    public void beginListening() {
+    public synchronized void beginListening() {
         if (state == VoiceConversationState.IDLE || state == VoiceConversationState.ERROR) {
+            sessionGeneration++;
             setState(VoiceConversationState.LISTENING);
         }
     }
@@ -34,13 +36,16 @@ public final class VoiceConversationController implements AutoCloseable {
     public void finishListening(byte[] pcm, VoiceService service, Consumer<String> transcriptConsumer) {
         if (state != VoiceConversationState.LISTENING) return;
         setState(VoiceConversationState.PROCESSING);
+        final long generation = sessionGeneration;
         worker.submit(() -> {
             String transcript = service.transcribe(pcm);
+            if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
             if (transcript == null || transcript.isBlank()) {
                 fail();
                 return;
             }
             try {
+                if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
                 transcriptConsumer.accept(transcript);
             } catch (RuntimeException e) {
                 fail();
@@ -57,15 +62,19 @@ public final class VoiceConversationController implements AutoCloseable {
             float outputVolume,
             Consumer<Path> completed) {
         setState(VoiceConversationState.PROCESSING);
+        final long generation = sessionGeneration;
         worker.submit(() -> {
             Path audio = null;
             try {
+                if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
                 audio = service.synthesize(text, profile, output);
+                if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
                 if (audio == null || !Files.exists(audio)) {
                     fail();
                     return;
                 }
                 setState(VoiceConversationState.SPEAKING);
+                if (generation != sessionGeneration) return;
                 player.play(audio, outputVolume);
                 completed.accept(audio);
                 finishSpeaking();
@@ -93,7 +102,8 @@ public final class VoiceConversationController implements AutoCloseable {
         setState(VoiceConversationState.ERROR);
     }
 
-    public void reset() {
+    public synchronized void reset() {
+        sessionGeneration++;
         setState(VoiceConversationState.IDLE);
     }
 
