@@ -167,7 +167,7 @@ public class TheWorldRemembers implements ModInitializer {
             synchronizeFamilyHome(villager, families, homes);
         }
     }
-    private static void talkToVillager(ServerPlayer player, Villager villager, MemoryManager memories) {
+    static void talkToVillager(ServerPlayer player, Villager villager, MemoryManager memories) {
         RelationshipManager relationships = RelationshipManager.get(player.level().getServer());
         Relationship relationship = relationships.getOrCreate(villager.getUUID(), player.getUUID());
         String line = NpcDialogue.reply(villager.getName().getString(), relationship, memories.memoriesOf(villager.getUUID()).stream().filter(m -> m.playerId().equals(player.getUUID())).toList());
@@ -182,7 +182,7 @@ public class TheWorldRemembers implements ModInitializer {
         player.sendSystemMessage(Component.literal(villager.getName().getString() + ": " + line));
     }
 
-    private static void handleDamage(LivingEntity entity, net.minecraft.world.damagesource.DamageSource source,
+    static void handleDamage(LivingEntity entity, net.minecraft.world.damagesource.DamageSource source,
                                       float baseDamage, float damageTaken, boolean blocked) {
         if (!(entity instanceof Villager villager) || !(entity.level() instanceof ServerLevel world)) return;
         if (!(source.getEntity() instanceof ServerPlayer attacker)) return;
