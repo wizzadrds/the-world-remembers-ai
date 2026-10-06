@@ -18,7 +18,7 @@ public final class NpcInventoryManager extends SavedData {
     /** Important inherited stacks that did not fit in the heir's live inventory yet. */
     private final Map<UUID,NpcInventory> pendingInherited=new HashMap<>();
 
-    private static final Codec<NpcInventory> INVENTORY_CODEC=NpcItemStack.CODEC.listOf().xmap(NpcInventory::new,NpcInventory::items);
+    static final Codec<NpcInventory> INVENTORY_CODEC=NpcItemStack.CODEC.listOf().xmap(NpcInventory::new,NpcInventory::items);
     private static final Codec<Map<UUID,NpcInventory>> INVENTORIES_CODEC =
             Codec.unboundedMap(Codec.STRING.xmap(UUID::fromString, UUID::toString), INVENTORY_CODEC);
 
