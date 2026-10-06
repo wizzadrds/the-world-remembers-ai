@@ -164,6 +164,6 @@ Phase 8 acceptance is satisfied by local adapter contracts, deterministic bounde
 - [x] Final release artifact validation
 - [ ] Release tag
 
-**[v1.0 complete]**
+**[v1.0 integration complete]**
 
-**Status: COMPLETE — v1.0.0**
+**Status: INTEGRATED — v1.0.0 documentation line; release tag/artifact publication pending**

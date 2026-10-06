@@ -6,7 +6,7 @@ Minecraft Java mod focused on persistent memory, relationships, emergent NPC beh
 
 ## Status
 
-**Current milestone:** v1.0.0 — The World Remembers complete and CI-validated
+**Current milestone:** v1.0.0 integration complete — release artifact/tag pending final publication
 
 ## Core pillars
 

@@ -1,6 +1,7 @@
 # Changelog
 
-## v1.0.0 — The World Remembers
+## v1.0.0 — The World Remembers (integration)
+> Release publication is intentionally pending until the final GitHub artifact and tag exist.
 - Integrated the completed memory, personality, relationships, behavior, families, villages, rumors, local voice, chronicles and dreams systems.
 - Added explicit v1.0 release acceptance criteria and final CI gates.
 - Final CI run #409 passed Gradle build/tests, Minecraft client GameTests and headless Fabric server smoke test.
