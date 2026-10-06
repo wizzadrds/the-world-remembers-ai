@@ -44,6 +44,7 @@ import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.Items;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -62,9 +63,12 @@ public class TheWorldRemembers implements ModInitializer {
     /** Global village scans are deliberately much less frequent than individual NPC simulation. */
     private static final int VILLAGE_SCAN_INTERVAL=200;
     /** Social knowledge/conversation propagation is deliberately decoupled from the live behavior tick. */
-    private static final int CONVERSATION_INTERVAL=100;
+    private static final int VILLAGER_DISCOVERY_INTERVAL=40;
+    private static final int SOCIAL_BUDGET_PER_TICK=8;
     private static final int INTRUSION_COOLDOWN=200;
     private static final java.util.Map<ServerLevel,Integer> VILLAGER_CURSORS = new java.util.WeakHashMap<>();
+    private static final java.util.Map<ServerLevel,Integer> SOCIAL_CURSORS = new java.util.WeakHashMap<>();
+    private static final java.util.Map<ServerLevel,java.util.List<UUID>> VILLAGER_REGISTRY = new java.util.WeakHashMap<>();
     private static final double HOME_RADIUS=3.5;
 
     @Override public void onInitialize() {
@@ -135,16 +139,23 @@ public class TheWorldRemembers implements ModInitializer {
             processConversations(world, memories, knowledge, conversations);
         }
 
-        java.util.List<Villager> loadedVillagers = new java.util.ArrayList<>(world.getEntitiesOfClass(
-                Villager.class,
-                new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),
-                villager -> villager.isAlive() && !villager.isRemoved()));
-        if (budgeted && !loadedVillagers.isEmpty()) {
-            int start = VILLAGER_CURSORS.getOrDefault(world, 0) % loadedVillagers.size();
-            java.util.Collections.rotate(loadedVillagers, -start);
-            int advanced = Math.min(VILLAGER_BUDGET_PER_TICK, loadedVillagers.size());
-            VILLAGER_CURSORS.put(world, (start + advanced) % loadedVillagers.size());
+        if (budgeted && (world.getGameTime() % VILLAGER_DISCOVERY_INTERVAL == 0 || !VILLAGER_REGISTRY.containsKey(world))) {
+            refreshVillagerRegistry(world);
         }
+
+        java.util.List<Villager> loadedVillagers = budgeted
+                ? nextBudgetedVillagers(world, VILLAGER_BUDGET_PER_TICK)
+                : new java.util.ArrayList<>(world.getEntitiesOfClass(
+                    Villager.class,
+                    new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),
+                    villager -> villager.isAlive() && !villager.isRemoved()));
+        if (budgeted) {
+            processConversations(world, memories, knowledge, conversations,
+                    nextBudgetedVillagers(world, SOCIAL_BUDGET_PER_TICK));
+        } else {
+            processConversations(world, memories, knowledge, conversations);
+        }
+
         for(Villager villager : loadedVillagers) {
             if(villager.isSleeping() && dreams.latest(villager.getUUID()).map(d -> world.getGameTime()-d.generatedAt() >= 1200).orElse(true)) dreams.generateForSleepingNpc(villager.getUUID(),world.getGameTime(),memories.memoriesOf(villager.getUUID()));
             ages.assignIfAbsent(villager.getUUID(), villager.isBaby() ? NpcAgeGenerator.generateChildAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())) : NpcAgeGenerator.generateAdultAge(new java.util.Random(villager.getUUID().getMostSignificantBits() ^ villager.getUUID().getLeastSignificantBits())));
@@ -168,7 +179,7 @@ public class TheWorldRemembers implements ModInitializer {
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress);
             applyLiveSocialBehavior(world, villager, relationships, stress, behavior, homes, homeStorage);
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
-            for(ServerPlayer player:world.players()) {
+            for(ServerPlayer player:world.getEntitiesOfClass(ServerPlayer.class, villager.getBoundingBox().inflate(12), p -> p.isAlive())) {
                 if(player.blockPosition().distSqr(entrance)>HOME_RADIUS*HOME_RADIUS) continue;
                 if(villager.distanceToSqr(player)>12*12) continue;
                 Relationship relationship=relationships.get(villager.getUUID(),player.getUUID());
@@ -214,20 +225,62 @@ public class TheWorldRemembers implements ModInitializer {
     }
 
     private static void processConversations(ServerLevel world, MemoryManager memories, KnowledgeManager knowledge, ConversationManager conversations) {
-        for(Villager villager:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),v->v.isAlive()&&!v.isRemoved())) {
-            for(Memory memory:memories.memoriesOf(villager.getUUID()).stream().limit(8).toList())
-                knowledge.learn(villager.getUUID(),new KnowledgeFact(memory.playerId(),memory.type(),memory.gameTime(),villager.getUUID(),KnowledgeOrigin.DIRECT,100,memory.gameTime()));
+        processConversations(world, memories, knowledge, conversations,
+                new java.util.ArrayList<>(world.getEntitiesOfClass(Villager.class,
+                        new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),
+                        v -> v.isAlive() && !v.isRemoved())));
+    }
+
+    private static void processConversations(ServerLevel world, MemoryManager memories, KnowledgeManager knowledge,
+                                              ConversationManager conversations, java.util.List<Villager> villagers) {
+        for (Villager villager : villagers) {
+            for (Memory memory : memories.memoriesOf(villager.getUUID()).stream().limit(8).toList()) {
+                knowledge.learn(villager.getUUID(), new KnowledgeFact(memory.playerId(), memory.type(), memory.gameTime(),
+                        villager.getUUID(), KnowledgeOrigin.DIRECT, 100, memory.gameTime()));
+            }
         }
         knowledge.decay(world.getGameTime());
-        if(world.getGameTime()%200!=0)return;
-        for(Villager first:world.getEntitiesOfClass(Villager.class,new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),v->v.isAlive()&&!v.isRemoved())) {
-            Villager second=world.getEntitiesOfClass(Villager.class,first.getBoundingBox().inflate(4),v->v.isAlive()&&!v.getUUID().equals(first.getUUID())).stream().findFirst().orElse(null);
-            if(second==null)continue;
-            java.util.List<KnowledgeFact> shared=knowledge.facts(first.getUUID()).stream().filter(f->f.confidence()>=20).limit(2).map(f->f.reported(world.getGameTime())).toList();
-            if(shared.isEmpty())continue;
-            for(KnowledgeFact fact:shared)knowledge.learn(second.getUUID(),fact);
-            conversations.record(new Conversation(first.getUUID(),second.getUUID(),world.getGameTime(),shared));
+        if (world.getGameTime() % 40 != 0) return;
+        for (Villager first : villagers) {
+            Villager second = world.getEntitiesOfClass(Villager.class, first.getBoundingBox().inflate(4),
+                    v -> v.isAlive() && !v.getUUID().equals(first.getUUID())).stream().findFirst().orElse(null);
+            if (second == null) continue;
+            java.util.List<KnowledgeFact> shared = knowledge.facts(first.getUUID()).stream()
+                    .filter(f -> f.confidence() >= 20).limit(2)
+                    .map(f -> f.reported(world.getGameTime())).toList();
+            if (shared.isEmpty()) continue;
+            for (KnowledgeFact fact : shared) knowledge.learn(second.getUUID(), fact);
+            conversations.record(new Conversation(first.getUUID(), second.getUUID(), world.getGameTime(), shared));
         }
+    }
+
+    private static void refreshVillagerRegistry(ServerLevel world) {
+        java.util.List<UUID> ids = new java.util.ArrayList<>();
+        for (Villager villager : world.getEntitiesOfClass(Villager.class,
+                new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),
+                v -> v.isAlive() && !v.isRemoved())) {
+            ids.add(villager.getUUID());
+        }
+        VILLAGER_REGISTRY.put(world, ids);
+        VILLAGER_CURSORS.put(world, 0);
+        SOCIAL_CURSORS.putIfAbsent(world, 0);
+    }
+
+    private static java.util.List<Villager> nextBudgetedVillagers(ServerLevel world, int budget) {
+        java.util.List<UUID> ids = VILLAGER_REGISTRY.get(world);
+        if (ids == null || ids.isEmpty() || budget <= 0) return new java.util.ArrayList<>();
+        int start = VILLAGER_CURSORS.getOrDefault(world, 0) % ids.size();
+        java.util.List<Villager> result = new java.util.ArrayList<>(Math.min(budget, ids.size()));
+        int checked = 0;
+        int index = start;
+        while (checked < ids.size() && result.size() < budget) {
+            Entity entity = world.getEntity(ids.get(index));
+            if (entity instanceof Villager villager && villager.isAlive() && !villager.isRemoved()) result.add(villager);
+            index = (index + 1) % ids.size();
+            checked++;
+        }
+        VILLAGER_CURSORS.put(world, index);
+        return result;
     }
 
     private static void maintainFamilyProtection(Villager villager, FamilyManager families, FamilyProtectionManager protection) {
