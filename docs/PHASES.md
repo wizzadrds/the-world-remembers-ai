@@ -102,7 +102,7 @@ The project follows a staged implementation plan. Features are documented before
 
 **[Phase 6 complete]**
 
-**Status: COMPLETE — v0.6.0-alpha — CI run #277 validated**
+**Status: COMPLETE — v0.6.0-alpha — CI run #287 validated**
 
 ## Phase 7 — Rumors & Conversations
 - [ ] Witness-based knowledge
