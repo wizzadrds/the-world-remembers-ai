@@ -17,14 +17,6 @@ public final class MemoryManager extends SavedData {
     public static MemoryManager get(MinecraftServer server){ServerLevel l=server.getLevel(ServerLevel.OVERWORLD);return l==null?new MemoryManager():l.getDataStorage().computeIfAbsent(TYPE);}
     public Memory rememberBreadGift(ServerPlayer player,Villager villager){return rememberEvent(villager.getUUID(),player.getUUID(),MemoryEventType.PLAYER_GAVE_BREAD,player.level().getGameTime(),MemoryImportance.IMPORTANT);}
     public Memory rememberEvent(UUID npc,UUID player,MemoryEventType type,long time,MemoryImportance importance){
-        if (type == MemoryEventType.PLAYER_TALKED || type == MemoryEventType.PLAYER_ATTACKED_NPC || type == MemoryEventType.GOLEM_CALLED_FOR_HELP) {
-            for (int i=memories.size()-1;i>=0;i--) {
-                Memory existing=memories.get(i);
-                if (!existing.npcId().equals(npc) || !existing.playerId().equals(player) || existing.type()!=type) continue;
-                if (time-existing.gameTime()<20) return existing;
-                break;
-            }
-        }
         Memory m=new Memory(npc,player,type,time,importance);memories.add(m);prune();setDirty();return m;
     }
     private void prune(){while(memories.size()>MAX_MEMORIES){int idx=0;for(int i=1;i<memories.size();i++)if(memories.get(i).importance().ordinal()<memories.get(idx).importance().ordinal())idx=i;memories.remove(idx);}}
