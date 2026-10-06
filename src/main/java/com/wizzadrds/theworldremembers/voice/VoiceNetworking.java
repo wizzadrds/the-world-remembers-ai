@@ -1,6 +1,7 @@
 package com.wizzadrds.theworldremembers.voice;
 
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -20,6 +21,10 @@ public final class VoiceNetworking {
         PayloadTypeRegistry.clientboundPlay().register(VoicePacket.TYPE, VoicePacket.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(VoiceAudioPacket.TYPE, VoiceAudioPacket.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(VoiceAudioPacket.TYPE, VoiceAudioPacket.CODEC);
+
+        // A disconnected player must not leave rate-limit state behind forever.
+        ServerPlayConnectionEvents.DISCONNECT.register((listener, server) ->
+                RATE_LIMITS.remove(listener.getPlayer().getUUID()));
 
         ServerPlayNetworking.registerGlobalReceiver(VoiceAudioPacket.TYPE, (payload, context) -> {
             ServerPlayer sender = context.player();
