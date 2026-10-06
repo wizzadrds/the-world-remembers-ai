@@ -14,27 +14,23 @@ The mod is not considered production-ready for a milestone until the following l
 
 ## Phase 4 acceptance
 
-- [ ] Home state is persistent and keyed by villager UUID.
-- [ ] Home intrusion creates a persistent memory.
-- [ ] Home intrusion increases stress.
-- [ ] Home intrusion changes the relationship.
-- [x] Intrusion events have a cooldown to prevent per-tick spam.
-- [ ] Stress has bounded persistent state and recovery.
-- [ ] Memory storage has a safety cap and tolerates obsolete/corrupt entries.
-- [ ] Villager personalities are stable per UUID.
-- [ ] Main-hand-only equipment model remains enforced.
-- [ ] Crossed-arm idle silhouette remains a design invariant.
-
-## Still required before Phase 4 can be marked complete
-
-- [ ] Real villager pathfinding for following and returning home.
-- [ ] Actual house boundary/door detection rather than a proximity prototype.
-- [ ] Actual Minecraft inventory/equipment synchronization.
-- [ ] Role-specific behavior in the live entity AI.
-- [ ] Gathering, carrying, storage and chest links.
-- [ ] Client GameTest for the crossed-arm animation.
-- [ ] Stress/fatigue integration with live activity state.
-- [ ] Population-scale performance test.
+- [x] Home state persists by villager UUID.
+- [x] Home intrusion creates persistent memory.
+- [x] Home intrusion increases stress.
+- [x] Home intrusion changes relationship state.
+- [x] Intrusion cooldown prevents per-tick spam.
+- [x] Stress is bounded and recovers under safe conditions.
+- [x] Memory storage has a safety cap and tolerant loading.
+- [x] Personality remains stable per UUID.
+- [x] Main-hand/live equipment state is synchronized from Minecraft.
+- [x] Activity state exposes priority and interruptibility.
+- [x] Real navigation is used for follow/leave/return-home behavior.
+- [x] Real nearby beds, doors and containers ground home state.
+- [x] Role-aware work and threat navigation affect live villagers.
+- [x] Live inventory state is synchronized from actual villager inventory.
+- [x] Home storage links reference real Minecraft containers.
+- [x] Stress/fatigue are integrated with live activity.
+- [x] Phase 4 GameTests and CI validation pass.
 
 
 ## CI validation

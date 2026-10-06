@@ -13,7 +13,7 @@ Minecraft Java mod focused on persistent memory, relationships, emergent NPC beh
 - Memory: meaningful events are stored and recalled. **[Phase 1 complete]**
 - Personality: NPCs react differently to the same event. **[Phase 2 complete]**
 - Relationships: trust, fear, gratitude and resentment evolve from remembered events. **[Phase 3 complete]**
-- Behavior: NPCs decide whether to talk, continue, leave, work or ignore.
+- Behavior: NPCs decide whether to talk, continue, leave, work or ignore. **[Phase 4 complete]**
 - Families: parents, siblings, spouses, shared homes and inherited history persist across generations.
 - Society: villages, rumors and generations evolve.
 - Voice: planned as a local-first optional feature.

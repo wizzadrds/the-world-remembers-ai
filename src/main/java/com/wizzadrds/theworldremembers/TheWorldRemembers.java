@@ -9,6 +9,8 @@ import com.wizzadrds.theworldremembers.family.FamilyProtectionManager;
 import com.wizzadrds.theworldremembers.behavior.NpcBehaviorEngine;
 import com.wizzadrds.theworldremembers.behavior.NpcDecision;
 import com.wizzadrds.theworldremembers.behavior.NpcActivity;
+import com.wizzadrds.theworldremembers.behavior.NpcActivityManager;
+import com.wizzadrds.theworldremembers.stress.NpcFatigueManager;
 import com.wizzadrds.theworldremembers.stress.NpcStress;
 import com.wizzadrds.theworldremembers.personality.PersonalityTrait;
 import com.wizzadrds.theworldremembers.inventory.NpcInventoryManager;
@@ -83,6 +85,11 @@ public class TheWorldRemembers implements ModInitializer {
         NpcHomeManager homes=NpcHomeManager.get(world);
         NpcAgeManager ages=NpcAgeManager.get(world.getServer());
         NpcStressManager stress=NpcStressManager.get(world);
+        NpcFatigueManager fatigue=NpcFatigueManager.get(world.getServer());
+        NpcActivityManager activities=NpcActivityManager.get(world.getServer());
+        NpcInventoryManager inventories=NpcInventoryManager.get(world.getServer());
+        com.wizzadrds.theworldremembers.equipment.NpcEquipmentManager equipment=com.wizzadrds.theworldremembers.equipment.NpcEquipmentManager.get(world.getServer());
+        NpcHomeStorageManager homeStorage=NpcHomeStorageManager.get(world.getServer());
         NpcBehaviorEngine behavior=new NpcBehaviorEngine();
         MemoryManager memories=MemoryManager.get(world.getServer());
         RelationshipManager relationships=RelationshipManager.get(world.getServer());
@@ -105,18 +112,26 @@ public class TheWorldRemembers implements ModInitializer {
             if (villager.isBaby() && !families.hasParents(villager.getUUID())) linkBabyToNearbyParents(world, villager, families, memories);
             if (!villager.isBaby() && ages.get(villager.getUUID()).isAdult() && !families.hasSpouse(villager.getUUID())) processCourtship(world, villager, families, courtship, memories, ages);
             if (!villager.isBaby()) maintainFamilyProtection(villager, families, protection);
+            inventories.synchronizeFromVillager(villager);
+            equipment.sync(villager);
             NpcHome home=homes.get(villager.getUUID());
             if(home==null) {
-                BlockPos pos=villager.blockPosition();
-                home=homes.assignIfAbsent(villager.getUUID(),pos,null,pos);
+                BlockPos pos=findNearbyHomePoi(world,villager.blockPosition());
+                if(pos==null)pos=villager.blockPosition();
+                BlockPos door=findNearbyDoor(world,pos);
+                home=homes.assignIfAbsent(villager.getUUID(),pos,pos,door==null?pos:door);
             }
             synchronizeFamilyHome(villager, families, homes);
             home=homes.get(villager.getUUID());
+            if(homeStorage.get(villager.getUUID())==null){BlockPos storage=findNearestContainer(world,home.homePos(),8);if(storage!=null)homeStorage.link(villager.getUUID(),storage);}
+            activities.set(villager.getUUID(),villager.isSleeping()?NpcActivity.SLEEPING:(villager.getNavigation().isInProgress()?NpcActivity.WALKING:NpcActivity.IDLE),10,villager.blockPosition(),world.getGameTime());
+            if(villager.getNavigation().isInProgress())fatigue.increase(villager.getUUID(),1);else fatigue.recover(villager.getUUID(),1);
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress);
-            applyLiveSocialBehavior(world, villager, relationships, stress, behavior, homes);
+            applyLiveSocialBehavior(world, villager, relationships, stress, behavior, homes, homeStorage);
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
             for(ServerPlayer player:world.players()) {
                 if(player.blockPosition().distSqr(entrance)>HOME_RADIUS*HOME_RADIUS) continue;
+                if(villager.distanceToSqr(player)>12*12) continue;
                 Relationship relationship=relationships.get(villager.getUUID(),player.getUUID());
                 if(relationship==null) continue;
                 HomeAccess access=HomeAccessPolicy.evaluate(relationship,PersonalityGenerator.generate(villager.getUUID()),false);
@@ -136,8 +151,13 @@ public class TheWorldRemembers implements ModInitializer {
             synchronizeFamilyHome(villager, families, homes);
         }
     }
-    private static void applyLiveSocialBehavior(ServerLevel world, Villager villager, RelationshipManager relationships, NpcStressManager stress, NpcBehaviorEngine behavior, NpcHomeManager homes) {
+    private static void applyLiveSocialBehavior(ServerLevel world, Villager villager, RelationshipManager relationships, NpcStressManager stress, NpcBehaviorEngine behavior, NpcHomeManager homes, NpcHomeStorageManager homeStorage) {
         if (!villager.getNavigation().isDone() && !villager.isTrading()) return;
+        String role=villager.getVillagerData().toString().toLowerCase(java.util.Locale.ROOT);
+        boolean worker=role.contains("farmer")||role.contains("librarian")||role.contains("cleric")||role.contains("armorer")||role.contains("toolsmith")||role.contains("weaponsmith");
+        boolean danger=!world.getEntitiesOfClass(net.minecraft.world.entity.monster.Monster.class,villager.getBoundingBox().inflate(8),m->m.isAlive()).isEmpty();
+        if(danger){NpcHome home=homes.get(villager.getUUID());if(home!=null)villager.getNavigation().moveTo(home.homePos().getX(),home.homePos().getY(),home.homePos().getZ(),1.15);stress.increase(villager.getUUID(),2);return;}
+        if(worker && villager.getInventory().getContainerSize()>0 && homeStorage.get(villager.getUUID())!=null){BlockPos storage=homeStorage.get(villager.getUUID());if(villager.blockPosition().distSqr(storage)>4*4)villager.getNavigation().moveTo(storage.getX(),storage.getY(),storage.getZ(),0.8);}
         for (ServerPlayer player : world.getEntitiesOfClass(ServerPlayer.class, villager.getBoundingBox().inflate(12), p -> p.isAlive())) {
             Relationship relationship=relationships.get(villager.getUUID(),player.getUUID());
             if(relationship==null) continue;
@@ -200,10 +220,10 @@ public class TheWorldRemembers implements ModInitializer {
         families.addParentChild(adults.get(1).getUUID(), child.getUUID());
         if (families.parentsOf(child.getUUID()).size() == 2) {
             long time=world.getGameTime();
-            memories.rememberEvent(child.getUUID(), adults.get(0).getUUID(), MemoryEventType.NPC_BORN, time, MemoryImportance.IMPORTANT);
-            memories.rememberEvent(child.getUUID(), adults.get(1).getUUID(), MemoryEventType.NPC_BORN, time, MemoryImportance.IMPORTANT);
             memories.inheritFamilyHistory(adults.get(0).getUUID(), child.getUUID(), time);
             memories.inheritFamilyHistory(adults.get(1).getUUID(), child.getUUID(), time);
+            memories.rememberEvent(child.getUUID(), adults.get(0).getUUID(), MemoryEventType.NPC_BORN, time, MemoryImportance.IMPORTANT);
+            memories.rememberEvent(child.getUUID(), adults.get(1).getUUID(), MemoryEventType.NPC_BORN, time, MemoryImportance.IMPORTANT);
             families.linkSiblingsFromSharedParent(child.getUUID());
         }
     }
@@ -295,6 +315,10 @@ public class TheWorldRemembers implements ModInitializer {
             for(var pos:world.getPoiManager().findAllWithType(type->type.is(PoiTypeTags.VILLAGE),pos->true,center,32,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).map(pair->pair.getSecond()).toList()) landmarks.add(villageId,new VillageLandmark("village_poi",pos,world.getGameTime()));
         }
     }
+    private static BlockPos findNearbyHomePoi(ServerLevel world,BlockPos pos){return world.getPoiManager().findClosest(type->type.is(net.minecraft.world.entity.ai.village.poi.PoiTypes.HOME),pos,16,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).orElse(null);}
+    private static BlockPos findNearbyDoor(ServerLevel world,BlockPos pos){BlockPos best=null;double d=257;for(BlockPos p:BlockPos.betweenClosed(pos.offset(-8,-2,-8),pos.offset(8,4,8)))if(world.getBlockState(p).is(net.minecraft.tags.BlockTags.DOORS)){double x=p.distSqr(pos);if(x<d){d=x;best=p.immutable();}}return best;}
+    private static BlockPos findNearestContainer(ServerLevel world,BlockPos center,int radius){BlockPos best=null;double d=Double.MAX_VALUE;for(BlockPos p:BlockPos.betweenClosed(center.offset(-radius,-3,-radius),center.offset(radius,3,radius)))if(world.getBlockEntity(p) instanceof net.minecraft.world.Container){double x=p.distSqr(center);if(x<d){d=x;best=p.immutable();}}return best;}
+
     private static boolean hasRecentIntrusion(MemoryManager memories,Villager villager,ServerPlayer player,long gameTime){
         return memories.findMostRecentMemory(villager.getUUID(),player.getUUID(),MemoryEventType.PLAYER_ENTERED_NPC_HOME).map(m->gameTime-m.gameTime()<INTRUSION_COOLDOWN).orElse(false);
     }
