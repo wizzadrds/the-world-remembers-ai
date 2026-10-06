@@ -10,7 +10,7 @@ import java.util.UUID;
 
 public final class VoiceNetworking {
     private static final float MAX_DISTANCE = 64.0f;
-    private static final int MAX_FRAMES_PER_WINDOW = 12;
+    private static final int MAX_FRAMES_PER_WINDOW = 25;
     private static final long RATE_WINDOW_TICKS = 10;
     private static final Map<UUID, RateState> RATE_LIMITS = new HashMap<>();
 
@@ -18,6 +18,7 @@ public final class VoiceNetworking {
 
     public static void init() {
         PayloadTypeRegistry.clientboundPlay().register(VoicePacket.TYPE, VoicePacket.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(VoiceAudioPacket.TYPE, VoiceAudioPacket.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(VoiceAudioPacket.TYPE, VoiceAudioPacket.CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(VoiceAudioPacket.TYPE, (payload, context) -> {
