@@ -45,7 +45,7 @@ public final class FamilyManager extends SavedData {
             (existing == FamilyRelationType.PARENT && incoming == FamilyRelationType.CHILD) ||
             (existing == FamilyRelationType.CHILD && incoming == FamilyRelationType.PARENT);
     }
-    public List<FamilyRelation> getRelations(UUID id){return relations.stream().filter(r->r.npcId().equals(id)||r.relatedNpcId().equals(id)).toList();}
+    public List<FamilyRelation> all(){return List.copyOf(relations);} public List<FamilyRelation> getRelations(UUID id){return relations.stream().filter(r->r.npcId().equals(id)||r.relatedNpcId().equals(id)).toList();}
     public List<UUID> parentsOf(UUID child) { return relations.stream().filter(r -> r.relatedNpcId().equals(child) && r.type() == FamilyRelationType.PARENT).map(FamilyRelation::npcId).toList(); }
     public List<UUID> childrenOf(UUID parent) { return relations.stream().filter(r -> r.npcId().equals(parent) && r.type() == FamilyRelationType.PARENT).map(FamilyRelation::relatedNpcId).toList(); }
     public boolean hasParents(UUID child) { return !parentsOf(child).isEmpty(); }

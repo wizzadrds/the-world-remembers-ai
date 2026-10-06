@@ -19,6 +19,7 @@ import com.wizzadrds.theworldremembers.personality.PersonalityGenerator;
 import com.wizzadrds.theworldremembers.relationship.*;
 import com.wizzadrds.theworldremembers.stress.NpcStressManager;
 import com.wizzadrds.theworldremembers.village.VillageManager;
+import com.wizzadrds.theworldremembers.chronicle.ChronicleNetworking;
 import com.wizzadrds.theworldremembers.rumor.*;
 import com.wizzadrds.theworldremembers.village.VillageHistoryManager;
 import com.wizzadrds.theworldremembers.village.VillageResourceManager;
@@ -59,6 +60,7 @@ public class TheWorldRemembers implements ModInitializer {
     private static final double HOME_RADIUS=3.5;
 
     @Override public void onInitialize() {
+        ChronicleNetworking.init();
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             if (world.isClientSide() || !(player instanceof ServerPlayer serverPlayer) || !(entity instanceof Villager villager)) return InteractionResult.PASS;
             if (!serverPlayer.getItemInHand(hand).is(Items.BREAD)) return InteractionResult.PASS;

@@ -20,7 +20,7 @@ public final class MemoryManager extends SavedData {
         Memory m=new Memory(npc,player,type,time,importance);memories.add(m);prune();setDirty();return m;
     }
     private void prune(){while(memories.size()>MAX_MEMORIES){int idx=0;for(int i=1;i<memories.size();i++)if(memories.get(i).importance().ordinal()<memories.get(idx).importance().ordinal())idx=i;memories.remove(idx);}}
-    public List<Memory> memoriesOf(UUID npc) {
+    public List<Memory> all(){return List.copyOf(memories);} public List<Memory> memoriesOf(UUID npc) {
         return memories.stream().filter(m -> m.npcId().equals(npc)).toList();
     }
 

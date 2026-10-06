@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.chronicle; public record ChronicleEntry(long tick,String category,String title,String detail){}
