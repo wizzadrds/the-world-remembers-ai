@@ -6,12 +6,12 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class VoiceSettingsScreen extends Screen {
     private final Screen parent;
     private final VoiceClientConfig config;
-    private EditBox microphone;
-    private EditBox provider;
     private EditBox apiKey;
     private EditBox model;
     private EditBox sttCommand;
@@ -19,6 +19,12 @@ public final class VoiceSettingsScreen extends Screen {
     private EditBox inputVolume;
     private EditBox outputVolume;
     private EditBox distance;
+    private Button microphoneButton;
+    private Button providerButton;
+    private List<String> microphones = List.of(MicrophoneCapture.DEFAULT_DEVICE);
+    private List<String> providers = List.of("openai");
+    private int microphoneIndex;
+    private int providerIndex;
 
     public VoiceSettingsScreen(Screen parent, VoiceClientConfig config) {
         super(Component.literal("The World Remembers — Voice & AI"));
@@ -32,25 +38,66 @@ public final class VoiceSettingsScreen extends Screen {
         int right = this.width / 2 + 5;
         int top = 42;
 
-        microphone = field(left, top, "Microphone", config.microphone);
-        provider = field(right, top, "AI Provider", config.provider);
-        provider.setSuggestion("openai");
+        microphones = MicrophoneCapture.devices();
+        if (microphones.isEmpty()) microphones = List.of(MicrophoneCapture.DEFAULT_DEVICE);
+        microphoneIndex = indexOfIgnoreCase(microphones, config.microphone);
+        if (microphoneIndex < 0) microphoneIndex = 0;
+
+        providers = configuredProviders();
+        providerIndex = indexOfIgnoreCase(providers, config.provider);
+        if (providerIndex < 0) providerIndex = 0;
+
+        microphoneButton = Button.builder(microphoneLabel(), button -> cycleMicrophone())
+                .bounds(left, top, 150, 20).build();
+        this.addRenderableWidget(microphoneButton);
+
+        providerButton = Button.builder(providerLabel(), button -> cycleProvider())
+                .bounds(right, top, 150, 20).build();
+        this.addRenderableWidget(providerButton);
+
         apiKey = field(left, top + 42, "API Key", config.apiKey);
         apiKey.setMaxLength(512);
-        apiKey.setSuggestion("OpenAI API key (stored locally)");
+        apiKey.setSuggestion("API key (stored locally)");
         model = field(right, top + 42, "AI Model", config.model);
         sttCommand = field(left, top + 84, "STT command", config.sttCommand);
-        sttCommand.setSuggestion("e.g. faster-whisper --model ...");
+        sttCommand.setSuggestion("Optional local faster-whisper adapter command");
         ttsCommand = field(right, top + 84, "TTS command", config.ttsCommand);
-        ttsCommand.setSuggestion("e.g. piper --model ...");
+        ttsCommand.setSuggestion("Optional local Piper adapter command");
         inputVolume = field(left, top + 126, "Input volume", Float.toString(config.inputVolume));
         outputVolume = field(right, top + 126, "Output volume", Float.toString(config.outputVolume));
         distance = field(left, top + 168, "Voice distance", Float.toString(config.voiceDistance));
 
         this.addRenderableWidget(Button.builder(Component.literal("Save"), button -> saveAndClose())
                 .bounds(right, top + 168, 150, 20).build());
+        this.addRenderableWidget(Button.builder(Component.literal("Defaults"), button -> resetDefaults())
+                .bounds(left, top + 198, 150, 20).build());
         this.addRenderableWidget(Button.builder(Component.literal("Cancel"), button -> close())
                 .bounds(right, top + 198, 150, 20).build());
+    }
+
+    private List<String> configuredProviders() {
+        List<String> result = new ArrayList<>();
+        if (config.apiKey != null && !config.apiKey.isBlank()) result.add("openai");
+        if (result.isEmpty()) result.add("openai");
+        return List.copyOf(result);
+    }
+
+    private void cycleMicrophone() {
+        microphoneIndex = (microphoneIndex + 1) % microphones.size();
+        microphoneButton.setMessage(microphoneLabel());
+    }
+
+    private void cycleProvider() {
+        providerIndex = (providerIndex + 1) % providers.size();
+        providerButton.setMessage(providerLabel());
+    }
+
+    private String microphoneLabel() {
+        return "Mic: " + microphones.get(microphoneIndex);
+    }
+
+    private String providerLabel() {
+        return "AI: " + providers.get(providerIndex);
     }
 
     private EditBox field(int x, int y, String label, String value) {
@@ -60,9 +107,22 @@ public final class VoiceSettingsScreen extends Screen {
         return box;
     }
 
+    private void resetDefaults() {
+        microphoneIndex = Math.max(0, indexOfIgnoreCase(microphones, MicrophoneCapture.detectDefaultDevice()));
+        providerIndex = Math.max(0, indexOfIgnoreCase(providers, "openai"));
+        microphoneButton.setMessage(microphoneLabel());
+        providerButton.setMessage(providerLabel());
+        model.setValue("");
+        sttCommand.setValue("");
+        ttsCommand.setValue("");
+        inputVolume.setValue("1.0");
+        outputVolume.setValue("1.0");
+        distance.setValue("32.0");
+    }
+
     private void saveAndClose() {
-        config.microphone = microphone.getValue().trim().isEmpty() ? "Default" : microphone.getValue().trim();
-        config.provider = provider.getValue().trim().isEmpty() ? "openai" : provider.getValue().trim();
+        config.microphone = microphones.get(microphoneIndex);
+        config.provider = providers.get(providerIndex);
         config.apiKey = apiKey.getValue();
         config.model = model.getValue().trim();
         config.sttCommand = sttCommand.getValue().trim();
@@ -72,6 +132,14 @@ public final class VoiceSettingsScreen extends Screen {
         config.voiceDistance = boundedFloat(distance.getValue(), config.voiceDistance, 1.0f, 128.0f);
         config.save(Minecraft.getInstance().gameDirectory.toPath());
         close();
+    }
+
+    private static int indexOfIgnoreCase(List<String> values, String value) {
+        if (value == null) return -1;
+        for (int i = 0; i < values.size(); i++) {
+            if (values.get(i).equalsIgnoreCase(value)) return i;
+        }
+        return -1;
     }
 
     private static float boundedFloat(String value, float fallback, float min, float max) {
@@ -103,6 +171,6 @@ public final class VoiceSettingsScreen extends Screen {
         graphics.text(this.font, "Input volume", left, 158, 0xFFE0E0E0, false);
         graphics.text(this.font, "Output volume", right, 158, 0xFFE0E0E0, false);
         graphics.text(this.font, "Voice distance", left, 200, 0xFFE0E0E0, false);
-        graphics.text(this.font, "V = push-to-talk · commands are local executables", left, 230, 0xFFAAAAAA, false);
+        graphics.text(this.font, "V = push-to-talk · microphone uses the system audio devices", left, 230, 0xFFAAAAAA, false);
     }
 }
