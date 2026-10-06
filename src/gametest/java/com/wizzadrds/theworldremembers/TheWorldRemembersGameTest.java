@@ -78,12 +78,12 @@ public final class TheWorldRemembersGameTest implements CustomTestMethodInvoker 
         Villager parentA = context.spawn(EntityTypes.VILLAGER, 2, 1, 2);
         Villager parentB = context.spawn(EntityTypes.VILLAGER, 4, 1, 2);
         Villager child = context.spawn(EntityTypes.VILLAGER, 3, 1, 3);
-        child.setBaby(true);
+        parentA.setNoAi(true); parentB.setNoAi(true); child.setNoAi(true); child.setBaby(true);
         context.runAtTickTime(1, () -> {
             MemoryManager memories = MemoryManager.get(context.getLevel().getServer());
             memories.rememberEvent(parentA.getUUID(), parentB.getUUID(), MemoryEventType.NPC_MARRIED,
                 context.getLevel().getGameTime(), com.wizzadrds.theworldremembers.memory.MemoryImportance.IMPORTANT);
-            TheWorldRemembers.processWorld(context.getLevel());
+            for (int i = 0; i < 5; i++) TheWorldRemembers.processWorld(context.getLevel());
             FamilyManager families=FamilyManager.get(context.getLevel().getServer());
             if (families.parentsOf(child.getUUID()).size()!=2) { context.fail("Live baby was not linked to exactly two nearby parents"); return; }
             if (memories.memoriesOf(child.getUUID()).stream().noneMatch(m -> m.origin() == MemoryOrigin.INHERITED && m.type() == MemoryEventType.NPC_MARRIED)) {
