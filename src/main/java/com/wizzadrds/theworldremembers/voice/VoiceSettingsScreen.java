@@ -38,7 +38,6 @@ public final class VoiceSettingsScreen extends Screen {
         apiKey = field(left, top + 42, "API Key", config.apiKey);
         apiKey.setMaxLength(512);
         apiKey.setSuggestion("OpenAI API key (stored locally)");
-        apiKey.setFormatter((text, cursorPos) -> Component.literal("•".repeat(text.length())).getVisualOrderText());
         model = field(right, top + 42, "AI Model", config.model);
         sttCommand = field(left, top + 84, "STT command", config.sttCommand);
         sttCommand.setSuggestion("e.g. faster-whisper --model ...");
