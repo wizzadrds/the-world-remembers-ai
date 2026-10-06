@@ -9,36 +9,38 @@ import javax.sound.sampled.TargetDataLine;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public final class MicrophoneCapture implements AutoCloseable {
     public static final float SAMPLE_RATE = 16000.0f;
-    private static final int CHANNELS = 1;
-    private static final int SAMPLE_SIZE_BITS = 16;
-    private static final AudioFormat FORMAT =
-            new AudioFormat(SAMPLE_RATE, SAMPLE_SIZE_BITS, CHANNELS, true, false);
-
+    private static final AudioFormat FORMAT = new AudioFormat(SAMPLE_RATE, 16, 1, true, false);
     private volatile TargetDataLine line;
     private volatile Thread captureThread;
     private volatile ByteArrayOutputStream buffer;
     private volatile float level;
+    private volatile float inputVolume = 1.0f;
+    private volatile Consumer<byte[]> frameListener = ignored -> {};
 
     public static List<String> devices() {
         List<String> result = new ArrayList<>();
-        Mixer.Info[] mixers = AudioSystem.getMixerInfo();
-        for (Mixer.Info info : mixers) {
+        for (Mixer.Info info : AudioSystem.getMixerInfo()) {
             Mixer mixer = AudioSystem.getMixer(info);
-            DataLine.Info target = new DataLine.Info(TargetDataLine.class, FORMAT);
-            if (mixer.isLineSupported(target)) result.add(info.getName());
+            if (mixer.isLineSupported(new DataLine.Info(TargetDataLine.class, FORMAT))) result.add(info.getName());
         }
         return result;
     }
 
     public synchronized boolean start(String deviceName) {
+        return start(deviceName, 1.0f, ignored -> {});
+    }
+
+    public synchronized boolean start(String deviceName, float volume, Consumer<byte[]> listener) {
         if (line != null) return true;
+        inputVolume = Math.max(0.0f, Math.min(2.0f, volume));
+        frameListener = listener == null ? ignored -> {} : listener;
         try {
             Mixer mixer = findMixer(deviceName);
-            TargetDataLine target = mixer == null
-                    ? AudioSystem.getTargetDataLine(FORMAT)
+            TargetDataLine target = mixer == null ? AudioSystem.getTargetDataLine(FORMAT)
                     : (TargetDataLine) mixer.getLine(new DataLine.Info(TargetDataLine.class, FORMAT));
             target.open(FORMAT, 3200);
             buffer = new ByteArrayOutputStream(32000);
@@ -53,13 +55,15 @@ public final class MicrophoneCapture implements AutoCloseable {
     }
 
     private void capture(TargetDataLine target) {
-        byte[] chunk = new byte[1600];
+        byte[] chunk = new byte[640];
         try {
             while (line == target) {
                 int read = target.read(chunk, 0, chunk.length);
                 if (read > 0) {
+                    applyGain(chunk, read, inputVolume);
                     buffer.write(chunk, 0, read);
                     level = calculateLevel(chunk, read);
+                    frameListener.accept(java.util.Arrays.copyOf(chunk, read));
                 }
             }
         } finally {
@@ -70,6 +74,7 @@ public final class MicrophoneCapture implements AutoCloseable {
     public synchronized byte[] stop() {
         TargetDataLine target = line;
         line = null;
+        frameListener = ignored -> {};
         if (target == null) return new byte[0];
         target.stop();
         target.flush();
@@ -77,23 +82,24 @@ public final class MicrophoneCapture implements AutoCloseable {
         Thread thread = captureThread;
         captureThread = null;
         if (thread != null && thread != Thread.currentThread()) {
-            try {
-                thread.join(250);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+            try { thread.join(250); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
         }
         byte[] result = buffer == null ? new byte[0] : buffer.toByteArray();
         buffer = null;
         return result;
     }
 
-    public float level() {
-        return level;
-    }
+    public float level() { return level; }
+    public boolean isCapturing() { return line != null; }
 
-    public boolean isCapturing() {
-        return line != null;
+    private static void applyGain(byte[] pcm, int length, float gain) {
+        if (gain == 1.0f) return;
+        for (int i = 0; i + 1 < length; i += 2) {
+            short sample = (short) (((pcm[i + 1] & 0xFF) << 8) | (pcm[i] & 0xFF));
+            int scaled = Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(sample * gain)));
+            pcm[i] = (byte) scaled;
+            pcm[i + 1] = (byte) (scaled >> 8);
+        }
     }
 
     private static float calculateLevel(byte[] pcm, int length) {
@@ -111,13 +117,13 @@ public final class MicrophoneCapture implements AutoCloseable {
     private static Mixer findMixer(String requested) {
         if (requested == null || requested.isBlank() || requested.equalsIgnoreCase("Default")) return null;
         for (Mixer.Info info : AudioSystem.getMixerInfo()) {
+            if (info.getName().equalsIgnoreCase(requested)) return null;
+        }
+        for (Mixer.Info info : AudioSystem.getMixerInfo()) {
             if (info.getName().equalsIgnoreCase(requested)) return AudioSystem.getMixer(info);
         }
         return null;
     }
 
-    @Override
-    public synchronized void close() {
-        stop();
-    }
+    @Override public synchronized void close() { stop(); }
 }
