@@ -1,0 +1,1 @@
+package com.wizzadrds.theworldremembers.knowledge; import org.junit.jupiter.api.Test; import java.util.UUID; import static org.junit.jupiter.api.Assertions.*; class ConversationManagerTest{@Test void recordCarriesTransferIdentity(){var r=new ConversationRecord(UUID.randomUUID(),UUID.randomUUID(),"e",20,true);assertTrue(r.transferred());assertEquals("e",r.eventId());}}
