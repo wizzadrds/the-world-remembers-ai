@@ -21,6 +21,7 @@ import com.wizzadrds.theworldremembers.stress.NpcStressManager;
 import com.wizzadrds.theworldremembers.village.VillageManager;
 import com.wizzadrds.theworldremembers.dream.DreamManager;
 import com.wizzadrds.theworldremembers.chronicle.ChronicleNetworking;
+import com.wizzadrds.theworldremembers.dialogue.NpcDialogue;
 import com.wizzadrds.theworldremembers.rumor.*;
 import com.wizzadrds.theworldremembers.village.VillageHistoryManager;
 import com.wizzadrds.theworldremembers.village.VillageResourceManager;
@@ -172,22 +173,7 @@ public class TheWorldRemembers implements ModInitializer {
         java.util.Optional<Memory> previous = memories.memoriesOf(villager.getUUID()).stream()
             .filter(m -> m.playerId().equals(player.getUUID()) && m.type() != MemoryEventType.PLAYER_TALKED)
             .max(java.util.Comparator.comparingLong(Memory::gameTime));
-        String line;
-        if (previous.isPresent()) {
-            line = switch (previous.get().type()) {
-                case PLAYER_GAVE_BREAD -> "I remember the bread you gave me.";
-                case PLAYER_ATTACKED_NPC -> "I haven't forgotten that you hurt me.";
-                case PLAYER_ENTERED_NPC_HOME -> "Please respect my home.";
-                case NPC_SAVED_NPC -> "I remember when you helped me.";
-                default -> "I remember something you did.";
-            };
-        } else if (relationship.isHostile()) {
-            line = "I don't trust you yet.";
-        } else if (relationship.isTrusted()) {
-            line = "Good to see you again.";
-        } else {
-            line = "Hello. I am " + villager.getName().getString() + ".";
-        }
+        String line = NpcDialogue.reply(villager.getName().getString(), relationship, memories.memoriesOf(villager.getUUID()).stream().filter(m -> m.playerId().equals(player.getUUID())).toList());
         Memory memory = memories.rememberEvent(villager.getUUID(), player.getUUID(), MemoryEventType.PLAYER_TALKED,
             player.level().getGameTime(), MemoryImportance.TRIVIAL);
         relationships.apply(new MemoryEvent(memory.npcId(), memory.playerId(), memory.type(), memory.gameTime(), memory.importance()));
