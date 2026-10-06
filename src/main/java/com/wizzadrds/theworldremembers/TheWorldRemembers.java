@@ -87,6 +87,7 @@ public class TheWorldRemembers implements ModInitializer {
         NpcHomeManager homes=NpcHomeManager.get(world);
         NpcAgeManager ages=NpcAgeManager.get(world.getServer());
         NpcStressManager stress=NpcStressManager.get(world);
+        com.wizzadrds.theworldremembers.stress.NpcFatigueManager fatigue=com.wizzadrds.theworldremembers.stress.NpcFatigueManager.get(world.getServer());
         NpcActivityManager activities=NpcActivityManager.get(world.getServer());
         NpcTravelManager travel=NpcTravelManager.get(world.getServer());
         NpcInventoryManager inventories=NpcInventoryManager.get(world.getServer());
@@ -128,6 +129,7 @@ public class TheWorldRemembers implements ModInitializer {
             if(homeStorage.get(villager.getUUID())==null){ BlockPos storage=findNearestContainer(world,home.homePos(),8); if(storage!=null) homeStorage.link(villager.getUUID(),storage); }
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress);
             activities.set(villager.getUUID(), villager.getNavigation().isDone() ? com.wizzadrds.theworldremembers.behavior.NpcActivity.IDLE : com.wizzadrds.theworldremembers.behavior.NpcActivity.WALKING, 10, villager.blockPosition(), world.getGameTime());
+            if(villager.getNavigation().isInProgress()) fatigue.increase(villager.getUUID(),1); else fatigue.recover(villager.getUUID(),1);
             for(ServerPlayer player:world.players()){ if(villager.distanceToSqr(player)>12*12) continue; Relationship rel=relationships.getOrCreate(villager.getUUID(),player.getUUID()); NpcDecision decision=com.wizzadrds.theworldremembers.behavior.NpcLiveBehaviorController.decide(villager,player,relationships,stress); if(activities.canInterrupt(villager.getUUID(),50)) { com.wizzadrds.theworldremembers.behavior.NpcLiveBehaviorController.apply(world,villager,player,decision,homes); activities.set(villager.getUUID(),decision==NpcDecision.FOLLOW?com.wizzadrds.theworldremembers.behavior.NpcActivity.FOLLOWING_PLAYER:decision==NpcDecision.LEAVE?com.wizzadrds.theworldremembers.behavior.NpcActivity.TRAVELLING:com.wizzadrds.theworldremembers.behavior.NpcActivity.IDLE,50,player.blockPosition(),world.getGameTime()); }}
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
             for(ServerPlayer player:world.players()) {
