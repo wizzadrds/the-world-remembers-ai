@@ -49,7 +49,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.ArmorItem;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.Container;
 import net.minecraft.server.level.ServerLevel;
@@ -325,14 +325,22 @@ public class TheWorldRemembers implements ModInitializer {
         var inventory = villager.getInventory();
         for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
             ItemStack stack = inventory.getItem(slot);
-            if (!(stack.getItem() instanceof ArmorItem armor)) continue;
-            EquipmentSlot target = armor.getEquipmentSlot();
+            EquipmentSlot target = armorSlot(stack);
+            if (target == null) continue;
             ItemStack equipped = villager.getItemBySlot(target);
             if (!equipped.isEmpty()) continue;
             villager.setItemSlot(target, stack.copy());
             inventory.setItem(slot, ItemStack.EMPTY);
             return;
         }
+    }
+
+    private static EquipmentSlot armorSlot(ItemStack stack) {
+        if (stack.is(ItemTags.HEAD_ARMOR)) return EquipmentSlot.HEAD;
+        if (stack.is(ItemTags.CHEST_ARMOR)) return EquipmentSlot.CHEST;
+        if (stack.is(ItemTags.LEG_ARMOR)) return EquipmentSlot.LEGS;
+        if (stack.is(ItemTags.FOOT_ARMOR)) return EquipmentSlot.FEET;
+        return null;
     }
 
     private static boolean isWarrior(Villager villager) {
