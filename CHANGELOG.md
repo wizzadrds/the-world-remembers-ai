@@ -1,5 +1,13 @@
 # Changelog
 
+## Phase 4 Behavior — validated
+- Completed live NPC activity and decision integration.
+- Added real home, door and container discovery with persistent home storage links.
+- Added live inventory and equipment synchronization.
+- Added bounded stress/fatigue integration and role-aware work/threat navigation.
+- Added deterministic Phase 4 GameTest coverage and CI validation.
+
+
 ## v0.6.0-alpha — Phase 6 Village Society
 - Added persistent village identity, population and historical state.
 - Added village-scale migration, event, resource, storage, defense and landmark state.
