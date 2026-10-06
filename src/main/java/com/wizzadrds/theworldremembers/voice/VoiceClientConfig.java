@@ -1,0 +1,49 @@
+package com.wizzadrds.theworldremembers.voice;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public final class VoiceClientConfig {
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+
+    public String microphone = "Default";
+    public int pushToTalkKey = 86;
+    public boolean pushToTalkMode = true;
+    public float inputVolume = 1.0f;
+    public float outputVolume = 1.0f;
+    public float voiceDistance = 32.0f;
+    public String provider = "local";
+    public String apiKey = "";
+    public String model = "";
+    public String sttModel = "faster-whisper";
+    public String ttsModel = "piper";
+
+    public static VoiceClientConfig load(Path gameDir) {
+        Path file = file(gameDir);
+        try {
+            if (Files.exists(file)) {
+                VoiceClientConfig config = GSON.fromJson(Files.readString(file), VoiceClientConfig.class);
+                if (config != null) return config;
+            }
+        } catch (Exception ignored) {
+        }
+        return new VoiceClientConfig();
+    }
+
+    public void save(Path gameDir) {
+        Path file = file(gameDir);
+        try {
+            Files.createDirectories(file.getParent());
+            Files.writeString(file, GSON.toJson(this), StandardCharsets.UTF_8);
+        } catch (IOException ignored) {
+        }
+    }
+
+    private static Path file(Path gameDir) {
+        return gameDir.resolve("config").resolve("the_world_remembers_voice.json");
+    }
+}
