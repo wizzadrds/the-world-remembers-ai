@@ -9,3 +9,5 @@ Validation-only branch based on the completed Phase 6 state on main.
 - Village identity/history/events
 - Village resource/storage/defense/landmark state
 - Migration identity preservation
+
+- CI execution re-triggered after final integration.
