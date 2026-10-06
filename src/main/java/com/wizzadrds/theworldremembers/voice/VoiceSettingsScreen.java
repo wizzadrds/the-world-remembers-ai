@@ -20,11 +20,14 @@ public final class VoiceSettingsScreen extends Screen {
     private EditBox outputVolume;
     private EditBox distance;
     private Button microphoneButton;
-    private Button providerButton;\n    private Button outputDeviceButton;
+    private Button providerButton;
+    private Button outputDeviceButton;
     private List<String> microphones = List.of(MicrophoneCapture.DEFAULT_DEVICE);
-    private List<String> providers = List.of("openai");\n    private List<String> outputDevices = List.of("Default");
+    private List<String> providers = List.of("openai");
+    private List<String> outputDevices = List.of("Default");
     private int microphoneIndex;
-    private int providerIndex;\n    private int outputDeviceIndex;
+    private int providerIndex;
+    private int outputDeviceIndex;
 
     public VoiceSettingsScreen(Screen parent, VoiceClientConfig config) {
         super(Component.literal("The World Remembers — Voice & AI"));
@@ -43,7 +46,12 @@ public final class VoiceSettingsScreen extends Screen {
         microphoneIndex = indexOfIgnoreCase(microphones, config.microphone);
         if (microphoneIndex < 0) microphoneIndex = 0;
 
-        outputDevices = VoiceAudioPlayer.devices();\n        if (outputDevices.isEmpty()) outputDevices = List.of("Default");\n        outputDeviceIndex = indexOfIgnoreCase(outputDevices, config.outputDevice);\n        if (outputDeviceIndex < 0) outputDeviceIndex = 0;\n\n        providers = configuredProviders();
+        outputDevices = VoiceAudioPlayer.devices();
+        if (outputDevices.isEmpty()) outputDevices = List.of("Default");
+        outputDeviceIndex = indexOfIgnoreCase(outputDevices, config.outputDevice);
+        if (outputDeviceIndex < 0) outputDeviceIndex = 0;
+
+        providers = configuredProviders();
         providerIndex = indexOfIgnoreCase(providers, config.provider);
         if (providerIndex < 0) providerIndex = 0;
 
@@ -53,7 +61,11 @@ public final class VoiceSettingsScreen extends Screen {
 
         providerButton = Button.builder(Component.literal(providerLabel()), button -> cycleProvider())
                 .bounds(right, top, 150, 20).build();
-        this.addRenderableWidget(providerButton);\n\n        outputDeviceButton = Button.builder(Component.literal(outputDeviceLabel()), button -> cycleOutputDevice())\n                .bounds(left, top + 24, 310, 20).build();\n        this.addRenderableWidget(outputDeviceButton);
+        this.addRenderableWidget(providerButton);
+
+        outputDeviceButton = Button.builder(Component.literal(outputDeviceLabel()), button -> cycleOutputDevice())
+                .bounds(left, top + 24, 310, 20).build();
+        this.addRenderableWidget(outputDeviceButton);
 
         apiKey = field(left, top + 54, "API Key", config.apiKey);
         apiKey.setMaxLength(512);
@@ -87,7 +99,12 @@ public final class VoiceSettingsScreen extends Screen {
         microphoneButton.setMessage(Component.literal(microphoneLabel()));
     }
 
-    private void cycleOutputDevice() {\n        outputDeviceIndex = (outputDeviceIndex + 1) % outputDevices.size();\n        outputDeviceButton.setMessage(Component.literal(outputDeviceLabel()));\n    }\n\n    private void cycleProvider() {
+    private void cycleOutputDevice() {
+        outputDeviceIndex = (outputDeviceIndex + 1) % outputDevices.size();
+        outputDeviceButton.setMessage(Component.literal(outputDeviceLabel()));
+    }
+
+    private void cycleProvider() {
         providerIndex = (providerIndex + 1) % providers.size();
         providerButton.setMessage(Component.literal(providerLabel()));
     }
@@ -96,7 +113,9 @@ public final class VoiceSettingsScreen extends Screen {
         return "Mic: " + microphones.get(microphoneIndex);
     }
 
-    private String outputDeviceLabel() { return "Headphones / output: " + outputDevices.get(outputDeviceIndex); }\n\n    private String providerLabel() {
+    private String outputDeviceLabel() { return "Headphones / output: " + outputDevices.get(outputDeviceIndex); }
+
+    private String providerLabel() {
         return "AI: " + providers.get(providerIndex);
     }
 
@@ -109,7 +128,9 @@ public final class VoiceSettingsScreen extends Screen {
 
     private void resetDefaults() {
         microphoneIndex = Math.max(0, indexOfIgnoreCase(microphones, MicrophoneCapture.detectDefaultDevice()));
-        providerIndex = Math.max(0, indexOfIgnoreCase(providers, "openai"));\n        outputDeviceIndex = Math.max(0, indexOfIgnoreCase(outputDevices, "Default"));\n        outputDeviceButton.setMessage(Component.literal(outputDeviceLabel()));
+        providerIndex = Math.max(0, indexOfIgnoreCase(providers, "openai"));
+        outputDeviceIndex = Math.max(0, indexOfIgnoreCase(outputDevices, "Default"));
+        outputDeviceButton.setMessage(Component.literal(outputDeviceLabel()));
         microphoneButton.setMessage(Component.literal(microphoneLabel()));
         providerButton.setMessage(Component.literal(providerLabel()));
         model.setValue("");
@@ -122,7 +143,8 @@ public final class VoiceSettingsScreen extends Screen {
 
     private void saveAndClose() {
         config.microphone = microphones.get(microphoneIndex);
-        config.provider = providers.get(providerIndex);\n        config.outputDevice = outputDevices.get(outputDeviceIndex);
+        config.provider = providers.get(providerIndex);
+        config.outputDevice = outputDevices.get(outputDeviceIndex);
         config.apiKey = apiKey.getValue();
         config.model = model.getValue().trim();
         config.sttCommand = sttCommand.getValue().trim();
@@ -164,7 +186,8 @@ public final class VoiceSettingsScreen extends Screen {
         int right = this.width / 2 + 5;
         graphics.text(this.font, "Microphone", left, 32, 0xFFE0E0E0, false);
         graphics.text(this.font, "AI Provider", right, 32, 0xFFE0E0E0, false);
-        graphics.text(this.font, "Output device / headphones", left, 56, 0xFFE0E0E0, false);\n        graphics.text(this.font, "API Key", left, 86, 0xFFE0E0E0, false);
+        graphics.text(this.font, "Output device / headphones", left, 56, 0xFFE0E0E0, false);
+        graphics.text(this.font, "API Key", left, 86, 0xFFE0E0E0, false);
         graphics.text(this.font, "AI Model", right, 86, 0xFFE0E0E0, false);
         graphics.text(this.font, "STT command", left, 128, 0xFFE0E0E0, false);
         graphics.text(this.font, "TTS command", right, 128, 0xFFE0E0E0, false);
