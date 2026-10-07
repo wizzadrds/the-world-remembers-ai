@@ -299,6 +299,14 @@ public final class VoiceSettingsScreen extends Screen {
     }
 
     @Override
+    public void tick() {
+        super.tick();
+        if (microphoneTestButton != null && TheWorldRemembersClient.microphoneCapturing()) {
+            microphoneTestButton.setMessage(Component.literal("Mic level: " + percentLevel()));
+        }
+    }
+
+    @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
         graphics.centeredText(this.font, "THE WORLD REMEMBERS — VOICE & AI", this.width / 2, 10, 0xFFFFFFFF);
