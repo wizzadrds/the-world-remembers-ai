@@ -77,7 +77,7 @@ public class TheWorldRemembers implements ModInitializer {
     /** A village observation processes only a bounded number of village clusters per live tick. */
     private static final int VILLAGE_SCAN_BUDGET=2;
     /** Registry discovery is much less frequent than the per-tick simulation rotation. */
-    private static final int VILLAGER_DISCOVERY_INTERVAL=200;
+    private static final int VILLAGER_DISCOVERY_INTERVAL=600;
     private static final int SOCIAL_BUDGET_PER_TICK=8;
     private static final int SOCIAL_INTERVAL=10;
     private static final int KNOWLEDGE_DECAY_INTERVAL=200;
@@ -765,12 +765,12 @@ public class TheWorldRemembers implements ModInitializer {
         java.util.Collections.sort(keys);
         int start = cursors.getOrDefault(world, 0) % keys.size();
         int processed = 0;
+        java.util.Set<UUID> claimed = new java.util.HashSet<>();
         for (int offset=0; offset<keys.size() && processed<budget; offset++) {
             int index=(start+offset)%keys.size();
             var members=clusters.get(keys.get(index)); if(members==null||members.isEmpty()) continue;
             long sx=0,sz=0; for(var v:members){sx+=v.blockPosition().getX();sz+=v.blockPosition().getZ();}
             BlockPos center=new BlockPos((int)(sx/members.size()),members.get(0).blockPosition().getY(),(int)(sz/members.size()));
-            java.util.Set<UUID> claimed=new java.util.HashSet<>();
             VillageState previous=villages.findNearest(center,claimed);
             BlockPos previousCenter=previous==null?null:previous.center();
             VillageState state=villages.observeNearest(center,members.size(),world.getGameTime(),claimed);
