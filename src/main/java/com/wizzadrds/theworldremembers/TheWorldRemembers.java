@@ -73,7 +73,7 @@ public class TheWorldRemembers implements ModInitializer {
     /** A village observation processes only a bounded number of village clusters per live tick. */
     private static final int VILLAGE_SCAN_BUDGET=2;
     /** Registry discovery is much less frequent than the per-tick simulation rotation. */
-    private static final int VILLAGER_DISCOVERY_INTERVAL=200;
+    private static final int VILLAGER_DISCOVERY_INTERVAL=600;
     private static final int SOCIAL_BUDGET_PER_TICK=8;
     private static final int SOCIAL_INTERVAL=10;
     private static final int KNOWLEDGE_DECAY_INTERVAL=200;
@@ -254,8 +254,9 @@ public class TheWorldRemembers implements ModInitializer {
             if(villager.getNavigation().isInProgress())fatigue.increase(villager.getUUID(),1);else fatigue.recover(villager.getUUID(),1);
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress, behavior);
             var personality = PersonalityGenerator.generate(villager.getUUID());
-            java.util.List<ServerPlayer> nearbyPlayers = world.getEntitiesOfClass(ServerPlayer.class,
-                    villager.getBoundingBox().inflate(12), p -> p.isAlive());
+            java.util.List<ServerPlayer> nearbyPlayers = world.players().stream()
+                    .filter(p -> p.isAlive() && villager.distanceToSqr(p) <= 12 * 12)
+                    .toList();
             applyLiveSocialBehavior(world, villager, relationships, stress, behavior, homes, homeStorage, nearbyPlayers, personality);
             depositInventoryIntoHomeStorage(world, villager, homeStorage.get(villager.getUUID()));
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
