@@ -188,19 +188,19 @@ public final class VoiceSettingsScreen extends Screen {
         inputVolume = field(left, top + row * rowHeight(), "Input volume", Float.toString(config.inputVolume));
         outputVolume = field(right, top + row++ * rowHeight(), "Output volume", Float.toString(config.outputVolume));
 
-        distance = field(left, top + row * ROW_H, "Range (blocks)", Float.toString(config.voiceDistance));
-        pushToTalkButton = addButton("Hold to talk: " + (config.pushToTalkMode ? "ON" : "OFF"), right, top + row++ * ROW_H, () -> {
+        distance = field(left, top + row * rowHeight(), "Range (blocks)", Float.toString(config.voiceDistance));
+        pushToTalkButton = addButton("Hold to talk: " + (config.pushToTalkMode ? "ON" : "OFF"), right, top + row++ * rowHeight(), () -> {
             config.pushToTalkMode = !config.pushToTalkMode;
             pushToTalkButton.setMessage(Component.literal("Hold to talk: " + (config.pushToTalkMode ? "ON" : "OFF")));
         });
 
-        villagerVoicesButton = addButton("NPC voices: " + (config.villagerVoicesEnabled ? "ON" : "OFF"), left, top + row * ROW_H, () -> {
+        villagerVoicesButton = addButton("NPC voices: " + (config.villagerVoicesEnabled ? "ON" : "OFF"), left, top + row * rowHeight(), () -> {
             config.villagerVoicesEnabled = !config.villagerVoicesEnabled;
             villagerVoicesButton.setMessage(Component.literal("NPC voices: " + (config.villagerVoicesEnabled ? "ON" : "OFF")));
         });
-        pttKeyButton = addButton("PTT key: " + keyName(config.pushToTalkKey), right, top + row++ * ROW_H, this::cyclePushToTalkKey);
+        pttKeyButton = addButton("PTT key: " + keyName(config.pushToTalkKey), right, top + row++ * rowHeight(), this::cyclePushToTalkKey);
 
-        microphoneTestButton = addButton("Test microphone", left, top + row * ROW_H, this::toggleMicrophoneTest);
+        microphoneTestButton = addButton("Test microphone", left, top + row * rowHeight(), this::toggleMicrophoneTest);
         addRenderableWidget(Button.builder(Component.literal("Test speaker"), b -> {
             if (testToneRunning) return;
             testToneRunning = true;
@@ -214,41 +214,41 @@ public final class VoiceSettingsScreen extends Screen {
                             b.setMessage(Component.literal(error == null && Boolean.TRUE.equals(ok) ? "Speaker OK" : "Speaker failed"));
                         }
                     }));
-        }).bounds(right, top + row++ * ROW_H, COL_W, 20).build());
+        }).bounds(right, top + row++ * rowHeight(), COL_W, 20).build());
 
         addRenderableWidget(Button.builder(Component.literal("Rescan devices"), b -> {
             savePageToConfig();
             refreshDevices();
             refreshDeviceButtons();
             b.setMessage(Component.literal("Refreshed"));
-        }).bounds(left, top + row * ROW_H, COL_W, 20).build());
+        }).bounds(left, top + row * rowHeight(), COL_W, 20).build());
 
         addRenderableWidget(Button.builder(Component.literal("Setup guide"), b ->
                 Minecraft.getInstance().gui.setScreen(new VoiceSetupScreen(this)))
-                .bounds(right, top + row++ * ROW_H, COL_W, 20).build());
+                .bounds(right, top + row++ * rowHeight(), COL_W, 20).build());
     }
 
     private void buildAiPage(int left, int right, int top) {
         int row = 0;
-        providerButton = addButton("Provider: " + displayProvider(config.provider), left, top + row++ * ROW_H, () -> {
+        providerButton = addButton("Provider: " + displayProvider(config.provider), left, top + row++ * rowHeight(), () -> {
             config.provider = nextProvider(config.provider);
             providerButton.setMessage(Component.literal("Provider: " + displayProvider(config.provider)));
         });
 
-        language = field(left, top + row * ROW_H, "Language", config.language);
-        model = field(right, top + row++ * ROW_H, "AI model", config.model);
+        language = field(left, top + row * rowHeight(), "Language", config.language);
+        model = field(right, top + row++ * rowHeight(), "AI model", config.model);
 
-        sttModel = field(left, top + row * ROW_H, "STT model", config.sttModel);
-        ttsModel = field(right, top + row++ * ROW_H, "TTS model", config.ttsModel);
+        sttModel = field(left, top + row * rowHeight(), "STT model", config.sttModel);
+        ttsModel = field(right, top + row++ * rowHeight(), "TTS model", config.ttsModel);
 
-        ttsVoice = field(left, top + row * ROW_H, "TTS voice", config.ttsVoice);
-        apiKey = field(right, top + row++ * ROW_H, "API key", config.apiKey);
+        ttsVoice = field(left, top + row * rowHeight(), "TTS voice", config.ttsVoice);
+        apiKey = field(right, top + row++ * rowHeight(), "API key", config.apiKey);
         apiKey.setMaxLength(512);
         apiKey.setSuggestion("Stored locally in your Minecraft config");
 
-        sttCommand = field(left, top + row * ROW_H, "Local STT (optional)", config.sttCommand);
+        sttCommand = field(left, top + row * rowHeight(), "Local STT (optional)", config.sttCommand);
         sttCommand.setSuggestion("Optional local speech-to-text command");
-        ttsCommand = field(right, top + row++ * ROW_H, "Local TTS (optional)", config.ttsCommand);
+        ttsCommand = field(right, top + row++ * rowHeight(), "Local TTS (optional)", config.ttsCommand);
         ttsCommand.setSuggestion("Optional local text-to-speech command");
 
         addRenderableWidget(Button.builder(Component.literal("Recommended defaults"), b -> {
@@ -260,31 +260,31 @@ public final class VoiceSettingsScreen extends Screen {
             sttCommand.setValue("");
             ttsCommand.setValue("");
             b.setMessage(Component.literal("Defaults applied"));
-        }).bounds(left, top + row * ROW_H, COL_W, 20).build());
+        }).bounds(left, top + row * rowHeight(), COL_W, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Setup guide"), b ->
                 Minecraft.getInstance().gui.setScreen(new VoiceSetupScreen(this)))
-                .bounds(right, top + row * ROW_H, COL_W, 20).build());
+                .bounds(right, top + row * rowHeight(), COL_W, 20).build());
     }
 
     private void buildNpcPage(int left, int right, int top) {
         int row = 0;
-        temperamentButton = addButton("Temperament: " + prettyTemperament(temperaments.get(temperamentIndex)), left, top + row++ * ROW_H, this::cycleTemperament);
+        temperamentButton = addButton("Temperament: " + prettyTemperament(temperaments.get(temperamentIndex)), left, top + row++ * rowHeight(), this::cycleTemperament);
         villagerVoiceTestButton = addButton("Test villager voice", right, top, () -> {
             TheWorldRemembersClient.testVillagerVoice();
             villagerVoiceTestButton.setMessage(Component.literal("TTS test started"));
         });
 
-        ttsInstructions = field(left, top + row * ROW_H, "Speaking style", config.ttsInstructions);
-        systemPrompt = field(right, top + row++ * ROW_H, "AI rules", config.systemPrompt);
+        ttsInstructions = field(left, top + row * rowHeight(), "Speaking style", config.ttsInstructions);
+        systemPrompt = field(right, top + row++ * rowHeight(), "AI rules", config.systemPrompt);
 
         addRenderableWidget(Button.builder(Component.literal("Villager defaults"), b -> {
             ttsInstructions.setValue("Speak like a Minecraft villager: warm, conversational, rustic, short phrases, natural pauses.");
             systemPrompt.setValue("You are a Minecraft villager. Speak briefly and in character. Only use facts supplied by the simulation.");
             b.setMessage(Component.literal("Defaults applied"));
-        }).bounds(left, top + row * ROW_H, COL_W, 20).build());
+        }).bounds(left, top + row * rowHeight(), COL_W, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Voice guide"), b ->
                 Minecraft.getInstance().gui.setScreen(new VoiceSetupScreen(this)))
-                .bounds(right, top + row++ * ROW_H, COL_W, 20).build());
+                .bounds(right, top + row++ * rowHeight(), COL_W, 20).build());
     }
 
     private Button addButton(String text, int x, int y, Runnable action) {
