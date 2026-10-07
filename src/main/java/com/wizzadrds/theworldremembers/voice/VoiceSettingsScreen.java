@@ -59,8 +59,8 @@ public final class VoiceSettingsScreen extends Screen {
     }
 
     private void refreshDevices() {
-        microphones = safeDevices(AudioDeviceManager.inputDevices());
-        outputs = safeDevices(AudioDeviceManager.outputDevices());
+        microphones = preserveSelectedDevice(safeDevices(AudioDeviceManager.inputDevices()), config.microphone);
+        outputs = preserveSelectedDevice(safeDevices(AudioDeviceManager.outputDevices()), config.outputDevice);
         temperaments = new ArrayList<>();
         for (VoiceTemperament temperament : VoiceTemperament.values()) temperaments.add(temperament.name());
         microphoneIndex = validIndex(microphones, config.microphone);
@@ -72,6 +72,16 @@ public final class VoiceSettingsScreen extends Screen {
         return values == null || values.isEmpty() ? List.of(AudioDeviceManager.DEFAULT_DEVICE) : values;
     }
 
+    private static List<String> preserveSelectedDevice(List<String> detected, String selected) {
+        List<String> result = new ArrayList<>(detected);
+        if (selected != null && !selected.isBlank()
+                && indexOfIgnoreCase(result, selected) < 0
+                && !selected.equalsIgnoreCase(AudioDeviceManager.DEFAULT_DEVICE)) {
+            result.add(selected + " (unavailable)");
+        }
+        return List.copyOf(result);
+    }
+
     private static int indexOfIgnoreCase(List<String> values, String selected) {
         if (selected == null) return -1;
         for (int i = 0; i < values.size(); i++) if (selected.equalsIgnoreCase(values.get(i))) return i;
@@ -80,7 +90,18 @@ public final class VoiceSettingsScreen extends Screen {
 
     private static int validIndex(List<String> values, String selected) {
         int index = indexOfIgnoreCase(values, selected);
-        return index < 0 ? 0 : index;
+        if (index >= 0) return index;
+        if (selected != null && !selected.isBlank()) {
+            index = indexOfIgnoreCase(values, selected + " (unavailable)");
+            if (index >= 0) return index;
+        }
+        return 0;
+    }
+
+    private static String actualDeviceName(String value) {
+        if (value == null) return AudioDeviceManager.DEFAULT_DEVICE;
+        String suffix = " (unavailable)";
+        return value.endsWith(suffix) ? value.substring(0, value.length() - suffix.length()) : value;
     }
 
     private void rebuildPage() {
@@ -216,13 +237,13 @@ public final class VoiceSettingsScreen extends Screen {
 
     private void cycleMicrophone() {
         microphoneIndex = (microphoneIndex + 1) % microphones.size();
-        config.microphone = microphones.get(microphoneIndex);
+        config.microphone = actualDeviceName(microphones.get(microphoneIndex));
         microphoneButton.setMessage(Component.literal("Mic: " + microphones.get(microphoneIndex)));
     }
 
     private void cycleOutput() {
         outputIndex = (outputIndex + 1) % outputs.size();
-        config.outputDevice = outputs.get(outputIndex);
+        config.outputDevice = actualDeviceName(outputs.get(outputIndex));
         outputButton.setMessage(Component.literal("Output: " + outputs.get(outputIndex)));
     }
 
@@ -233,8 +254,8 @@ public final class VoiceSettingsScreen extends Screen {
     }
 
     private void savePageToConfig() {
-        if (microphoneButton != null) config.microphone = microphones.get(microphoneIndex);
-        if (outputButton != null) config.outputDevice = outputs.get(outputIndex);
+        if (microphoneButton != null) config.microphone = actualDeviceName(microphones.get(microphoneIndex));
+        if (outputButton != null) config.outputDevice = actualDeviceName(outputs.get(outputIndex));
         if (temperamentButton != null) config.villagerVoiceTemperament = temperaments.get(temperamentIndex);
         if (inputVolume != null) config.inputVolume = bounded(inputVolume.getValue(), config.inputVolume, 0, 2);
         if (outputVolume != null) config.outputVolume = bounded(outputVolume.getValue(), config.outputVolume, 0, 2);
