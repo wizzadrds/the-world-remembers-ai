@@ -554,8 +554,7 @@ public class TheWorldRemembers implements ModInitializer {
         for (java.util.UUID childId : children) {
             if (!villager.getUUID().equals(protection.protectorOf(childId))) continue;
             if (!(world.getEntity(childId) instanceof Villager child) || !child.isAlive()) continue;
-            boolean dangerPresent = !world.getEntitiesOfClass(LivingEntity.class, child.getBoundingBox().inflate(8),
-                entity -> entity.isAlive() && entity instanceof net.minecraft.world.entity.monster.Monster).isEmpty();
+            boolean dangerPresent = hasNearbyDanger(world, child);
             NpcDecision decision = engine.decideFamilyResponse(true, dangerPresent, npcStress);
             if (decision == NpcDecision.FOLLOW || decision == NpcDecision.CALL_FOR_HELP) {
                 villager.getNavigation().moveTo(child, decision == NpcDecision.CALL_FOR_HELP ? 1.25 : 1.0);
