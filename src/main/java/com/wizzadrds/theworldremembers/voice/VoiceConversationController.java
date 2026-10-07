@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Consumer;
 
 public final class VoiceConversationController implements AutoCloseable {
@@ -41,22 +42,31 @@ public final class VoiceConversationController implements AutoCloseable {
         if (state != VoiceConversationState.LISTENING) return;
         setState(VoiceConversationState.PROCESSING);
         final long generation = sessionGeneration;
-        worker.submit(() -> {
-            String transcript = service.transcribe(pcm);
-            if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
-            if (transcript == null || transcript.isBlank()) {
-                fail();
-                return;
-            }
-            try {
-                if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
-                transcriptConsumer.accept(transcript);
-            } catch (RuntimeException e) {
-                if (generation == sessionGeneration && state == VoiceConversationState.PROCESSING) {
-                    fail();
+        try {
+            worker.submit(() -> {
+                try {
+                    String transcript = service.transcribe(pcm);
+                    if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
+                    if (transcript == null || transcript.isBlank()) {
+                        fail();
+                        return;
+                    }
+                    try {
+                        if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
+                        transcriptConsumer.accept(transcript);
+                    } catch (RuntimeException e) {
+                        if (generation == sessionGeneration && state == VoiceConversationState.PROCESSING) fail();
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    if (generation == sessionGeneration && state == VoiceConversationState.PROCESSING) fail();
+                } catch (Exception e) {
+                    if (generation == sessionGeneration && state == VoiceConversationState.PROCESSING) fail();
                 }
-            }
-        });
+            });
+        } catch (RejectedExecutionException e) {
+            if (generation == sessionGeneration && state == VoiceConversationState.PROCESSING) fail();
+        }
     }
 
     public void synthesizeAndSpeak(
@@ -69,39 +79,39 @@ public final class VoiceConversationController implements AutoCloseable {
             Consumer<Path> completed) {
         setState(VoiceConversationState.PROCESSING);
         final long generation = sessionGeneration;
-        worker.submit(() -> {
-            Path audio = null;
-            try {
-                if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
-                audio = service.synthesize(text, profile, output);
-                if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
-                if (audio == null || !Files.exists(audio)) {
-                    fail();
-                    return;
-                }
-                setState(VoiceConversationState.SPEAKING);
-                if (generation != sessionGeneration) return;
-                player.play(audio, outputVolume);
-                completed.accept(audio);
-                finishSpeaking();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                if (generation == sessionGeneration) {
-                    fail();
-                }
-            } catch (Exception e) {
-                if (generation == sessionGeneration) {
-                    fail();
-                }
-            } finally {
-                if (audio != null) {
-                    try {
-                        Files.deleteIfExists(audio);
-                    } catch (Exception ignored) {
+        try {
+            worker.submit(() -> {
+                Path audio = null;
+                try {
+                    if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
+                    audio = service.synthesize(text, profile, output);
+                    if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
+                    if (audio == null || !Files.exists(audio)) {
+                        fail();
+                        return;
+                    }
+                    setState(VoiceConversationState.SPEAKING);
+                    if (generation != sessionGeneration) return;
+                    player.play(audio, outputVolume);
+                    completed.accept(audio);
+                    finishSpeaking();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    if (generation == sessionGeneration) fail();
+                } catch (Exception e) {
+                    if (generation == sessionGeneration) fail();
+                } finally {
+                    if (audio != null) {
+                        try {
+                            Files.deleteIfExists(audio);
+                        } catch (Exception ignored) {
+                        }
                     }
                 }
-            }
-        });
+            });
+        } catch (RejectedExecutionException e) {
+            if (generation == sessionGeneration && state == VoiceConversationState.PROCESSING) fail();
+        }
     }
 
     public void finishSpeaking() {
