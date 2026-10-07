@@ -807,28 +807,67 @@ public class TheWorldRemembers implements ModInitializer {
         cursors.put(world,(start+Math.max(1,processed))%keys.size());
     }
 
-    private static final Map<ServerLevel, Map<Long, BlockPos>> HOME_DOOR_CACHE = new WeakHashMap<>();
-    private static final Map<ServerLevel, Map<Long, BlockPos>> CONTAINER_CACHE = new WeakHashMap<>();
+    /**
+     * Home/door/container searches are block scans, so cache both hits and misses.
+     * Misses are cached for a shorter period because players can place a door/container
+     * near an NPC at any time. The maps are also bounded so long-lived worlds cannot
+     * accumulate one entry for every historical home position.
+     */
+    private static final Map<ServerLevel, Map<Long, BlockCacheEntry>> HOME_DOOR_CACHE = new WeakHashMap<>();
+    private static final Map<ServerLevel, Map<Long, BlockCacheEntry>> CONTAINER_CACHE = new WeakHashMap<>();
     private static final long HOME_CACHE_TICKS = 200;
+    private static final long HOME_MISS_CACHE_TICKS = 40;
+    private static final int HOME_CACHE_MAX_ENTRIES = 4096;
+    private record BlockCacheEntry(BlockPos position, long checkedAt) {}
 
     private static BlockPos findNearbyHomePoi(ServerLevel world,BlockPos pos){
         return world.getPoiManager().findClosest(type->type.is(net.minecraft.world.entity.ai.village.poi.PoiTypes.HOME),pos,16,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).orElse(null);
     }
     private static BlockPos findNearbyDoor(ServerLevel world,BlockPos pos){
-        Map<Long,BlockPos> cache=HOME_DOOR_CACHE.computeIfAbsent(world,ignored->new HashMap<>());
-        long key=blockCacheKey(pos); BlockPos cached=cache.get(key);
-        if(cached!=null && world.getGameTime()%HOME_CACHE_TICKS!=0) return cached;
+        Map<Long,BlockCacheEntry> cache=HOME_DOOR_CACHE.computeIfAbsent(world,ignored->new HashMap<>());
+        long key=blockCacheKey(pos);
+        long now=world.getGameTime();
+        BlockCacheEntry entry=cache.get(key);
+        if(entry!=null) {
+            long age=now-entry.checkedAt();
+            if(entry.position()==null) {
+                if(age < HOME_MISS_CACHE_TICKS) return null;
+            } else if(age < HOME_CACHE_TICKS && world.getBlockState(entry.position()).is(net.minecraft.tags.BlockTags.DOORS)) {
+                return entry.position();
+            }
+        }
         BlockPos best=null;double d=257;
         for(BlockPos p:BlockPos.betweenClosed(pos.offset(-8,-2,-8),pos.offset(8,4,8))) if(world.getBlockState(p).is(net.minecraft.tags.BlockTags.DOORS)){double x=p.distSqr(pos);if(x<d){d=x;best=p.immutable();}}
-        if(best!=null) cache.put(key,best); return best;
+        cache.put(key,new BlockCacheEntry(best,now));
+        trimBlockCache(cache);
+        return best;
     }
     private static BlockPos findNearestContainer(ServerLevel world,BlockPos center,int radius){
-        Map<Long,BlockPos> cache=CONTAINER_CACHE.computeIfAbsent(world,ignored->new HashMap<>());
-        long key=blockCacheKey(center)^((long)radius<<48); BlockPos cached=cache.get(key);
-        if(cached!=null && world.getGameTime()%HOME_CACHE_TICKS!=0 && world.getBlockEntity(cached) instanceof net.minecraft.world.Container) return cached;
+        Map<Long,BlockCacheEntry> cache=CONTAINER_CACHE.computeIfAbsent(world,ignored->new HashMap<>());
+        long key=blockCacheKey(center)^((long)radius<<48);
+        long now=world.getGameTime();
+        BlockCacheEntry entry=cache.get(key);
+        if(entry!=null) {
+            long age=now-entry.checkedAt();
+            if(entry.position()==null) {
+                if(age < HOME_MISS_CACHE_TICKS) return null;
+            } else if(age < HOME_CACHE_TICKS && world.getBlockEntity(entry.position()) instanceof net.minecraft.world.Container) {
+                return entry.position();
+            }
+        }
         BlockPos best=null;double d=Double.MAX_VALUE;
         for(BlockPos p:BlockPos.betweenClosed(center.offset(-radius,-3,-radius),center.offset(radius,3,radius))) if(world.getBlockEntity(p) instanceof net.minecraft.world.Container){double x=p.distSqr(center);if(x<d){d=x;best=p.immutable();}}
-        if(best!=null) cache.put(key,best); return best;
+        cache.put(key,new BlockCacheEntry(best,now));
+        trimBlockCache(cache);
+        return best;
+    }
+    private static void trimBlockCache(Map<Long,BlockCacheEntry> cache) {
+        if (cache.size() <= HOME_CACHE_MAX_ENTRIES) return;
+        java.util.Iterator<Long> iterator = cache.keySet().iterator();
+        while (cache.size() > HOME_CACHE_MAX_ENTRIES && iterator.hasNext()) {
+            iterator.next();
+            iterator.remove();
+        }
     }
     private static long blockCacheKey(BlockPos pos){return (((long)pos.getX()&0x3ffffffL)<<38)|(((long)pos.getZ()&0x3ffffffL)<<12)|(pos.getY()&0xfffL);}
 
