@@ -255,8 +255,12 @@ public class TheWorldRemembers implements ModInitializer {
             if(villager.getNavigation().isInProgress())fatigue.increase(villager.getUUID(),1);else fatigue.recover(villager.getUUID(),1);
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress, behavior);
             var personality = PersonalityGenerator.generate(villager.getUUID());
-            java.util.List<ServerPlayer> nearbyPlayers = world.getEntitiesOfClass(ServerPlayer.class,
-                    villager.getBoundingBox().inflate(12), p -> p.isAlive());
+            // Player count is usually tiny compared with the number of spatial entity queries.
+            // Reuse the world's loaded player list and filter by distance locally.
+            java.util.List<ServerPlayer> nearbyPlayers = world.players().stream()
+                    .filter(ServerPlayer::isAlive)
+                    .filter(p -> villager.distanceToSqr(p) <= 12 * 12)
+                    .toList();
             applyLiveSocialBehavior(world, villager, relationships, stress, behavior, homes, homeStorage, nearbyPlayers, personality);
             depositInventoryIntoHomeStorage(world, villager, homeStorage.get(villager.getUUID()));
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
