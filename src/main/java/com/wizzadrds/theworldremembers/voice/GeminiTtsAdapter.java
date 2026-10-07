@@ -65,7 +65,9 @@ public final class GeminiTtsAdapter implements TtsAdapter {
         JsonObject generation = new JsonObject();
         JsonObject speechConfig = new JsonObject();
         speechConfig.addProperty("voice", voice);
-        generation.add("speech_config", speechConfig);
+        JsonArray speechConfigs = new JsonArray();
+        speechConfigs.add(speechConfig);
+        generation.add("speech_config", speechConfigs);
         body.add("generation_config", generation);
 
         HttpRequest request = HttpRequest.newBuilder(URI.create("https://generativelanguage.googleapis.com/v1beta/interactions"))
