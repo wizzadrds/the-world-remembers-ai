@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.nio.file.Files;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -38,6 +39,8 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static ExecutorService villagerSpeechExecutor;
     private static String appliedOutputDevice;
     private static final AtomicInteger pendingVillagerSpeech = new AtomicInteger();
+    /** Changes whenever the connected world/session changes, invalidating old TTS jobs. */
+    private static final AtomicLong voiceSessionGeneration = new AtomicLong();
     private static volatile String lastVillagerVoiceError = "";
 
     public static VoicePacket lastVoice() { return lastVoice; }
@@ -226,6 +229,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     }
 
     private static void cleanupVoiceSession() {
+        voiceSessionGeneration.incrementAndGet();
         voiceKeyWasDown = false;
         microphone.stop();
         voiceConversation.reset();
@@ -245,9 +249,11 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             reserved = pendingVillagerSpeech.get();
             if (reserved >= 4) return;
         } while (!pendingVillagerSpeech.compareAndSet(reserved, reserved + 1));
+        final long session = voiceSessionGeneration.get();
         villagerSpeechExecutor.submit(() -> {
             Path output = null;
             try {
+                if (session != voiceSessionGeneration.get()) return;
                 var command = VoiceCommandParser.parse(voiceConfig.ttsCommand);
                 if (command.isEmpty()) {
                     lastVillagerVoiceError = "TTS command is empty";
@@ -266,6 +272,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                         .resolve("twr_villager_" + UUID.randomUUID() + ".wav");
                 var tts = new LocalProcessTtsAdapter(command, voiceConfig.ttsInstructions);
                 Path audio = tts.synthesize(payload.text(), profile, output);
+                if (session != voiceSessionGeneration.get()) return;
                 if (audio != null && Files.isRegularFile(audio)) {
                     lastVillagerVoiceError = "";
                     voicePlayer.play(audio, Math.max(0.0f, Math.min(2.0f, voiceConfig.outputVolume)));
