@@ -90,7 +90,7 @@ public final class VoiceNetworking {
 
         Villager nearest = null;
         double nearestDistance = VOICE_FOCUS_RADIUS * VOICE_FOCUS_RADIUS;
-        for (Villager villager : player.serverLevel().getEntitiesOfClass(
+        for (Villager villager : player.level().getEntitiesOfClass(
                 Villager.class, player.getBoundingBox().inflate(VOICE_FOCUS_RADIUS),
                 candidate -> candidate.isAlive() && !candidate.isRemoved())) {
             double distance = villager.distanceToSqr(player);
