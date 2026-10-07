@@ -7,7 +7,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(RenderPass.class)
-public interface RenderPassMixin {
+public abstract class RenderPassMixin {
     @Inject(method = "enableScissor", at = @At("HEAD"), cancellable = true)
     private void theWorldRemembers$skipInvalidScissor(int x, int y, int width, int height, CallbackInfo ci) {
         if (width <= 0 || height <= 0) {
