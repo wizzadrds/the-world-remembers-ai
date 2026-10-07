@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Consumer;
@@ -45,7 +46,7 @@ public final class VoiceConversationController implements AutoCloseable {
         setState(VoiceConversationState.PROCESSING);
         final long generation = sessionGeneration;
         try {
-            activeTask = worker.submit(() -> {
+            activeTask = submitTracked(() -> {
                 try {
                     if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
                     String transcript = service.transcribe(pcm);
@@ -83,7 +84,7 @@ public final class VoiceConversationController implements AutoCloseable {
         setState(VoiceConversationState.PROCESSING);
         final long generation = sessionGeneration;
         try {
-            activeTask = worker.submit(() -> {
+            activeTask = submitTracked(() -> {
                 Path audio = null;
                 try {
                     if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
@@ -110,7 +111,6 @@ public final class VoiceConversationController implements AutoCloseable {
                         } catch (Exception ignored) {
                         }
                     }
-                    activeTask = null;
                 }
             });
         } catch (RejectedExecutionException e) {
@@ -138,6 +138,18 @@ public final class VoiceConversationController implements AutoCloseable {
             stateListener.accept(next);
         } catch (RuntimeException ignored) {
             // UI/state observers must never break the voice worker or leave it wedged.
+        }
+    }
+
+    private synchronized Future<?> submitTracked(Runnable task) {
+        FutureTask<Void> future = new FutureTask<>(task, null);
+        activeTask = future;
+        try {
+            worker.execute(future);
+            return future;
+        } catch (RuntimeException e) {
+            if (activeTask == future) activeTask = null;
+            throw e;
         }
     }
 
