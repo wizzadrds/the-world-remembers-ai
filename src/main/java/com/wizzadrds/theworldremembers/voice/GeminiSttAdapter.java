@@ -48,8 +48,6 @@ public final class GeminiSttAdapter implements SttAdapter {
             JsonArray languages = new JsonArray();
             languages.add(language);
             transcription.add("language_codes", languages);
-            JsonObject mode = new JsonObject();
-            mode.addProperty("mode", "smart");
             transcription.addProperty("mode", "smart");
             generation.add("transcription_config", transcription);
             body.add("generation_config", generation);
@@ -63,7 +61,34 @@ public final class GeminiSttAdapter implements SttAdapter {
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 throw new IOException("Gemini STT failed: HTTP " + response.statusCode() + " - " + response.body());
             }
-            return GeminiResponsesAdapter.extractText(response.body());
+            String transcript = GeminiResponsesAdapter.extractTextOrEmpty(response.body());
+            if (!transcript.isBlank()) return transcript;
+
+            JsonObject retryBody = new JsonObject();
+            retryBody.addProperty("model", "gemini-3.5-transcribe");
+            retryBody.add("input", input.deepCopy());
+            JsonObject retryGeneration = new JsonObject();
+            JsonObject retryTranscription = new JsonObject();
+            retryTranscription.add("language_codes", new JsonArray());
+            retryTranscription.addProperty("mode", "verbatim");
+            retryGeneration.add("transcription_config", retryTranscription);
+            retryBody.add("generation_config", retryGeneration);
+
+            HttpRequest retryRequest = HttpRequest.newBuilder(URI.create("https://generativelanguage.googleapis.com/v1beta/interactions"))
+                    .header("x-goog-api-key", apiKey)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(retryBody.toString(), StandardCharsets.UTF_8))
+                    .build();
+            HttpResponse<String> retryResponse = client.send(
+                    retryRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (retryResponse.statusCode() < 200 || retryResponse.statusCode() >= 300) {
+                throw new IOException("Gemini STT retry failed: HTTP " + retryResponse.statusCode() + " - " + retryResponse.body());
+            }
+            transcript = GeminiResponsesAdapter.extractTextOrEmpty(retryResponse.body());
+            if (transcript.isBlank()) {
+                throw new IOException("Gemini STT returned no transcription text. The microphone capture may be silent or too short.");
+            }
+            return transcript;
         } finally {
             Files.deleteIfExists(wav);
         }
