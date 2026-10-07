@@ -31,7 +31,7 @@ public final class AudioDeviceManager {
         for (Mixer.Info info : AudioSystem.getMixerInfo()) {
             try {
                 Mixer mixer = AudioSystem.getMixer(info);
-                if (mixer.isLineSupported(new DataLine.Info(type, VOICE_FORMAT)) {
+                if (mixer.isLineSupported(new DataLine.Info(type, VOICE_FORMAT))) {
                     String label = info.getName();
                     if (result.contains(label)) {
                         String description = info.getDescription();
