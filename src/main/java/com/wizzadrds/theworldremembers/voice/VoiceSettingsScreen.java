@@ -8,6 +8,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import java.util.ArrayList;
 import java.util.List;
+import com.wizzadrds.theworldremembers.TheWorldRemembersClient;
 
 public final class VoiceSettingsScreen extends Screen {
     private final Screen parent;
@@ -69,6 +70,12 @@ public final class VoiceSettingsScreen extends Screen {
 
     private static List<String> safeDevices(List<String> values) {
         return values == null || values.isEmpty() ? List.of(AudioDeviceManager.DEFAULT_DEVICE) : values;
+    }
+
+    private static int indexOfIgnoreCase(List<String> values, String selected) {
+        if (selected == null) return -1;
+        for (int i = 0; i < values.size(); i++) if (selected.equalsIgnoreCase(values.get(i))) return i;
+        return -1;
     }
 
     private static int validIndex(List<String> values, String selected) {
