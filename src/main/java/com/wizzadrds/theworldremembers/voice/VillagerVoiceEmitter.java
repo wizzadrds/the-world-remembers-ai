@@ -44,7 +44,7 @@ public final class VillagerVoiceEmitter {
     private static VoicePacket packetFor(Villager villager, String line) {
         PersonalityProfile personality = PersonalityGenerator.generate(villager.getUUID());
         float social = personality.strength(com.wizzadrds.theworldremembers.personality.PersonalityTrait.SOCIAL) / 100.0f;
-        float calm = personality.strength(com.wizzadrds.theworldremembers.personality.PersonalityTrait.CALM) / 100.0f;
+        float calm = personality.strength(com.wizzadrds.theworldremembers.personality.PersonalityTrait.COWARDLY) / 100.0f;
         float rate = clamp(0.82f + social * 0.20f, 0.65f, 1.15f);
         float pitch = clamp(0.90f + (social - calm) * 0.14f, 0.78f, 1.20f);
         float expressiveness = clamp(0.35f + social * 0.45f, 0.20f, 0.90f);
