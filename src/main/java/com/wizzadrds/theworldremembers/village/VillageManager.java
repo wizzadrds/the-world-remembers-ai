@@ -33,8 +33,10 @@ public final class VillageManager extends SavedData {
     public VillageState observe(UUID id, BlockPos center, int population, long tick) {
         var old = villages.get(id);
         var state = old == null ? new VillageState(id, center, population, tick, tick) : old.observe(center, population, tick);
-        villages.put(id, state);
-        setDirty();
+        if (!state.equals(old)) {
+            villages.put(id, state);
+            setDirty();
+        }
         return state;
     }
     public VillageState findNearest(BlockPos center, Set<UUID> claimed) {
