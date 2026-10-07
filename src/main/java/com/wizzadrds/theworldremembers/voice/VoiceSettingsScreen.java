@@ -22,6 +22,7 @@ public final class VoiceSettingsScreen extends Screen {
     private int outputIndex;
     private int temperamentIndex;
     private boolean deviceScanFailed;
+    private boolean deviceScanPending;
 
     private Button microphoneButton;
     private Button outputButton;
@@ -62,8 +63,8 @@ public final class VoiceSettingsScreen extends Screen {
     }
 
     private void refreshDevices() {
+        // Never enumerate Java Sound devices on the Minecraft render thread.
         try {
-            AudioDeviceManager.refreshDevices();
             microphones = preserveSelectedDevice(safeDevices(AudioDeviceManager.inputDevices()), config.microphone);
             outputs = preserveSelectedDevice(safeDevices(AudioDeviceManager.outputDevices()), config.outputDevice);
             deviceScanFailed = false;
@@ -77,6 +78,29 @@ public final class VoiceSettingsScreen extends Screen {
         microphoneIndex = validIndex(microphones, config.microphone);
         outputIndex = validIndex(outputs, config.outputDevice);
         temperamentIndex = validIndex(temperaments, config.villagerVoiceTemperament);
+
+        if (!deviceScanPending) {
+            deviceScanPending = true;
+            AudioDeviceManager.refreshDevicesAsync(() -> Minecraft.getInstance().execute(() -> {
+                deviceScanPending = false;
+                if (Minecraft.getInstance().screen == this) {
+                    refreshDevicesFromCache();
+                    rebuildPage();
+                }
+            }));
+        }
+    }
+
+    private void refreshDevicesFromCache() {
+        try {
+            microphones = preserveSelectedDevice(safeDevices(AudioDeviceManager.inputDevices()), config.microphone);
+            outputs = preserveSelectedDevice(safeDevices(AudioDeviceManager.outputDevices()), config.outputDevice);
+            deviceScanFailed = false;
+        } catch (Throwable ignored) {
+            deviceScanFailed = true;
+        }
+        microphoneIndex = validIndex(microphones, config.microphone);
+        outputIndex = validIndex(outputs, config.outputDevice);
     }
 
     private static List<String> safeDevices(List<String> values) {
