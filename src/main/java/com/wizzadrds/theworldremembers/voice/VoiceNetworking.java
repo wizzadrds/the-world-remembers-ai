@@ -19,6 +19,7 @@ public final class VoiceNetworking {
 
     public static void init() {
         PayloadTypeRegistry.clientboundPlay().register(VoicePacket.TYPE, VoicePacket.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(VillagerVoicePacket.TYPE, VillagerVoicePacket.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(VoiceAudioPacket.TYPE, VoiceAudioPacket.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(VoiceAudioPacket.TYPE, VoiceAudioPacket.CODEC);
 
@@ -56,6 +57,12 @@ public final class VoiceNetworking {
                 }
             }
         });
+    }
+
+    public static void send(ServerPlayer player, VillagerVoicePacket packet) {
+        if (ServerPlayNetworking.canSend(player, VillagerVoicePacket.TYPE)) {
+            ServerPlayNetworking.send(player, packet);
+        }
     }
 
     public static void send(ServerPlayer player, VoicePacket packet) {
