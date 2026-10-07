@@ -50,7 +50,11 @@ class NpcInventoryManagerTest {
                 .resultOrPartial(message -> fail("Codec encode failed: " + message))
                 .orElseThrow();
         assertTrue(encoded.toString().contains("\"inventories\""));
-        assertTrue(encoded.toString().contains("\"pending_inherited\""));
+
+        NpcInventoryManager restored = NpcInventoryManager.CODEC.parse(JsonOps.INSTANCE, encoded)
+                .resultOrPartial(message -> fail("Codec decode failed: " + message))
+                .orElseThrow();
+        assertEquals(0, restored.count(owner, "minecraft:diamond"));
     }
 
     @Test
@@ -65,7 +69,12 @@ class NpcInventoryManagerTest {
         var encoded = NpcInventoryManager.CODEC.encodeStart(JsonOps.INSTANCE, manager)
                 .resultOrPartial(message -> fail("Codec encode failed: " + message))
                 .orElseThrow();
-        assertTrue(encoded.toString().isEmpty() || encoded.toString().equals("{}"));
+        assertTrue(encoded.toString().contains("\"inventories\""));
+
+        NpcInventoryManager restored = NpcInventoryManager.CODEC.parse(JsonOps.INSTANCE, encoded)
+                .resultOrPartial(message -> fail("Codec decode failed: " + message))
+                .orElseThrow();
+        assertEquals(0, restored.count(owner, "minecraft:diamond"));
     }
 
     @Test
