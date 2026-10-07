@@ -315,22 +315,47 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             try {
                 if (session != voiceSessionGeneration.get()) return;
                 AiChatAdapter ai = createAiAdapter();
-                String reply = ai.respond(transcript, voiceConfig.systemPrompt);
-                if (session != voiceSessionGeneration.get()) return;
-                if (reply == null || reply.isBlank()) {
-                    throw new IllegalStateException("AI returned an empty reply");
+                if ("gemini".equalsIgnoreCase(voiceConfig.provider)) {
+                    java.util.concurrent.ExecutorService speechQueue = Executors.newSingleThreadExecutor(r -> {
+                        Thread thread = new Thread(r, "twr-voice-sentence-tts");
+                        thread.setDaemon(true);
+                        return thread;
+                    });
+                    java.util.List<java.util.concurrent.Future<?>> speechJobs =
+                            new java.util.concurrent.CopyOnWriteArrayList<>();
+                    StringBuilder sentence = new StringBuilder();
+                    final Object speechLock = new Object();
+                    try {
+                        String reply = ai.respondStreaming(transcript, voiceConfig.systemPrompt, chunk -> {
+                            sentence.append(chunk);
+                            int boundary;
+                            while ((boundary = sentenceBoundary(sentence)) >= 0) {
+                                String part = sentence.substring(0, boundary + 1).trim();
+                                sentence.delete(0, boundary + 1);
+                                if (!part.isBlank()) {
+                                    speechJobs.add(speechQueue.submit(() ->
+                                            speakResponseSentence(part, service, session, speechLock)));
+                                }
+                            }
+                        });
+                        String tail = sentence.toString().trim();
+                        if (!tail.isBlank()) {
+                            speechJobs.add(speechQueue.submit(() ->
+                                    speakResponseSentence(tail, service, session, speechLock)));
+                        }
+                        for (java.util.concurrent.Future<?> job : speechJobs) job.get();
+                        if (reply == null || reply.isBlank()) throw new IllegalStateException("AI returned an empty reply");
+                    } finally {
+                        speechQueue.shutdownNow();
+                    }
+                } else {
+                    String reply = ai.respond(transcript, voiceConfig.systemPrompt);
+                    if (session != voiceSessionGeneration.get()) return;
+                    if (reply == null || reply.isBlank()) {
+                        throw new IllegalStateException("AI returned an empty reply");
+                    }
+                    speakResponseSentence(reply, service, session, new Object());
                 }
-
-                String responseVoice = voiceConfig.ttsVoice == null || voiceConfig.ttsVoice.isBlank()
-                        ? voiceConfig.ttsModel : voiceConfig.ttsVoice.trim();
-                VoiceProfile profile = new VoiceProfile(
-                        speechLanguage(), responseVoice, VoiceTemperament.CALM, 1.0f, 1.0f, 0.5f);
-                Path output = Minecraft.getInstance().gameDirectory.toPath()
-                        .resolve("config")
-                        .resolve("the_world_remembers_voice_response_" + UUID.randomUUID() + ".wav");
-                if (session != voiceSessionGeneration.get()) return;
-                voiceConversation.synthesizeAndSpeak(
-                        reply, service, profile, output, voicePlayer, voiceConfig.outputVolume, ignored -> {});
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException("Voice AI request interrupted", e);
@@ -338,6 +363,50 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 throw new RuntimeException("Voice AI request failed", e);
             }
         });
+    }
+
+    private static int sentenceBoundary(StringBuilder text) {
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if ((c == '.' || c == '!' || c == '?' || c == '…') && (i + 1 == text.length() || Character.isWhitespace(text.charAt(i + 1)))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static void speakResponseSentence(String text, VoiceService service, long session, Object speechLock) {
+        if (session != voiceSessionGeneration.get() || text == null || text.isBlank()) return;
+        String responseVoice = voiceConfig.ttsVoice == null || voiceConfig.ttsVoice.isBlank()
+                ? voiceConfig.ttsModel : voiceConfig.ttsVoice.trim();
+        VoiceProfile profile = new VoiceProfile(
+                speechLanguage(), responseVoice, VoiceTemperament.CALM, 1.0f, 1.0f, 0.5f);
+        Path output = Minecraft.getInstance().gameDirectory.toPath()
+                .resolve("config")
+                .resolve("the_world_remembers_voice_response_" + UUID.randomUUID() + ".wav");
+        try {
+            TtsAdapter tts = "gemini".equalsIgnoreCase(voiceConfig.provider)
+                    ? new GeminiTtsAdapter(voiceConfig.apiKey, voiceConfig.ttsModel, voiceConfig.ttsVoice, voiceConfig.ttsInstructions)
+                    : new LocalProcessTtsAdapter(VoiceCommandParser.parse(voiceConfig.ttsCommand), voiceConfig.ttsInstructions);
+            InputStream stream = tts.synthesizeStream(text, profile);
+            synchronized (speechLock) {
+                if (session != voiceSessionGeneration.get()) {
+                    if (stream != null) stream.close();
+                    return;
+                }
+                if (stream != null) {
+                    voicePlayer.playPcmStream(stream, voiceConfig.outputVolume);
+                } else {
+                    Path audio = tts.synthesize(text, profile, output);
+                    if (audio == null || !Files.isRegularFile(audio)) throw new IllegalStateException("TTS did not produce audio");
+                    voicePlayer.play(audio, voiceConfig.outputVolume);
+                }
+            }
+        } catch (Exception e) {
+            if (session == voiceSessionGeneration.get()) throw new RuntimeException("Voice TTS failed", e);
+        } finally {
+            try { Files.deleteIfExists(output); } catch (Exception ignored) {}
+        }
     }
 
     private static AiChatAdapter createAiAdapter() {
