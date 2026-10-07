@@ -254,11 +254,11 @@ public final class VoiceSettingsScreen extends Screen {
         ttsCommand.setSuggestion("Optional: command + {text} {output}");
 
         addRenderableWidget(Button.builder(Component.literal("Recommended defaults"), b -> {
-            language.setValue("en-US");
-            model.setValue("gpt-4o-mini");
-            sttModel.setValue("gpt-4o-mini-transcribe");
-            ttsModel.setValue("gpt-4o-mini-tts");
-            ttsVoice.setValue("alloy");
+            language.setValue("es-ES");
+            model.setValue("gemini-3.8-flash");
+            sttModel.setValue("gemini-3.5-transcribe");
+            ttsModel.setValue("gemini-3.8-flash-tts");
+            ttsVoice.setValue("Kore");
             sttCommand.setValue("");
             ttsCommand.setValue("");
             b.setMessage(Component.literal("Defaults applied"));
