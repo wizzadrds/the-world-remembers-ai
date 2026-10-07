@@ -89,6 +89,10 @@ public class TheWorldRemembers implements ModInitializer {
     private static final long DANGER_CACHE_TICKS = 10;
     private static final java.util.Map<ServerLevel,VillagerSpatialIndex> VILLAGER_SPATIAL_INDEX = new java.util.WeakHashMap<>();
     private static final long VILLAGER_SPATIAL_INDEX_TICKS = 10;
+    private static final java.util.Map<ServerLevel,java.util.Map<UUID,VillageObservationCache>> VILLAGE_OBSERVATION_CACHE = new java.util.WeakHashMap<>();
+    private static final long VILLAGE_STORAGE_SCAN_TICKS = 200;
+    private static final long VILLAGE_DEFENSE_SCAN_TICKS = 80;
+    private record VillageObservationCache(long storageTime, VillageStorage storage, long defenseTime, VillageDefense defense) {}
     private record DangerSample(long gameTime, boolean danger) {}
     private record VillagerSpatialIndex(long gameTime, java.util.Map<Long,java.util.List<Villager>> buckets) {
         private static long key(int x, int z) {
@@ -761,20 +765,43 @@ public class TheWorldRemembers implements ModInitializer {
                 villageEvents.record(villageId,new VillageEvent("migration",world.getGameTime(),villageId,center));
             }
             int food=members.stream().mapToInt(v->v.getInventory().countItem(Items.BREAD)).sum();
-            int containers=0,occupied=0,capacity=0;
-            for(BlockPos p:BlockPos.betweenClosed(center.offset(-16,-4,-16),center.offset(16,8,16))){
-                var be=world.getBlockEntity(p);
-                if(be instanceof net.minecraft.world.Container container){
-                    containers++; capacity+=container.getContainerSize();
-                    for(int slot=0;slot<container.getContainerSize();slot++)if(!container.getItem(slot).isEmpty())occupied++;
+            java.util.Map<UUID,VillageObservationCache> cacheByVillage =
+                    VILLAGE_OBSERVATION_CACHE.computeIfAbsent(world, ignored -> new java.util.HashMap<>());
+            VillageObservationCache cached = cacheByVillage.get(villageId);
+            long now = world.getGameTime();
+            VillageStorage storage;
+            VillageDefense villageDefenseState;
+            if (cached == null || now - cached.storageTime() >= VILLAGE_STORAGE_SCAN_TICKS) {
+                int containers=0,occupied=0,capacity=0;
+                for(BlockPos p:BlockPos.betweenClosed(center.offset(-16,-4,-16),center.offset(16,8,16))){
+                    var be=world.getBlockEntity(p);
+                    if(be instanceof net.minecraft.world.Container container){
+                        containers++; capacity+=container.getContainerSize();
+                        for(int slot=0;slot<container.getContainerSize();slot++)if(!container.getItem(slot).isEmpty())occupied++;
+                    }
                 }
+                storage = new VillageStorage(containers,occupied,capacity);
+            } else {
+                storage = cached.storage();
             }
-            villageStorage.observe(villageId,new VillageStorage(containers,occupied,capacity));
-            resources.observe(villageId,new VillageResources(food,0,occupied,capacity));
-            int golems=world.getEntitiesOfClass(IronGolem.class,new net.minecraft.world.phys.AABB(center).inflate(32),g->g.isAlive()).size();
-            defense.observe(villageId,new VillageDefense(golems,0,0));
-            for(var pos:world.getPoiManager().findAllWithType(type->type.is(PoiTypeTags.VILLAGE),pos->true,center,32,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).map(pair->pair.getSecond()).toList())
-                landmarks.add(villageId,new VillageLandmark("village_poi",pos,world.getGameTime()));
+            villageStorage.observe(villageId, storage);
+            resources.observe(villageId,new VillageResources(food,0,storage.occupiedSlots(),storage.capacity()));
+            if (cached == null || now - cached.defenseTime() >= VILLAGE_DEFENSE_SCAN_TICKS) {
+                int golems=world.getEntitiesOfClass(IronGolem.class,new net.minecraft.world.phys.AABB(center).inflate(32),g->g.isAlive()).size();
+                villageDefenseState = new VillageDefense(golems,0,0);
+            } else {
+                villageDefenseState = cached.defense();
+            }
+            defense.observe(villageId, villageDefenseState);
+            if (cached == null || now - cached.storageTime() >= VILLAGE_STORAGE_SCAN_TICKS) {
+                for(var pos:world.getPoiManager().findAllWithType(type->type.is(PoiTypeTags.VILLAGE),pos->true,center,32,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).map(pair->pair.getSecond()).toList())
+                    landmarks.add(villageId,new VillageLandmark("village_poi",pos,now));
+            }
+            cacheByVillage.put(villageId, new VillageObservationCache(
+                    cached != null && now - cached.storageTime() < VILLAGE_STORAGE_SCAN_TICKS ? cached.storageTime() : now,
+                    storage,
+                    cached != null && now - cached.defenseTime() < VILLAGE_DEFENSE_SCAN_TICKS ? cached.defenseTime() : now,
+                    villageDefenseState));
             processed++;
         }
         cursors.put(world,(start+Math.max(1,processed))%keys.size());
