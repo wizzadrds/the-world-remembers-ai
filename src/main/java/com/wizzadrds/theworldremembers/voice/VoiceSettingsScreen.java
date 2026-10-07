@@ -29,6 +29,7 @@ public final class VoiceSettingsScreen extends Screen {
     private Button providerButton;
     private Button microphoneTestButton;
     private Button pttKeyButton;
+    private Button villagerVoiceTestButton;
 
     private EditBox inputVolume;
     private EditBox outputVolume;
@@ -153,6 +154,10 @@ public final class VoiceSettingsScreen extends Screen {
             ttsInstructions.setValue("Speak like a Minecraft villager: warm, conversational, slightly rustic, short phrases, natural pauses. Avoid announcer, robotic or radio-presenter delivery.");
             systemPrompt.setValue("You are a Minecraft villager. Speak briefly, naturally and in character. Only use facts supplied by the simulation. Never invent world state.");
         }).bounds(left, top + 92, 150, 20).build());
+        villagerVoiceTestButton = addButton("Test villager voice", left, top + 138, () -> {
+            TheWorldRemembersClient.testVillagerVoice();
+            villagerVoiceTestButton.setMessage(Component.literal("TTS test started"));
+        });
         addRenderableWidget(Button.builder(Component.literal("About local voice"), b ->
                 Minecraft.getInstance().gui.setScreen(new VoiceSetupScreen(this))).bounds(right, top + 92, 150, 20).build());
     }
@@ -316,5 +321,9 @@ public final class VoiceSettingsScreen extends Screen {
             default -> "Villager personality and grounded speech";
         };
         graphics.centeredText(this.font, subtitle, this.width / 2, 38, 0xFFAAAAAA);
+        if (page == 2) {
+            String error = TheWorldRemembersClient.lastVillagerVoiceError();
+            if (error != null && !error.isBlank()) graphics.centeredText(this.font, "TTS: " + error, this.width / 2, this.height - 48, 0xFFFF7777);
+        }
     }
 }
