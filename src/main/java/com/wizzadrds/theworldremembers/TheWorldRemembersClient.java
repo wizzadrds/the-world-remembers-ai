@@ -38,7 +38,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static boolean autoVoiceActive;
     private static int autoVoiceSilenceTicks;
     private static final float AUTO_VOICE_THRESHOLD = 0.025f;
-    private static final int AUTO_VOICE_SILENCE_TICKS = 24;
+    private static final int AUTO_VOICE_SILENCE_TICKS = 12;
     private static int voiceSequence;
     private static int audioDevicePollTicks;
     private static ExecutorService villagerSpeechExecutor;
@@ -92,7 +92,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         appliedOutputDevice = voiceConfig.outputDevice;
         voiceStreamPlayer.setOutputDevice(voiceConfig.outputDevice);
         voicePlayer.setOutputDevice(voiceConfig.outputDevice);
-        villagerSpeechExecutor = Executors.newSingleThreadExecutor(r -> {
+        villagerSpeechExecutor = Executors.newFixedThreadPool(2, r -> {
             Thread thread = new Thread(r, "twr-villager-voice");
             thread.setDaemon(true);
             return thread;
