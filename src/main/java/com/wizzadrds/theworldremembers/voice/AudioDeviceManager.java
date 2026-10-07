@@ -17,6 +17,13 @@ public final class AudioDeviceManager {
     private static volatile List<String> cachedInputs = List.of(DEFAULT_DEVICE);
     private static volatile List<String> cachedOutputs = List.of(DEFAULT_DEVICE);
     private static volatile long cacheTimeMillis;
+    private static volatile boolean scanRunning;
+    private static final java.util.concurrent.ExecutorService DEVICE_SCAN_EXECUTOR =
+            java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+                Thread thread = new Thread(r, "twr-audio-device-scan");
+                thread.setDaemon(true);
+                return thread;
+            });
 
     private AudioDeviceManager() {}
 
@@ -30,15 +37,37 @@ public final class AudioDeviceManager {
         return cachedOutputs;
     }
 
+    /** Synchronous scan retained for tests/background callers; never call this from the render thread. */
     public static synchronized void refreshDevices() {
         cachedInputs = devices(TargetDataLine.class);
         cachedOutputs = devices(SourceDataLine.class);
         cacheTimeMillis = System.currentTimeMillis();
     }
 
+    /** Starts a Java Sound scan off the Minecraft/render thread. */
+    public static void refreshDevicesAsync(Runnable onComplete) {
+        if (scanRunning) return;
+        synchronized (AudioDeviceManager.class) {
+            if (scanRunning) return;
+            scanRunning = true;
+        }
+        DEVICE_SCAN_EXECUTOR.execute(() -> {
+            try {
+                refreshDevices();
+            } catch (Throwable ignored) {
+                // Audio drivers are optional and must never terminate Minecraft.
+            } finally {
+                scanRunning = false;
+                if (onComplete != null) {
+                    try { onComplete.run(); } catch (Throwable ignored) {}
+                }
+            }
+        });
+    }
+
     private static void refreshIfStale() {
         if (System.currentTimeMillis() - cacheTimeMillis <= CACHE_MILLIS) return;
-        refreshDevices();
+        refreshDevicesAsync(null);
     }
 
     private static List<String> devices(Class<? extends DataLine> type) {
@@ -85,7 +114,13 @@ public final class AudioDeviceManager {
 
     private static Mixer findMixer(String requested, Class<? extends DataLine> type, AudioFormat format) {
         if (requested == null || requested.isBlank() || requested.equalsIgnoreCase(DEFAULT_DEVICE)) return null;
-        for (Mixer.Info info : AudioSystem.getMixerInfo()) {
+        Mixer.Info[] infos;
+        try {
+            infos = AudioSystem.getMixerInfo();
+        } catch (Throwable ignored) {
+            return null;
+        }
+        for (Mixer.Info info : infos) {
             if (!matchesRequested(info, requested)) continue;
             try {
                 Mixer mixer = AudioSystem.getMixer(info);
