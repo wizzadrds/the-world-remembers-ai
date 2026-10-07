@@ -36,7 +36,7 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
                 .build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new IOException("Gemini request failed: HTTP " + response.statusCode());
+            throw new IOException("Gemini request failed: HTTP " + response.statusCode() + " - " + response.body());
         }
         return extractText(response.body());
     }
