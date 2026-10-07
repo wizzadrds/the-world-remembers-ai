@@ -6,7 +6,6 @@ import javax.sound.sampled.DataLine;
 import javax.sound.sampled.Mixer;
 import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.TargetDataLine;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -14,21 +13,44 @@ import java.util.Set;
 public final class AudioDeviceManager {
     public static final String DEFAULT_DEVICE = "Default";
     private static final AudioFormat VOICE_FORMAT = new AudioFormat(16000.0f, 16, 1, true, false);
+    private static final long CACHE_MILLIS = 2000L;
+    private static volatile List<String> cachedInputs = List.of(DEFAULT_DEVICE);
+    private static volatile List<String> cachedOutputs = List.of(DEFAULT_DEVICE);
+    private static volatile long cacheTimeMillis;
 
     private AudioDeviceManager() {}
 
     public static List<String> inputDevices() {
-        return devices(TargetDataLine.class);
+        refreshIfStale();
+        return cachedInputs;
     }
 
     public static List<String> outputDevices() {
-        return devices(SourceDataLine.class);
+        refreshIfStale();
+        return cachedOutputs;
+    }
+
+    public static synchronized void refreshDevices() {
+        cachedInputs = devices(TargetDataLine.class);
+        cachedOutputs = devices(SourceDataLine.class);
+        cacheTimeMillis = System.currentTimeMillis();
+    }
+
+    private static void refreshIfStale() {
+        if (System.currentTimeMillis() - cacheTimeMillis <= CACHE_MILLIS) return;
+        refreshDevices();
     }
 
     private static List<String> devices(Class<? extends DataLine> type) {
         Set<String> result = new LinkedHashSet<>();
         result.add(DEFAULT_DEVICE);
-        for (Mixer.Info info : AudioSystem.getMixerInfo()) {
+        Mixer.Info[] infos;
+        try {
+            infos = AudioSystem.getMixerInfo();
+        } catch (Throwable ignored) {
+            return List.copyOf(result);
+        }
+        for (Mixer.Info info : infos) {
             try {
                 Mixer mixer = AudioSystem.getMixer(info);
                 if (mixer.isLineSupported(new DataLine.Info(type, VOICE_FORMAT))) {
