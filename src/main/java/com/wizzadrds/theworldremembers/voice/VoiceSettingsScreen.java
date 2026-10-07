@@ -326,6 +326,75 @@ public final class VoiceSettingsScreen extends Screen {
         return box;
     }
 
+    private void switchPage(int next) {
+        savePageToConfig();
+        page = next;
+        rebuildPage();
+    }
+
+    private void cyclePushToTalkKey() {
+        int[] keys = {86, 66, 71, 67, 88};
+        int current = 0;
+        for (int i = 0; i < keys.length; i++) {
+            if (keys[i] == config.pushToTalkKey) {
+                current = i;
+                break;
+            }
+        }
+        config.pushToTalkKey = keys[(current + 1) % keys.length];
+        pttKeyButton.setMessage(Component.literal("PTT key: " + keyName(config.pushToTalkKey)));
+    }
+
+    private void toggleMicrophoneTest() {
+        if (TheWorldRemembersClient.microphoneCapturing()) {
+            TheWorldRemembersClient.stopMicrophoneTest();
+            microphoneTestButton.setMessage(Component.literal("Test microphone"));
+        } else {
+            boolean started = TheWorldRemembersClient.startMicrophoneTest();
+            microphoneTestButton.setMessage(Component.literal(started ? "Mic level: " + percentLevel() : "Mic failed"));
+        }
+    }
+
+    private String percentLevel() {
+        return Math.round(TheWorldRemembersClient.microphoneLevel() * 100.0f) + "%";
+    }
+
+    private static String keyName(int key) {
+        return switch (key) {
+            case 66 -> "B";
+            case 67 -> "C";
+            case 71 -> "G";
+            case 88 -> "X";
+            default -> "V";
+        };
+    }
+
+    private void cycleMicrophone() {
+        microphoneIndex = (microphoneIndex + 1) % microphones.size();
+        config.microphone = actualDeviceName(microphones.get(microphoneIndex));
+        microphoneButton.setMessage(Component.literal(fit("Mic: " + microphones.get(microphoneIndex), COL_W - 8)));
+        refreshDeviceStatus();
+    }
+
+    private void cycleOutput() {
+        outputIndex = (outputIndex + 1) % outputs.size();
+        config.outputDevice = actualDeviceName(outputs.get(outputIndex));
+        outputButton.setMessage(Component.literal(fit("Out: " + outputs.get(outputIndex), COL_W - 8)));
+        refreshDeviceStatus();
+    }
+
+    private void cycleTemperament() {
+        temperamentIndex = (temperamentIndex + 1) % temperaments.size();
+        config.villagerVoiceTemperament = temperaments.get(temperamentIndex);
+        temperamentButton.setMessage(Component.literal("Temperament: " + prettyTemperament(temperaments.get(temperamentIndex))));
+    }
+
+    private static String prettyTemperament(String value) {
+        if (value == null || value.isBlank()) return "Neutral";
+        String normalized = value.replace('_', ' ').toLowerCase(java.util.Locale.ROOT);
+        return Character.toUpperCase(normalized.charAt(0)) + normalized.substring(1);
+    }
+
     private void savePageToConfig() {
         if (microphoneButton != null) config.microphone = actualDeviceName(microphones.get(microphoneIndex));
         if (outputButton != null) config.outputDevice = actualDeviceName(outputs.get(outputIndex));
