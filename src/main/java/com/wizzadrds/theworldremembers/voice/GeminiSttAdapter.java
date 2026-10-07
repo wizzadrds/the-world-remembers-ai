@@ -61,7 +61,7 @@ public final class GeminiSttAdapter implements SttAdapter {
                     .build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new IOException("Gemini STT failed: HTTP " + response.statusCode());
+                throw new IOException("Gemini STT failed: HTTP " + response.statusCode() + " - " + response.body());
             }
             return GeminiResponsesAdapter.extractText(response.body());
         } finally {
@@ -82,7 +82,7 @@ public final class GeminiSttAdapter implements SttAdapter {
                 .build();
         HttpResponse<String> startResponse = client.send(start, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         if (startResponse.statusCode() < 200 || startResponse.statusCode() >= 300) {
-            throw new IOException("Gemini file upload initialization failed: HTTP " + startResponse.statusCode());
+            throw new IOException("Gemini file upload initialization failed: HTTP " + startResponse.statusCode() + " - " + startResponse.body());
         }
         String uploadUrl = startResponse.headers().firstValue("x-goog-upload-url").orElse("");
         if (uploadUrl.isBlank()) throw new IOException("Gemini file upload did not return an upload URL");
@@ -95,7 +95,7 @@ public final class GeminiSttAdapter implements SttAdapter {
                 .build();
         HttpResponse<String> uploadResponse = client.send(upload, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         if (uploadResponse.statusCode() < 200 || uploadResponse.statusCode() >= 300) {
-            throw new IOException("Gemini file upload failed: HTTP " + uploadResponse.statusCode());
+            throw new IOException("Gemini file upload failed: HTTP " + uploadResponse.statusCode() + " - " + uploadResponse.body());
         }
         JsonObject root = JsonParser.parseString(uploadResponse.body()).getAsJsonObject();
         JsonObject fileObject = root.getAsJsonObject("file");
