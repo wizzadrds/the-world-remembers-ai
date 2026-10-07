@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import java.util.ArrayList;
@@ -367,7 +368,7 @@ public final class VoiceSettingsScreen extends Screen {
         EditBox box = new EditBox(this.font, x, y, COL_W, 20, Component.literal(label));
         box.setValue(value == null ? "" : value);
         box.setHint(Component.literal(shortHint(label)));
-        box.setTooltip(Component.literal(fieldHelp(label)));
+        box.setTooltip(Tooltip.create(Component.literal(fieldHelp(label))));
         addRenderableWidget(box);
         return box;
     }
