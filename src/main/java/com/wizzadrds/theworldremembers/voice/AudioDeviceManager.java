@@ -108,10 +108,21 @@ public final class AudioDeviceManager {
     }
 
     private static boolean matchesRequested(Mixer.Info info, String requested) {
-        if (info.getName().equalsIgnoreCase(requested)) return true;
+        if (requested == null || requested.isBlank()) return false;
+        String normalized = requested.trim();
+        if (info.getName().equalsIgnoreCase(normalized)) return true;
         String description = info.getDescription();
         return description != null && !description.isBlank()
-                && (info.getName() + " — " + description).equalsIgnoreCase(requested);
+                && (info.getName() + " — " + description).equalsIgnoreCase(normalized);
+    }
+
+    public static String describeAvailability(String requested, boolean input) {
+        if (requested == null || requested.isBlank() || requested.equalsIgnoreCase(DEFAULT_DEVICE)) {
+            return DEFAULT_DEVICE + " (system default)";
+        }
+        return (input ? inputAvailable(requested) : outputAvailable(requested))
+                ? requested + " (available)"
+                : requested + " (unavailable)";
     }
 
     public static boolean inputAvailable(String requested) {
