@@ -197,8 +197,7 @@ public final class VoiceSettingsScreen extends Screen {
         });
 
         villagerVoicesButton = addButton("NPC voices: " + (config.villagerVoicesEnabled ? "ON" : "OFF"), left, top + row * rowHeight(), () -> {
-            config.villagerVoicesEnabled = !config.villagerVoicesEnabled;
-            villagerVoicesButton.setMessage(Component.literal("NPC voices: " + (config.villagerVoicesEnabled ? "ON" : "OFF")));
+            config.villagerVoicesEnabled = !config.villagerVoicesEnabled;            villagerVoicesButton.setMessage(Component.literal("NPC voices: " + (config.villagerVoicesEnabled ? "ON" : "OFF")));
         });
         pttKeyButton = addButton("PTT key: " + keyName(config.pushToTalkKey), right, top + row++ * rowHeight(), this::cyclePushToTalkKey);
 
@@ -343,13 +342,23 @@ public final class VoiceSettingsScreen extends Screen {
             case "Range (blocks)" -> "Maximum voice distance, 1 to 64 blocks.";
             default -> label;
         };
-    }\n\n    private String shortHint(String label) {
+    }
+
+    private String shortHint(String label) {
         return switch (label) {
             case "API key (OpenAI)" -> "API key";
             case "Local STT command" -> "{pcm}";
             case "Local TTS command" -> "{text} {output}";
             case "Speaking style" -> "Enter voice style...";
             case "AI rules" -> "Enter AI rules...";
+            case "Language" -> "es-ES";
+            case "AI model" -> "gpt-4o-mini";
+            case "STT model" -> "STT model";
+            case "TTS model" -> "TTS model";
+            case "TTS voice" -> "alloy";
+            case "Input volume" -> "0-2";
+            case "Output volume" -> "0-2";
+            case "Range (blocks)" -> "1-64";
             default -> label;
         };
     }
@@ -397,8 +406,7 @@ public final class VoiceSettingsScreen extends Screen {
     }
 
     private static String keyName(int key) {
-        return switch (key) {
-            case 66 -> "B";
+        return switch (key) {            case 66 -> "B";
             case 67 -> "C";
             case 71 -> "G";
             case 88 -> "X";
