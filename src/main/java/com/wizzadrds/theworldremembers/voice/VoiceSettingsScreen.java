@@ -238,7 +238,7 @@ public final class VoiceSettingsScreen extends Screen {
         if (temperamentButton != null) config.villagerVoiceTemperament = temperaments.get(temperamentIndex);
         if (inputVolume != null) config.inputVolume = bounded(inputVolume.getValue(), config.inputVolume, 0, 2);
         if (outputVolume != null) config.outputVolume = bounded(outputVolume.getValue(), config.outputVolume, 0, 2);
-        if (distance != null) config.voiceDistance = bounded(distance.getValue(), config.voiceDistance, 1, 128);
+        if (distance != null) config.voiceDistance = bounded(distance.getValue(), config.voiceDistance, 1, 64);
         if (apiKey != null) config.apiKey = apiKey.getValue().trim();
         if (language != null) config.language = language.getValue().trim();
         if (model != null) config.model = model.getValue().trim();
