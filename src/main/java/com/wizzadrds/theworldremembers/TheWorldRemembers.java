@@ -741,7 +741,7 @@ public class TheWorldRemembers implements ModInitializer {
             VillageStorageSample storageSample=storageCache.get(villageId);
             if(storageSample==null || world.getGameTime()-storageSample.tick()>=40 || storageSample.center().distSqr(center)>64){
                 int containers=0,occupied=0,capacity=0;
-                for(BlockPos p:BlockPos.betweenClosed(center.offset(-16,-4,-16),center.offset(16,8,8))){
+                for(BlockPos p:BlockPos.betweenClosed(center.offset(-16,-4,-16),center.offset(16,8,16))){
                     var be=world.getBlockEntity(p);
                     if(be instanceof net.minecraft.world.Container container){
                         containers++; capacity+=container.getContainerSize();
