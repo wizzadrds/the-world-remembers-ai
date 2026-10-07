@@ -8,6 +8,8 @@ import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.TargetDataLine;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public final class AudioDeviceManager {
     public static final String DEFAULT_DEVICE = "Default";
@@ -24,7 +26,7 @@ public final class AudioDeviceManager {
     }
 
     private static List<String> devices(Class<? extends DataLine> type) {
-        List<String> result = new ArrayList<>();
+        Set<String> result = new LinkedHashSet<>();
         result.add(DEFAULT_DEVICE);
         for (Mixer.Info info : AudioSystem.getMixerInfo()) {
             try {
