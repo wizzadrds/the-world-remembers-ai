@@ -8,10 +8,16 @@ import java.util.List;
 
 public final class LocalProcessTtsAdapter implements TtsAdapter {
     private final List<String> command;
+    private final String instructions;
 
     public LocalProcessTtsAdapter(List<String> command) {
+        this(command, "");
+    }
+
+    public LocalProcessTtsAdapter(List<String> command, String instructions) {
         if (command == null || command.isEmpty()) throw new IllegalArgumentException("TTS command is empty");
         this.command = List.copyOf(command);
+        this.instructions = instructions == null ? "" : instructions;
     }
 
     @Override
@@ -32,7 +38,8 @@ public final class LocalProcessTtsAdapter implements TtsAdapter {
                         .replace("{rate}", Float.toString(profile.rate()))
                         .replace("{pitch}", Float.toString(profile.pitch()))
                         .replace("{expressiveness}", Float.toString(profile.expressiveness()))
-                        .replace("{temperament}", profile.temperament().name()));
+                        .replace("{temperament}", profile.temperament().name())
+                        .replace("{instructions}", instructions));
             }
         } else {
             args.addAll(command);
@@ -55,6 +62,7 @@ public final class LocalProcessTtsAdapter implements TtsAdapter {
     private static boolean containsPlaceholder(String value) {
         return value.contains("{text}") || value.contains("{output}") || value.contains("{language}")
                 || value.contains("{model}") || value.contains("{voice}") || value.contains("{rate}")
-                || value.contains("{pitch}") || value.contains("{expressiveness}") || value.contains("{temperament}");
+                || value.contains("{pitch}") || value.contains("{expressiveness}") || value.contains("{temperament}")
+                || value.contains("{instructions}");
     }
 }
