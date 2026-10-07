@@ -147,6 +147,7 @@ Los placeholders admitidos son:
 - `{pitch}`
 - `{expressiveness}`
 - `{temperament}`
+- `{instructions}` — instrucciones adicionales para el estilo de habla del aldeano; se obtiene del campo **Villager voice instructions** del panel NPC.
 
 También puedes usar un comando antiguo sin placeholders: el mod mantiene el formato de argumentos posicionales para compatibilidad.
 
@@ -188,6 +189,8 @@ En **NPC voices** puedes seleccionar:
 - EXCITED
 
 Además, el perfil de voz modifica la velocidad, tono y expresividad según la personalidad del aldeano. La intención es que no todos los aldeanos parezcan la misma voz robótica.
+
+Puedes usar `{instructions}` en el comando TTS si tu script acepta instrucciones de estilo. Por ejemplo, un wrapper puede recibir `"{instructions}"` y convertirlo en parámetros de prosodia o estilo del motor. El mod no añade esas instrucciones automáticamente al texto hablado: solo las expone de forma segura al proceso TTS configurado.
 
 Para un resultado natural recomendamos:
 
