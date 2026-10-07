@@ -88,7 +88,6 @@ public final class GeminiSttAdapter implements SttAdapter {
         if (uploadUrl.isBlank()) throw new IOException("Gemini file upload did not return an upload URL");
 
         HttpRequest upload = HttpRequest.newBuilder(URI.create(uploadUrl))
-                .header("Content-Length", Long.toString(bytes.length))
                 .header("X-Goog-Upload-Offset", "0")
                 .header("X-Goog-Upload-Command", "upload, finalize")
                 .POST(HttpRequest.BodyPublishers.ofByteArray(bytes))
