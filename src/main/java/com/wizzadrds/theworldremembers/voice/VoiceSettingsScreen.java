@@ -329,11 +329,11 @@ public final class VoiceSettingsScreen extends Screen {
     private String fieldHelp(String label) {
         return switch (label) {
             case "Language" -> "Language/locale sent to speech services. Example: es-ES";
-            case "AI model" -> "Online AI model used to generate villager dialogue.";
-            case "STT model" -> "Speech-to-text model. Online example: gpt-4o-mini-transcribe.";
-            case "TTS model" -> "Text-to-speech model. Online example: gpt-4o-mini-tts.";
-            case "TTS voice" -> "Voice name used by online TTS, for example alloy.";
-            case "API key (OpenAI)" -> "Paste your OpenAI API key here. It is saved in Minecraft config, not in the world.";
+            case "AI model" -> "Online AI model used to generate dialogue. Gemini example: gemini-3.8-flash.";
+            case "STT model" -> "Speech-to-text model. Gemini example: gemini-3.5-transcribe.";
+            case "TTS model" -> "Text-to-speech model. Gemini example: gemini-3.8-flash-tts.";
+            case "TTS voice" -> "Gemini voice name, for example Kore or Puck.";
+            case "API key (Google Gemini)" -> "Paste your Google AI Studio Gemini API key here. It is saved in Minecraft config, not in the world.";
             case "Local STT command" -> "Optional local speech-to-text command. Use {pcm} where the PCM file path should go.";
             case "Local TTS command" -> "Optional local text-to-speech command. Use {text}, {output}, {language}, {model}, {rate}, {pitch}, {expressiveness}.";
             case "Speaking style" -> "Instructions controlling how the villager voice sounds. Full text is kept; the field scrolls horizontally.";
@@ -347,16 +347,16 @@ public final class VoiceSettingsScreen extends Screen {
 
     private String shortHint(String label) {
         return switch (label) {
-            case "API key (OpenAI)" -> "API key";
+            case "API key (Google Gemini)" -> "Gemini API key";
             case "Local STT command" -> "{pcm}";
             case "Local TTS command" -> "{text} {output}";
             case "Speaking style" -> "Enter voice style...";
             case "AI rules" -> "Enter AI rules...";
             case "Language" -> "es-ES";
-            case "AI model" -> "gpt-4o-mini";
-            case "STT model" -> "STT model";
-            case "TTS model" -> "TTS model";
-            case "TTS voice" -> "alloy";
+            case "AI model" -> "gemini-3.8-flash";
+            case "STT model" -> "gemini-3.5-transcribe";
+            case "TTS model" -> "gemini-3.8-flash-tts";
+            case "TTS voice" -> "Kore";
             case "Input volume" -> "0-2";
             case "Output volume" -> "0-2";
             case "Range (blocks)" -> "1-64";
@@ -509,7 +509,7 @@ public final class VoiceSettingsScreen extends Screen {
     private static String nextProvider(String provider) {
         // Only providers implemented by the client are offered here; this avoids presenting
         // a selectable backend that would later fail at runtime.
-        return "openai".equalsIgnoreCase(provider) || "openai-responses".equalsIgnoreCase(provider) ? "openai" : "openai";
+        return "gemini".equalsIgnoreCase(provider) ? "openai" : "gemini";
     }
 
     @Override
