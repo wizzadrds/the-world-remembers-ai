@@ -28,12 +28,10 @@ public final class AudioDeviceManager {
     private AudioDeviceManager() {}
 
     public static List<String> inputDevices() {
-        refreshIfStale();
         return cachedInputs;
     }
 
     public static List<String> outputDevices() {
-        refreshIfStale();
         return cachedOutputs;
     }
 
