@@ -80,9 +80,9 @@ public final class VoiceClientConfig {
 
     public void save(Path gameDir) {
         Path file = file(gameDir);
+        Path temp = file.resolveSibling(file.getFileName() + ".tmp");
         try {
             Files.createDirectories(file.getParent());
-            Path temp = file.resolveSibling(file.getFileName() + ".tmp");
             Files.writeString(temp, GSON.toJson(normalized()), StandardCharsets.UTF_8);
             try {
                 Files.move(temp, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
@@ -90,6 +90,11 @@ public final class VoiceClientConfig {
                 Files.move(temp, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException ignored) {
+        } finally {
+            try {
+                Files.deleteIfExists(temp);
+            } catch (IOException ignored) {
+            }
         }
     }
 
