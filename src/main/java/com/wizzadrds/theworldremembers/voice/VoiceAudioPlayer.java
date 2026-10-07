@@ -61,7 +61,14 @@ public final class VoiceAudioPlayer {
             byte[] buffer = new byte[8192];
             int read;
             while (generation == playbackGeneration.get() && line == output && (read = stream.read(buffer, 0, buffer.length)) >= 0) {
-                if (read > 0) output.write(buffer, 0, read);
+                if (read == 0) continue;
+                // L16 is a 16-bit format: never hand a partial sample to the mixer.
+                if ((read & 1) != 0) {
+                    int next = stream.read(buffer, read, 1);
+                    if (next <= 0) break;
+                    read++;
+                }
+                output.write(buffer, 0, read);
             }
             if (generation == playbackGeneration.get() && line == output) output.drain();
         } finally {
