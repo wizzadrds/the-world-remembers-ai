@@ -86,12 +86,13 @@ public class TheWorldRemembers implements ModInitializer {
     private static final java.util.Map<ServerLevel,SchedulerMetrics> SCHEDULER_METRICS = new java.util.WeakHashMap<>();
     /** Short-lived danger samples avoid scanning monsters for every NPC every tick. */
     private static final java.util.Map<ServerLevel,java.util.Map<UUID,DangerSample>> DANGER_CACHE = new java.util.WeakHashMap<>();
-    /** Avoids repeatedly scanning the same home volume when no container is available. */
-    private static final java.util.Map<ServerLevel,java.util.Map<UUID,Long>> HOME_STORAGE_RESCAN_CACHE = new java.util.WeakHashMap<>();
+    /** Caches the result of a home storage search so family members do not scan the same blocks independently. */
+    private static final java.util.Map<ServerLevel,java.util.Map<BlockPos,HomeStorageSample>> HOME_STORAGE_SCAN_CACHE = new java.util.WeakHashMap<>();
     private static final double HOME_RADIUS=3.5;
     private static final NpcBehaviorEngine BEHAVIOR_ENGINE = new NpcBehaviorEngine();
 
     private record DangerSample(long tick, boolean danger) {}
+    private record HomeStorageSample(long tick, BlockPos storage) {}
 
     private static final class SchedulerMetrics {
         long samples;
@@ -258,10 +259,7 @@ public class TheWorldRemembers implements ModInitializer {
             }
             synchronizeFamilyHome(villager, families, homes);
             home=homes.get(villager.getUUID());
-            if(shouldRescanHomeStorage(world, villager, homeStorage, home)) {
-                BlockPos storage=findNearestContainer(world,home.homePos(),8);
-                if(storage!=null) homeStorage.link(villager.getUUID(),storage);
-            }
+            findCachedHomeStorage(world, villager, homeStorage, home);
             activities.set(villager.getUUID(),villager.isSleeping()?NpcActivity.SLEEPING:(villager.getNavigation().isInProgress()?NpcActivity.WALKING:NpcActivity.IDLE),10,villager.blockPosition(),world.getGameTime());
             if(villager.getNavigation().isInProgress())fatigue.increase(villager.getUUID(),1);else fatigue.recover(villager.getUUID(),1);
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress, behavior);
@@ -757,16 +755,23 @@ public class TheWorldRemembers implements ModInitializer {
 
     private static BlockPos findNearbyHomePoi(ServerLevel world,BlockPos pos){return world.getPoiManager().findClosest(type->type.is(net.minecraft.world.entity.ai.village.poi.PoiTypes.HOME),pos,16,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).orElse(null);}
     private static BlockPos findNearbyDoor(ServerLevel world,BlockPos pos){BlockPos best=null;double d=257;for(BlockPos p:BlockPos.betweenClosed(pos.offset(-8,-2,-8),pos.offset(8,4,8)))if(world.getBlockState(p).is(net.minecraft.tags.BlockTags.DOORS)){double x=p.distSqr(pos);if(x<d){d=x;best=p.immutable();}}return best;}
-    private static boolean shouldRescanHomeStorage(ServerLevel world, Villager villager, NpcHomeStorageManager homeStorage, NpcHome home) {
+    private static BlockPos findCachedHomeStorage(ServerLevel world, Villager villager, NpcHomeStorageManager homeStorage, NpcHome home) {
         UUID id = villager.getUUID();
         BlockPos linked = homeStorage.get(id);
-        if (linked != null && world.getBlockEntity(linked) instanceof Container) return false;
+        if (linked != null && world.getBlockEntity(linked) instanceof Container) return linked;
         long tick = world.getGameTime();
-        java.util.Map<UUID,Long> cache = HOME_STORAGE_RESCAN_CACHE.computeIfAbsent(world, ignored -> new java.util.HashMap<>());
-        Long last = cache.get(id);
-        if (last != null && tick - last < HOME_STORAGE_RESCAN_INTERVAL) return false;
-        cache.put(id, tick);
-        return true;
+        java.util.Map<BlockPos,HomeStorageSample> cache = HOME_STORAGE_SCAN_CACHE.computeIfAbsent(world, ignored -> new java.util.HashMap<>());
+        HomeStorageSample sample = cache.get(home.homePos());
+        if (sample == null || tick - sample.tick() >= HOME_STORAGE_RESCAN_INTERVAL) {
+            BlockPos storage = findNearestContainer(world, home.homePos(), 8);
+            sample = new HomeStorageSample(tick, storage);
+            cache.put(home.homePos().immutable(), sample);
+        }
+        if (sample.storage() != null && world.getBlockEntity(sample.storage()) instanceof Container) {
+            homeStorage.link(id, sample.storage());
+            return sample.storage();
+        }
+        return null;
     }
 
     private static BlockPos findNearestContainer(ServerLevel world,BlockPos center,int radius){BlockPos best=null;double d=Double.MAX_VALUE;for(BlockPos p:BlockPos.betweenClosed(center.offset(-radius,-3,-radius),center.offset(radius,3,radius)))if(world.getBlockEntity(p) instanceof net.minecraft.world.Container){double x=p.distSqr(center);if(x<d){d=x;best=p.immutable();}}return best;}
