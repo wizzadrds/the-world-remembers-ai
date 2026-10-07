@@ -22,6 +22,7 @@ import com.wizzadrds.theworldremembers.stress.NpcStressManager;
 import com.wizzadrds.theworldremembers.village.VillageManager;
 import com.wizzadrds.theworldremembers.dream.DreamManager;
 import com.wizzadrds.theworldremembers.chronicle.ChronicleNetworking;
+import com.wizzadrds.theworldremembers.voice.VillagerVoiceEmitter;
 import com.wizzadrds.theworldremembers.rumor.*;
 import com.wizzadrds.theworldremembers.village.VillageHistoryManager;
 import com.wizzadrds.theworldremembers.village.VillageResourceManager;
@@ -447,6 +448,7 @@ public class TheWorldRemembers implements ModInitializer {
             if (shared.isEmpty()) continue;
             for (KnowledgeFact fact : shared) knowledge.learn(second.getUUID(), fact);
             conversations.record(new Conversation(first.getUUID(), second.getUUID(), world.getGameTime(), shared));
+            VillagerVoiceEmitter.speakKnowledge(world, first, shared.get(0), world.getGameTime());
         }
     }
 
