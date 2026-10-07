@@ -15,6 +15,7 @@ public final class MicrophoneCapture implements AutoCloseable {
     public static final float SAMPLE_RATE = 16000.0f;
     public static final String DEFAULT_DEVICE = AudioDeviceManager.DEFAULT_DEVICE;
     private static final AudioFormat FORMAT = new AudioFormat(SAMPLE_RATE, 16, 1, true, false);
+    private static final int MAX_CAPTURE_BYTES = (int) (SAMPLE_RATE * 2 * 120); // 120 seconds at 16-bit mono
     private volatile TargetDataLine line;
     private volatile Thread captureThread;
     private volatile ByteArrayOutputStream buffer;
@@ -64,7 +65,10 @@ public final class MicrophoneCapture implements AutoCloseable {
                 int read = target.read(chunk, 0, chunk.length);
                 if (read > 0) {
                     applyGain(chunk, read, inputVolume);
-                    captureBuffer.write(chunk, 0, read);
+                    if (captureBuffer.size() < MAX_CAPTURE_BYTES) {
+                        int accepted = Math.min(read, MAX_CAPTURE_BYTES - captureBuffer.size());
+                        captureBuffer.write(chunk, 0, accepted);
+                    }
                     level = calculateLevel(chunk, read);
                     try {
                         listener.accept(java.util.Arrays.copyOf(chunk, read));
