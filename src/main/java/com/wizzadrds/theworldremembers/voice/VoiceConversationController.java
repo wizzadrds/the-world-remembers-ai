@@ -96,9 +96,6 @@ public final class VoiceConversationController implements AutoCloseable {
                     player.play(audio, outputVolume);
                     completed.accept(audio);
                     finishSpeaking();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    if (generation == sessionGeneration) fail();
                 } catch (Exception e) {
                     if (generation == sessionGeneration) fail();
                 } finally {
