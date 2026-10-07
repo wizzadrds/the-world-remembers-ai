@@ -75,7 +75,7 @@ public final class AudioDeviceManager {
     }
 
     public static boolean playTestTone(String requested, float volume) {
-        AudioFormat format = new AudioFormat(44100.0f, 16, 1, true, false);
+        AudioFormat format = VOICE_FORMAT;
         SourceDataLine line = null;
         try {
             if (!requested.equalsIgnoreCase(DEFAULT_DEVICE) && findMixer(requested, SourceDataLine.class, format) == null) return false;
@@ -85,12 +85,12 @@ public final class AudioDeviceManager {
                     : mixer.getLine(new DataLine.Info(SourceDataLine.class, format)));
             line.open(format, 4096);
             line.start();
-            int samples = 44100 / 5;
+            int samples = 16000 / 5;
             byte[] pcm = new byte[samples * 2];
             double gain = Math.max(0.0, Math.min(1.0, volume));
             for (int i = 0; i < samples; i++) {
                 double envelope = Math.min(1.0, i / 400.0) * Math.min(1.0, (samples - i) / 400.0);
-                short sample = (short) (Math.sin(2.0 * Math.PI * 440.0 * i / 44100.0) * 12000.0 * gain * envelope);
+                short sample = (short) (Math.sin(2.0 * Math.PI * 440.0 * i / 16000.0) * 12000.0 * gain * envelope);
                 pcm[i * 2] = (byte) sample;
                 pcm[i * 2 + 1] = (byte) (sample >> 8);
             }
