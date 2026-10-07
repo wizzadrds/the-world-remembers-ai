@@ -345,6 +345,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                         }
                         for (java.util.concurrent.Future<?> job : speechJobs) job.get();
                         if (reply == null || reply.isBlank()) throw new IllegalStateException("AI returned an empty reply");
+                        if (session == voiceSessionGeneration.get()) voiceConversation.finishSpeaking();
                     } finally {
                         speechQueue.shutdownNow();
                     }
@@ -355,6 +356,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                         throw new IllegalStateException("AI returned an empty reply");
                     }
                     speakResponseSentence(reply, service, session, new Object());
+                    if (session == voiceSessionGeneration.get()) voiceConversation.finishSpeaking();
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
