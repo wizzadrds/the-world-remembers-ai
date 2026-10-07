@@ -78,6 +78,7 @@ public final class AudioDeviceManager {
         AudioFormat format = new AudioFormat(44100.0f, 16, 1, true, false);
         SourceDataLine line = null;
         try {
+            if (!requested.equalsIgnoreCase(DEFAULT_DEVICE) && findMixer(requested, SourceDataLine.class, format) == null) return false;
             Mixer mixer = findMixer(requested, SourceDataLine.class, format);
             line = (SourceDataLine) (mixer == null
                     ? AudioSystem.getLine(new DataLine.Info(SourceDataLine.class, format))
