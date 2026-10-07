@@ -238,6 +238,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 if (output != null) {
                     try { Files.deleteIfExists(output); } catch (Exception ignored) {}
                 }
+                pendingVillagerSpeech = Math.max(0, pendingVillagerSpeech - 1);
             }
         });
     }
