@@ -54,6 +54,8 @@ public final class VoiceClientConfig {
         outputVolume = finiteClamp(outputVolume, 0.0f, 2.0f, 1.0f);
         voiceDistance = finiteClamp(voiceDistance, 1.0f, 64.0f, 32.0f);
         if (provider == null || provider.isBlank()) provider = "gemini";
+        if (apiKey == null) apiKey = "";
+        else apiKey = apiKey.trim();
         if (language == null || language.isBlank()) language = "es-ES";
         if (sttModel == null || sttModel.isBlank()) sttModel = "gemini-3.5-transcribe";
         else sttModel = sttModel.trim();
@@ -78,7 +80,7 @@ public final class VoiceClientConfig {
         return Float.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback;
     }
 
-    public void save(Path gameDir) {
+    public boolean save(Path gameDir) {
         Path file = file(gameDir);
         Path temp = file.resolveSibling(file.getFileName() + ".tmp");
         try {
@@ -90,11 +92,18 @@ public final class VoiceClientConfig {
                 Files.move(temp, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException ignored) {
+            return false;
         } finally {
             try {
                 Files.deleteIfExists(temp);
             } catch (IOException ignored) {
             }
+        }
+        try {
+            VoiceClientConfig persisted = load(gameDir);
+            return java.util.Objects.equals(persisted.apiKey, normalized().apiKey);
+        } catch (Exception ignored) {
+            return false;
         }
     }
 
