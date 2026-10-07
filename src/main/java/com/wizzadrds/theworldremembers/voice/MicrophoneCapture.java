@@ -24,6 +24,8 @@ public final class MicrophoneCapture implements AutoCloseable {
     private volatile float inputVolume = 1.0f;
     private volatile Consumer<byte[]> frameListener = ignored -> {};
     private volatile String lastError = "";
+    private volatile int lastRecordingBytes;
+    private volatile float lastRecordingLevel;
 
     public static List<String> devices() {
         return AudioDeviceManager.inputDevices();
@@ -104,12 +106,22 @@ public final class MicrophoneCapture implements AutoCloseable {
         }
         byte[] result = buffer == null ? new byte[0] : buffer.toByteArray();
         buffer = null;
+        lastRecordingBytes = result.length;
+        lastRecordingLevel = calculateLevel(result, result.length);
+        if (result.length == 0) lastError = "Microphone produced no audio bytes";
         return result;
     }
 
     public float level() { return level; }
     public boolean isCapturing() { return line != null; }
     public String lastError() { return lastError; }
+    public int lastRecordingBytes() { return lastRecordingBytes; }
+    public float lastRecordingLevel() { return lastRecordingLevel; }
+
+    public static byte[] wavBytes(byte[] pcm, int sampleRate) {
+        return wavBytesInternal(pcm, sampleRate);
+    }
+
 
     private static void applyGain(byte[] pcm, int length, float gain) {
         if (gain == 1.0f) return;
