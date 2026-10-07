@@ -44,7 +44,10 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
     static String extractText(String json) throws IOException {
         JsonObject root = JsonParser.parseString(json).getAsJsonObject();
         JsonElement direct = root.get("output_text");
-        if (direct != null && !direct.isJsonNull()) return direct.getAsString().trim();
+        if (direct != null && !direct.isJsonNull()) {
+            String text = direct.getAsString().trim();
+            if (!text.isBlank()) return text;
+        }
 
         JsonArray steps = root.getAsJsonArray("steps");
         if (steps != null) {
