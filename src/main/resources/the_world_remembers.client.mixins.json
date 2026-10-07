@@ -1,0 +1,6 @@
+{
+  "required": true,
+  "package": "com.wizzadrds.theworldremembers.mixin.client",
+  "compatibilityLevel": "JAVA_25",
+  "client": ["GuiRendererMixin"]
+}
