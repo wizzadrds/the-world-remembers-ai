@@ -515,6 +515,10 @@ public class TheWorldRemembers implements ModInitializer {
         for (UUID id : previous) if (discoveredSet.contains(id)) ids.add(id);
         for (UUID id : discovered) if (!previousSet.contains(id)) ids.add(id);
         VILLAGER_REGISTRY.put(world, ids);
+        // Drop retry entries for villagers that are no longer present so the negative
+        // storage cache cannot grow forever on long-running servers.
+        java.util.Map<UUID,Long> storageRetry = HOME_STORAGE_RESCAN_CACHE.get(world);
+        if (storageRetry != null) storageRetry.keySet().retainAll(discoveredSet);
         if (ids.isEmpty()) {
             VILLAGER_CURSORS.put(world, 0);
             SOCIAL_CURSORS.put(world, 0);
