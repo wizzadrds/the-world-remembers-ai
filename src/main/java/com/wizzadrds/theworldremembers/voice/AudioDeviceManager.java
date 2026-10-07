@@ -57,9 +57,12 @@ public final class AudioDeviceManager {
             } catch (Throwable ignored) {
                 // Audio drivers are optional and must never terminate Minecraft.
             } finally {
-                scanRunning = false;
-                List<Runnable> callbacks = new java.util.ArrayList<>(DEVICE_SCAN_CALLBACKS);
-                DEVICE_SCAN_CALLBACKS.removeAll(callbacks);
+                List<Runnable> callbacks;
+                synchronized (AudioDeviceManager.class) {
+                    scanRunning = false;
+                    callbacks = new java.util.ArrayList<>(DEVICE_SCAN_CALLBACKS);
+                    DEVICE_SCAN_CALLBACKS.clear();
+                }
                 for (Runnable callback : callbacks) {
                     try { callback.run(); } catch (Throwable ignored) {}
                 }
