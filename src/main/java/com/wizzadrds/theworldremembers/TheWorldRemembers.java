@@ -446,9 +446,32 @@ public class TheWorldRemembers implements ModInitializer {
         }
         if (world.getGameTime() % KNOWLEDGE_DECAY_INTERVAL == 0) knowledge.decay(world.getGameTime());
         if (world.getGameTime() % SOCIAL_INTERVAL != 0) return;
+        // Use the already-budgeted villager list instead of a spatial entity query for every
+        // speaker. The small 8-block buckets keep this O(n) for the social slice.
+        java.util.Map<Long, java.util.List<Villager>> buckets = new java.util.HashMap<>();
+        for (Villager villager : villagers) {
+            long key = (((long) (villager.blockPosition().getX() >> 3)) << 32)
+                    ^ ((villager.blockPosition().getZ() >> 3) & 0xffffffffL);
+            buckets.computeIfAbsent(key, ignored -> new java.util.ArrayList<>()).add(villager);
+        }
         for (Villager first : villagers) {
-            Villager second = world.getEntitiesOfClass(Villager.class, first.getBoundingBox().inflate(4),
-                    v -> v.isAlive() && !v.getUUID().equals(first.getUUID())).stream().findFirst().orElse(null);
+            int bx = first.blockPosition().getX() >> 3;
+            int bz = first.blockPosition().getZ() >> 3;
+            Villager second = null;
+            double bestDistance = 4.0 * 4.0;
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    long key = (((long) (bx + dx)) << 32) ^ ((bz + dz) & 0xffffffffL);
+                    for (Villager candidate : buckets.getOrDefault(key, java.util.List.of())) {
+                        if (!candidate.isAlive() || candidate.getUUID().equals(first.getUUID())) continue;
+                        double distance = first.distanceToSqr(candidate);
+                        if (distance < bestDistance) {
+                            bestDistance = distance;
+                            second = candidate;
+                        }
+                    }
+                }
+            }
             if (second == null) continue;
             java.util.List<KnowledgeFact> shared = knowledge.facts(first.getUUID()).stream()
                     .filter(f -> f.confidence() >= 20).limit(2)
@@ -543,8 +566,7 @@ public class TheWorldRemembers implements ModInitializer {
         for (java.util.UUID childId : children) {
             if (!villager.getUUID().equals(protection.protectorOf(childId))) continue;
             if (!(world.getEntity(childId) instanceof Villager child) || !child.isAlive()) continue;
-            boolean dangerPresent = !world.getEntitiesOfClass(LivingEntity.class, child.getBoundingBox().inflate(8),
-                entity -> entity.isAlive() && entity instanceof net.minecraft.world.entity.monster.Monster).isEmpty();
+            boolean dangerPresent = isDangerNearby(world, child);
             NpcDecision decision = engine.decideFamilyResponse(true, dangerPresent, npcStress);
             if (decision == NpcDecision.FOLLOW || decision == NpcDecision.CALL_FOR_HELP) {
                 villager.getNavigation().moveTo(child, decision == NpcDecision.CALL_FOR_HELP ? 1.25 : 1.0);
