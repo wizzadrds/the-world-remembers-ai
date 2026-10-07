@@ -4,6 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Consumer;
@@ -18,6 +19,7 @@ public final class VoiceConversationController implements AutoCloseable {
     private volatile VoiceConversationState state = VoiceConversationState.IDLE;
     private volatile Consumer<VoiceConversationState> stateListener = ignored -> {};
     private volatile long sessionGeneration;
+    private volatile Future<?> activeTask;
 
     public VoiceConversationState state() {
         return state;
@@ -43,7 +45,7 @@ public final class VoiceConversationController implements AutoCloseable {
         setState(VoiceConversationState.PROCESSING);
         final long generation = sessionGeneration;
         try {
-            worker.submit(() -> {
+            activeTask = worker.submit(() -> {
                 try {
                     String transcript = service.transcribe(pcm);
                     if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
@@ -124,6 +126,7 @@ public final class VoiceConversationController implements AutoCloseable {
 
     public synchronized void reset() {
         sessionGeneration++;
+        cancelActiveTask();
         setState(VoiceConversationState.IDLE);
     }
 
@@ -136,8 +139,16 @@ public final class VoiceConversationController implements AutoCloseable {
         }
     }
 
+    private void cancelActiveTask() {
+        Future<?> task = activeTask;
+        activeTask = null;
+        if (task != null) task.cancel(true);
+    }
+
     @Override
     public void close() {
+        sessionGeneration++;
+        cancelActiveTask();
         worker.shutdownNow();
     }
 }
