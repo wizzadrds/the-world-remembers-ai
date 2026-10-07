@@ -16,6 +16,7 @@ public final class MicrophoneCapture implements AutoCloseable {
     public static final String DEFAULT_DEVICE = AudioDeviceManager.DEFAULT_DEVICE;
     private static final AudioFormat FORMAT = new AudioFormat(SAMPLE_RATE, 16, 1, true, false);
     private static final int MAX_CAPTURE_BYTES = (int) (SAMPLE_RATE * 2 * 120); // 120 seconds at 16-bit mono
+    private static final int CAPTURE_JOIN_MILLIS = 1000;
     private volatile TargetDataLine line;
     private volatile Thread captureThread;
     private volatile ByteArrayOutputStream buffer;
@@ -93,7 +94,7 @@ public final class MicrophoneCapture implements AutoCloseable {
         Thread thread = captureThread;
         captureThread = null;
         if (thread != null && thread != Thread.currentThread()) {
-            try { thread.join(250); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+            try { thread.join(CAPTURE_JOIN_MILLIS); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
         }
         byte[] result = buffer == null ? new byte[0] : buffer.toByteArray();
         buffer = null;
