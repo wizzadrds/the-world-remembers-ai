@@ -774,4 +774,12 @@ public class TheWorldRemembers implements ModInitializer {
     private static boolean hasRecentIntrusion(MemoryManager memories,Villager villager,ServerPlayer player,long gameTime){
         return memories.findMostRecentMemory(villager.getUUID(),player.getUUID(),MemoryEventType.PLAYER_ENTERED_NPC_HOME).map(m->gameTime-m.gameTime()<INTRUSION_COOLDOWN).orElse(false);
     }
+    private static java.util.List<ServerPlayer> nearbyPlayers(net.minecraft.world.entity.npc.Villager villager, java.util.List<ServerPlayer> players) {
+        java.util.ArrayList<ServerPlayer> nearby = new java.util.ArrayList<>();
+        for (ServerPlayer player : players) {
+            if (player.isAlive() && villager.distanceToSqr(player) <= 144.0) nearby.add(player);
+        }
+        return nearby;
+    }
+
 }
