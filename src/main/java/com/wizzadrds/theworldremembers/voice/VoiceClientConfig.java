@@ -56,7 +56,15 @@ public final class VoiceClientConfig {
         if (provider == null || provider.isBlank()) provider = "openai";
         if (language == null || language.isBlank()) language = "es-ES";
         if (sttModel == null || sttModel.isBlank()) sttModel = "faster-whisper";
+        else sttModel = sttModel.trim();
         if (ttsModel == null || ttsModel.isBlank()) ttsModel = "piper";
+        else ttsModel = ttsModel.trim();
+        if (ttsVoice == null) ttsVoice = "";
+        else ttsVoice = ttsVoice.trim();
+        if (sttCommand == null) sttCommand = "";
+        else sttCommand = sttCommand.trim();
+        if (ttsCommand == null) ttsCommand = "";
+        else ttsCommand = ttsCommand.trim();
         if (ttsInstructions == null || ttsInstructions.isBlank()) {
             ttsInstructions = "Speak naturally as a Minecraft villager: short phrases, warm human-like delivery, no announcer voice.";
         }
