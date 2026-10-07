@@ -88,8 +88,10 @@ class VoiceServiceTest {
         var controller = new VoiceConversationController();
         try {
             controller.beginListening();
+            var started = new java.util.concurrent.CountDownLatch(1);
             var interrupted = new java.util.concurrent.CountDownLatch(1);
             var service = new VoiceService(pcm -> {
+                started.countDown();
                 try {
                     Thread.sleep(30_000);
                 } catch (InterruptedException e) {
@@ -99,6 +101,7 @@ class VoiceServiceTest {
                 return "late";
             }, (t, p, o) -> o);
             controller.finishListening(new byte[] {1, 2}, service, ignored -> fail("stale transcript delivered"));
+            assertTrue(started.await(2, java.util.concurrent.TimeUnit.SECONDS));
             controller.reset();
             assertTrue(interrupted.await(2, java.util.concurrent.TimeUnit.SECONDS));
             assertEquals(VoiceConversationState.IDLE, controller.state());
@@ -111,10 +114,12 @@ class VoiceServiceTest {
     void conversationResetCancelsStaleSynthesisTask() throws Exception {
         var controller = new VoiceConversationController();
         try {
+            var started = new java.util.concurrent.CountDownLatch(1);
             var interrupted = new java.util.concurrent.CountDownLatch(1);
             var service = new VoiceService(
                     pcm -> "ignored",
                     (text, profile, output) -> {
+                        started.countDown();
                         try {
                             Thread.sleep(30_000);
                         } catch (InterruptedException e) {
@@ -133,6 +138,7 @@ class VoiceServiceTest {
                         new VoiceAudioPlayer(),
                         1.0f,
                         ignored -> fail("stale synthesis completed"));
+                assertTrue(started.await(2, java.util.concurrent.TimeUnit.SECONDS));
                 controller.reset();
                 assertTrue(interrupted.await(2, java.util.concurrent.TimeUnit.SECONDS));
                 assertEquals(VoiceConversationState.IDLE, controller.state());
