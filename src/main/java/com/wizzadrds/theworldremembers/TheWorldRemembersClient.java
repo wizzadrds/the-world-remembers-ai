@@ -36,6 +36,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static int voiceSequence;
     private static ExecutorService villagerSpeechExecutor;
     private static String appliedOutputDevice;
+    private static int pendingVillagerSpeech;
 
     public static VoicePacket lastVoice() { return lastVoice; }
     public static VoiceClientConfig voiceConfig() { return voiceConfig; }
