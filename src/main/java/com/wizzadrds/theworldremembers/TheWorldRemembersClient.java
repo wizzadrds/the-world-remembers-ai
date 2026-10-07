@@ -399,12 +399,12 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
             if (c == '\n' || c == '…' || c == '.' || c == '!' || c == '?') {
-                if ((c == '.' || c == '!' || c == '?') && i + 1 < text.length()) {
-                    char next = text.charAt(i + 1);
-                    if (!Character.isWhitespace(next)) continue;
-                    if (c == '.' && i > 0 && i + 1 < text.length()
-                            && Character.isDigit(text.charAt(i - 1)) && Character.isDigit(next)) continue;
-                }
+                // Flush immediately on sentence punctuation. Streaming chunks can split
+                // "Hola." and " ¿Cómo..."; waiting for the next chunk made short replies
+                // sound as if they were cut off.
+                if (c == '.' && i > 0 && i + 1 < text.length()
+                        && Character.isDigit(text.charAt(i - 1))
+                        && Character.isDigit(text.charAt(i + 1))) continue;
                 return i;
             }
         }
