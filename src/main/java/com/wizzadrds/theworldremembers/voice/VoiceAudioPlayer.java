@@ -43,7 +43,7 @@ public final class VoiceAudioPlayer {
         if (audioFile == null) throw new IllegalArgumentException("Villager audio file is null");
         try (AudioInputStream stream = AudioSystem.getAudioInputStream(audioFile.toFile())) {
             AudioFormat source = stream.getFormat();
-            if (source.getSampleSizeInBits() != 16 || source.getChannels() != 1 || !source.isBigEndian()) {
+            if (source.getSampleSizeInBits() != 16 || source.getChannels() != 1 || source.isBigEndian()) {
                 AudioFormat target = new AudioFormat(
                         AudioFormat.Encoding.PCM_SIGNED,
                         source.getSampleRate(), 16, 1, 2, source.getSampleRate(), false);
