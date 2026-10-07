@@ -27,9 +27,9 @@ public final class VoiceClientConfig {
     public String sttCommand = "";
     public String ttsCommand = "";
     public String ttsModel = "gemini-3.8-flash-tts";
-    public String ttsVoice = "Kore";
-    public String ttsInstructions = "Speak naturally as a Minecraft villager: short phrases, warm human-like delivery, no announcer voice.";
-    public String systemPrompt = "You are a Minecraft NPC. Answer briefly, naturally, and stay in character.";
+    public String ttsVoice = "Algenib";
+    public String ttsInstructions = "Speak as a Minecraft villager, not a narrator: nasal, slightly gravelly, closed-mouth resonance, choppy short phrases, little pauses, rustic and expressive. Never describe actions, scenes, or what another character is doing. Only say the villager's actual spoken words.";
+    public String systemPrompt = "You are one specific Minecraft villager speaking directly to the player. Reply only with the words this villager would actually say. Never narrate actions, emotions, scene descriptions, or third-person events. Keep it brief, conversational, and in character. Do not say what you are doing; just speak.";
 
     public static VoiceClientConfig load(Path gameDir) {
         Path file = file(gameDir);
@@ -61,17 +61,17 @@ public final class VoiceClientConfig {
         else sttModel = sttModel.trim();
         if (ttsModel == null || ttsModel.isBlank()) ttsModel = "gemini-3.8-flash-tts";
         else ttsModel = ttsModel.trim();
-        if (ttsVoice == null || ttsVoice.isBlank()) ttsVoice = "Kore";
+        if (ttsVoice == null || ttsVoice.isBlank() || ttsVoice.equalsIgnoreCase("Kore")) ttsVoice = "Algenib";
         else ttsVoice = ttsVoice.trim();
         if (sttCommand == null) sttCommand = "";
         else sttCommand = sttCommand.trim();
         if (ttsCommand == null) ttsCommand = "";
         else ttsCommand = ttsCommand.trim();
         if (ttsInstructions == null || ttsInstructions.isBlank()) {
-            ttsInstructions = "Speak naturally as a Minecraft villager: short phrases, warm human-like delivery, no announcer voice.";
+            ttsInstructions = "Speak as a Minecraft villager, not a narrator: nasal, slightly gravelly, closed-mouth resonance, choppy short phrases, little pauses, rustic and expressive. Never describe actions, scenes, or what another character is doing. Only say the villager's actual spoken words.";
         }
         if (systemPrompt == null || systemPrompt.isBlank()) {
-            systemPrompt = "You are a Minecraft NPC. Answer briefly, naturally, and stay in character.";
+            systemPrompt = "You are one specific Minecraft villager speaking directly to the player. Reply only with the words this villager would actually say. Never narrate actions, emotions, scene descriptions, or third-person events. Keep it brief, conversational, and in character. Do not say what you are doing; just speak.";
         }
         return this;
     }
