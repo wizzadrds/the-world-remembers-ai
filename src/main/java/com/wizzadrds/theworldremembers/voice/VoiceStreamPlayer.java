@@ -38,14 +38,32 @@ public final class VoiceStreamPlayer implements AutoCloseable {
     };
 
     private volatile SourceDataLine line;
+    private volatile String outputDevice = AudioDeviceManager.DEFAULT_DEVICE;
     private volatile boolean running;
     private volatile Thread worker;
+
+    public synchronized void setOutputDevice(String device) {
+        String normalized = device == null || device.isBlank() ? AudioDeviceManager.DEFAULT_DEVICE : device;
+        if (normalized.equalsIgnoreCase(outputDevice)) return;
+        outputDevice = normalized;
+        stop();
+    }
+
+    public String outputDevice() {
+        return outputDevice;
+    }
+
+    public static java.util.List<String> outputDevices() {
+        return AudioDeviceManager.outputDevices();
+    }
 
     public synchronized void start() {
         if (running) return;
         try {
-            SourceDataLine output = (SourceDataLine) AudioSystem.getLine(
-                    new DataLine.Info(SourceDataLine.class, FORMAT));
+            var mixer = AudioDeviceManager.findOutputMixer(outputDevice);
+            SourceDataLine output = (SourceDataLine) (mixer == null
+                    ? AudioSystem.getLine(new DataLine.Info(SourceDataLine.class, FORMAT))
+                    : mixer.getLine(new DataLine.Info(SourceDataLine.class, FORMAT)));
             output.open(FORMAT, 6400);
             output.start();
             line = output;
