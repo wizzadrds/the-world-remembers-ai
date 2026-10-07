@@ -88,11 +88,14 @@ public class TheWorldRemembers implements ModInitializer {
     private static final java.util.Map<ServerLevel,java.util.Map<UUID,DangerSample>> DANGER_CACHE = new java.util.WeakHashMap<>();
     /** Caches the result of a home storage search so family members do not scan the same blocks independently. */
     private static final java.util.Map<ServerLevel,java.util.Map<BlockPos,HomeStorageSample>> HOME_STORAGE_SCAN_CACHE = new java.util.WeakHashMap<>();
+    /** Reuses expensive village container counts between adjacent observation passes. */
+    private static final java.util.Map<ServerLevel,java.util.Map<UUID,VillageStorageSample>> VILLAGE_STORAGE_SCAN_CACHE = new java.util.WeakHashMap<>();
     private static final double HOME_RADIUS=3.5;
     private static final NpcBehaviorEngine BEHAVIOR_ENGINE = new NpcBehaviorEngine();
 
     private record DangerSample(long tick, boolean danger) {}
     private record HomeStorageSample(long tick, BlockPos storage) {}
+    private record VillageStorageSample(long tick, BlockPos center, VillageStorage storage) {}
 
     private static final class SchedulerMetrics {
         long samples;
@@ -734,16 +737,22 @@ public class TheWorldRemembers implements ModInitializer {
                 villageEvents.record(villageId,new VillageEvent("migration",world.getGameTime(),villageId,center));
             }
             int food=members.stream().mapToInt(v->v.getInventory().countItem(Items.BREAD)).sum();
-            int containers=0,occupied=0,capacity=0;
-            for(BlockPos p:BlockPos.betweenClosed(center.offset(-16,-4,-16),center.offset(16,8,16))){
-                var be=world.getBlockEntity(p);
-                if(be instanceof net.minecraft.world.Container container){
-                    containers++; capacity+=container.getContainerSize();
-                    for(int slot=0;slot<container.getContainerSize();slot++)if(!container.getItem(slot).isEmpty())occupied++;
+            java.util.Map<UUID,VillageStorageSample> storageCache=VILLAGE_STORAGE_SCAN_CACHE.computeIfAbsent(world,ignored->new java.util.HashMap<>());
+            VillageStorageSample storageSample=storageCache.get(villageId);
+            if(storageSample==null || world.getGameTime()-storageSample.tick()>=40 || storageSample.center().distSqr(center)>64){
+                int containers=0,occupied=0,capacity=0;
+                for(BlockPos p:BlockPos.betweenClosed(center.offset(-16,-4,-16),center.offset(16,8,8))){
+                    var be=world.getBlockEntity(p);
+                    if(be instanceof net.minecraft.world.Container container){
+                        containers++; capacity+=container.getContainerSize();
+                        for(int slot=0;slot<container.getContainerSize();slot++)if(!container.getItem(slot).isEmpty())occupied++;
+                    }
                 }
+                storageSample=new VillageStorageSample(world.getGameTime(),center.immutable(),new VillageStorage(containers,occupied,capacity));
+                storageCache.put(villageId,storageSample);
             }
-            villageStorage.observe(villageId,new VillageStorage(containers,occupied,capacity));
-            resources.observe(villageId,new VillageResources(food,0,occupied,capacity));
+            villageStorage.observe(villageId,storageSample.storage());
+            resources.observe(villageId,new VillageResources(food,0,storageSample.storage().occupied(),storageSample.storage().capacity()));
             int golems=world.getEntitiesOfClass(IronGolem.class,new net.minecraft.world.phys.AABB(center).inflate(32),g->g.isAlive()).size();
             defense.observe(villageId,new VillageDefense(golems,0,0));
             for(var pos:world.getPoiManager().findAllWithType(type->type.is(PoiTypeTags.VILLAGE),pos->true,center,32,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).map(pair->pair.getSecond()).toList())
