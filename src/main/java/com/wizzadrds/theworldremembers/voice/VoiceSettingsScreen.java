@@ -21,6 +21,7 @@ public final class VoiceSettingsScreen extends Screen {
     private int microphoneIndex;
     private int outputIndex;
     private int temperamentIndex;
+    private boolean deviceScanFailed;
 
     private Button microphoneButton;
     private Button outputButton;
@@ -61,8 +62,16 @@ public final class VoiceSettingsScreen extends Screen {
     }
 
     private void refreshDevices() {
-        microphones = preserveSelectedDevice(safeDevices(AudioDeviceManager.inputDevices()), config.microphone);
-        outputs = preserveSelectedDevice(safeDevices(AudioDeviceManager.outputDevices()), config.outputDevice);
+        try {
+            AudioDeviceManager.refreshDevices();
+            microphones = preserveSelectedDevice(safeDevices(AudioDeviceManager.inputDevices()), config.microphone);
+            outputs = preserveSelectedDevice(safeDevices(AudioDeviceManager.outputDevices()), config.outputDevice);
+            deviceScanFailed = false;
+        } catch (Throwable ignored) {
+            deviceScanFailed = true;
+            microphones = preserveSelectedDevice(List.of(AudioDeviceManager.DEFAULT_DEVICE), config.microphone);
+            outputs = preserveSelectedDevice(List.of(AudioDeviceManager.DEFAULT_DEVICE), config.outputDevice);
+        }
         temperaments = new ArrayList<>();
         for (VoiceTemperament temperament : VoiceTemperament.values()) temperaments.add(temperament.name());
         microphoneIndex = validIndex(microphones, config.microphone);
