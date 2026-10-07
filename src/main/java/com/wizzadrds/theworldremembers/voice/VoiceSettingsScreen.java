@@ -259,7 +259,7 @@ public final class VoiceSettingsScreen extends Screen {
             model.setValue("gemini-3.8-flash");
             sttModel.setValue("gemini-3.5-transcribe");
             ttsModel.setValue("gemini-3.8-flash-tts");
-            ttsVoice.setValue("Kore");
+            ttsVoice.setValue("Algenib");
             sttCommand.setValue("");
             ttsCommand.setValue("");
             b.setMessage(Component.literal("Defaults applied"));
@@ -281,8 +281,8 @@ public final class VoiceSettingsScreen extends Screen {
         systemPrompt = field(right, top + row++ * rowHeight(), "AI rules", config.systemPrompt);
 
         addRenderableWidget(Button.builder(Component.literal("Villager defaults"), b -> {
-            ttsInstructions.setValue("Speak like a Minecraft villager: warm, conversational, rustic, short phrases, natural pauses.");
-            systemPrompt.setValue("You are a Minecraft villager. Speak briefly and in character. Only use facts supplied by the simulation.");
+            ttsInstructions.setValue("Speak as a Minecraft villager, not a narrator: nasal, slightly gravelly, closed-mouth resonance, choppy short phrases, little pauses. Only say the villager's actual spoken words.");
+            systemPrompt.setValue("You are one specific Minecraft villager speaking directly to the player. Reply only with the words this villager would actually say. Never narrate actions, scenes, emotions, or third-person events.");
             b.setMessage(Component.literal("Defaults applied"));
         }).bounds(left, top + row * rowHeight(), COL_W, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Voice guide"), b ->
@@ -333,7 +333,7 @@ public final class VoiceSettingsScreen extends Screen {
             case "AI model" -> "Online AI model used to generate dialogue. Gemini example: gemini-3.8-flash.";
             case "STT model" -> "Speech-to-text model. Gemini example: gemini-3.5-transcribe.";
             case "TTS model" -> "Text-to-speech model. Gemini example: gemini-3.8-flash-tts.";
-            case "TTS voice" -> "Gemini voice name, for example Kore or Puck.";
+            case "TTS voice" -> "Gemini voice name. Algenib is gravelly and suits a rough villager style.";
             case "API key (Google Gemini)" -> "Paste your Google AI Studio Gemini API key here. It is saved in Minecraft config, not in the world.";
             case "Local STT command" -> "Optional local speech-to-text command. Use {pcm} where the PCM file path should go.";
             case "Local TTS command" -> "Optional local text-to-speech command. Use {text}, {output}, {language}, {model}, {rate}, {pitch}, {expressiveness}.";
@@ -357,7 +357,7 @@ public final class VoiceSettingsScreen extends Screen {
             case "AI model" -> "gemini-3.8-flash";
             case "STT model" -> "gemini-3.5-transcribe";
             case "TTS model" -> "gemini-3.8-flash-tts";
-            case "TTS voice" -> "Kore";
+            case "TTS voice" -> "Algenib";
             case "Input volume" -> "0-2";
             case "Output volume" -> "0-2";
             case "Range (blocks)" -> "1-64";
