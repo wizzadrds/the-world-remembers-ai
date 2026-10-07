@@ -49,7 +49,8 @@ class NpcInventoryManagerTest {
         var encoded = NpcInventoryManager.CODEC.encodeStart(JsonOps.INSTANCE, manager)
                 .resultOrPartial(message -> fail("Codec encode failed: " + message))
                 .orElseThrow();
-        assertTrue(encoded.toString().contains("\"inventories\""));\n        assertTrue(encoded.toString().contains("\"pending_inherited\""));
+        assertTrue(encoded.toString().contains("\"inventories\""));
+        assertTrue(encoded.toString().contains("\"pending_inherited\""));
     }
 
     @Test
