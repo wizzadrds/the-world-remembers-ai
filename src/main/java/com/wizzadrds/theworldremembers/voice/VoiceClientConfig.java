@@ -39,6 +39,8 @@ public final class VoiceClientConfig {
                 if (config != null) return config.normalized();
             }
         } catch (Exception ignored) {
+            // Preserve the broken file for diagnosis instead of silently overwriting it.
+            backupCorruptConfig(file);
         }
         return new VoiceClientConfig();
     }
