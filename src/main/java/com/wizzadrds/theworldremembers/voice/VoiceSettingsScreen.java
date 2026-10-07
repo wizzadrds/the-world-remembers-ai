@@ -23,6 +23,7 @@ public final class VoiceSettingsScreen extends Screen {
     private int temperamentIndex;
     private boolean deviceScanFailed;
     private boolean deviceScanPending;
+    private boolean testToneRunning;
 
     private Button microphoneButton;
     private Button outputButton;
@@ -176,9 +177,20 @@ public final class VoiceSettingsScreen extends Screen {
             villagerVoicesButton.setMessage(Component.literal("Villager voices: " + (config.villagerVoicesEnabled ? "ON" : "OFF")));
         });
         addRenderableWidget(Button.builder(Component.literal("Test output"), b -> {
+            if (testToneRunning) return;
+            testToneRunning = true;
+            b.setMessage(Component.literal("Testing..."));
             String selected = actualDeviceName(outputs.get(outputIndex));
-            boolean ok = AudioDeviceManager.playTestTone(selected, config.outputVolume);
-            b.setMessage(Component.literal(ok ? "Test played" : "Test failed — check device"));
+            float volume = config.outputVolume;
+            java.util.concurrent.CompletableFuture
+                    .supplyAsync(() -> AudioDeviceManager.playTestTone(selected, volume))
+                    .whenComplete((ok, error) -> Minecraft.getInstance().execute(() -> {
+                        testToneRunning = false;
+                        if (Minecraft.getInstance().gui.screen() == this) {
+                            b.setMessage(Component.literal(error == null && Boolean.TRUE.equals(ok)
+                                    ? "Test played" : "Test failed — check device"));
+                        }
+                    }));
         }).bounds(right, top + 138, 150, 20).build());
         microphoneStatusButton = addStatusButton("Mic: " + AudioDeviceManager.describeAvailability(config.microphone, true), left, top + 256);
         outputStatusButton = addStatusButton("Out: " + AudioDeviceManager.describeAvailability(config.outputDevice, false), right, top + 256);
