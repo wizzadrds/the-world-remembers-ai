@@ -23,6 +23,9 @@ public final class VoiceAudioPlayer {
         long generation = playbackGeneration.incrementAndGet();
         closeCurrentLine();
         try (AudioInputStream stream = AudioSystem.getAudioInputStream(audioFile.toFile())) {
+            if (!outputDevice.equalsIgnoreCase(AudioDeviceManager.DEFAULT_DEVICE) && !AudioDeviceManager.outputAvailable(outputDevice)) {
+                throw new IllegalStateException("Selected output device is unavailable: " + outputDevice);
+            }
             DataLine.Info info = new DataLine.Info(SourceDataLine.class, stream.getFormat());
             var mixer = AudioDeviceManager.findOutputMixer(outputDevice, stream.getFormat());
             output = (SourceDataLine) (mixer == null
