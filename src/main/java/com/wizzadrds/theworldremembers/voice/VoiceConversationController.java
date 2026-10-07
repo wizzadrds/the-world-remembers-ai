@@ -34,6 +34,10 @@ public final class VoiceConversationController implements AutoCloseable {
     }
 
     public void finishListening(byte[] pcm, VoiceService service, Consumer<String> transcriptConsumer) {
+        if (pcm == null || pcm.length == 0 || service == null || transcriptConsumer == null) {
+            fail();
+            return;
+        }
         if (state != VoiceConversationState.LISTENING) return;
         setState(VoiceConversationState.PROCESSING);
         final long generation = sessionGeneration;
