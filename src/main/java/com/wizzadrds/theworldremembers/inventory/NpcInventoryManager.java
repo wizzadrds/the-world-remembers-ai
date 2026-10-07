@@ -66,7 +66,7 @@ public final class NpcInventoryManager extends SavedData {
 
     public NpcInventory getOrCreate(UUID id){return inventories.computeIfAbsent(id,k->new NpcInventory());}
     public void transferIn(UUID id,String item,int count){getOrCreate(id).add(item,count);setDirty();}
-    public int transferOut(UUID id,String item,int count){boolean removed=getOrCreate(id).remove(item,count);if(removed)setDirty();return removed?count:0;}
+    public int transferOut(UUID id,String item,int count){NpcInventory inventory=inventories.get(id);if(inventory==null)return 0;boolean removed=inventory.remove(item,count);if(removed)setDirty();return removed?count:0;}
     public int count(UUID id,String item){NpcInventory inventory=inventories.get(id);return inventory==null?0:inventory.count(item);}
 
     /** Returns a best-effort item-only reconstruction for death drops when the live inventory is already cleared. */
