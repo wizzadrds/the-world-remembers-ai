@@ -13,7 +13,7 @@ import java.util.function.Consumer;
 
 public final class MicrophoneCapture implements AutoCloseable {
     public static final float SAMPLE_RATE = 16000.0f;
-    public static final String DEFAULT_DEVICE = "Default";
+    public static final String DEFAULT_DEVICE = AudioDeviceManager.DEFAULT_DEVICE;
     private static final AudioFormat FORMAT = new AudioFormat(SAMPLE_RATE, 16, 1, true, false);
     private volatile TargetDataLine line;
     private volatile Thread captureThread;
@@ -23,15 +23,7 @@ public final class MicrophoneCapture implements AutoCloseable {
     private volatile Consumer<byte[]> frameListener = ignored -> {};
 
     public static List<String> devices() {
-        List<String> result = new ArrayList<>();
-        result.add(DEFAULT_DEVICE);
-        for (Mixer.Info info : AudioSystem.getMixerInfo()) {
-            Mixer mixer = AudioSystem.getMixer(info);
-            if (mixer.isLineSupported(new DataLine.Info(TargetDataLine.class, FORMAT))) {
-                result.add(info.getName());
-            }
-        }
-        return List.copyOf(result);
+        return AudioDeviceManager.inputDevices();
     }
 
     public static String detectDefaultDevice() {
@@ -47,7 +39,7 @@ public final class MicrophoneCapture implements AutoCloseable {
         inputVolume = Math.max(0.0f, Math.min(2.0f, volume));
         frameListener = listener == null ? ignored -> {} : listener;
         try {
-            Mixer mixer = findMixer(deviceName);
+            Mixer mixer = AudioDeviceManager.findInputMixer(deviceName);
             TargetDataLine target = mixer == null ? AudioSystem.getTargetDataLine(FORMAT)
                     : (TargetDataLine) mixer.getLine(new DataLine.Info(TargetDataLine.class, FORMAT));
             target.open(FORMAT, 3200);
@@ -120,14 +112,6 @@ public final class MicrophoneCapture implements AutoCloseable {
             sum += (long) sample * sample;
         }
         return samples == 0 ? 0.0f : Math.min(1.0f, (float) Math.sqrt((double) sum / samples) / 32768.0f);
-    }
-
-    private static Mixer findMixer(String requested) {
-        if (requested == null || requested.isBlank() || requested.equalsIgnoreCase(DEFAULT_DEVICE)) return null;
-        for (Mixer.Info info : AudioSystem.getMixerInfo()) {
-            if (info.getName().equalsIgnoreCase(requested)) return AudioSystem.getMixer(info);
-        }
-        return null;
     }
 
     @Override public synchronized void close() { stop(); }
