@@ -53,7 +53,7 @@ jobs:
           for required in \
             fabric.mod.json \
             com/wizzadrds/theworldremembers/TheWorldRemembers.class \
-            com/wizzadrds/theworldremembers/client/TheWorldRemembersClient.class \
+            com/wizzadrds/theworldremembers/TheWorldRemembersClient.class \
             com/wizzadrds/theworldremembers/voice/VoiceClientConfig.class \
             com/wizzadrds/theworldremembers/voice/VoiceSettingsScreen.class \
             com/wizzadrds/theworldremembers/voice/VillagerVoiceEmitter.class \
