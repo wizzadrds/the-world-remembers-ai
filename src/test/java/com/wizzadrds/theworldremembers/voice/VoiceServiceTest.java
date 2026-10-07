@@ -36,13 +36,19 @@ class VoiceServiceTest {
         config.outputVolume = Float.POSITIVE_INFINITY;
         config.voiceDistance = -100;
         config.microphone = "";
-        config.ttsModel = "";
+        config.ttsModel = "  ";
+        config.ttsVoice = "  es_ES-carlos  ";
+        config.sttCommand = "  python stt.py  ";
+        config.ttsCommand = "  python tts.py  ";
         config.normalized();
         assertEquals(1.0f, config.inputVolume);
         assertEquals(1.0f, config.outputVolume);
         assertEquals(1.0f, config.voiceDistance);
         assertEquals(AudioDeviceManager.DEFAULT_DEVICE, config.microphone);
         assertEquals("piper", config.ttsModel);
+        assertEquals("es_ES-carlos", config.ttsVoice);
+        assertEquals("python stt.py", config.sttCommand);
+        assertEquals("python tts.py", config.ttsCommand);
     }
 
     @Test
