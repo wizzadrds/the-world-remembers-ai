@@ -231,10 +231,9 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         voiceConversation.reset();
         voiceStreamPlayer.stop();
         voicePlayer.stop();
-        if (villagerSpeechExecutor != null) {
-            villagerSpeechExecutor.shutdownNow();
-            villagerSpeechExecutor = null;
-        }
+        // Keep the daemon TTS executor alive across server reconnects. The client
+        // initializer runs only once, so shutting it down here would disable villager
+        // voices for every subsequent world/session until Minecraft restarts.
         pendingVillagerSpeech.set(0);
     }
 
