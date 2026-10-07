@@ -32,7 +32,12 @@ public final class AudioDeviceManager {
             try {
                 Mixer mixer = AudioSystem.getMixer(info);
                 if (mixer.isLineSupported(new DataLine.Info(type))) {
-                    result.add(info.getName());
+                    String label = info.getName();
+                    if (result.contains(label)) {
+                        String description = info.getDescription();
+                        if (description != null && !description.isBlank()) label = label + " — " + description;
+                    }
+                    result.add(label);
                 }
             } catch (RuntimeException ignored) {
             }
@@ -59,7 +64,7 @@ public final class AudioDeviceManager {
     private static Mixer findMixer(String requested, Class<? extends DataLine> type, AudioFormat format) {
         if (requested == null || requested.isBlank() || requested.equalsIgnoreCase(DEFAULT_DEVICE)) return null;
         for (Mixer.Info info : AudioSystem.getMixerInfo()) {
-            if (!info.getName().equalsIgnoreCase(requested)) continue;
+            if (!matchesRequested(info, requested)) continue;
             try {
                 Mixer mixer = AudioSystem.getMixer(info);
                 if (mixer.isLineSupported(new DataLine.Info(type, format))) return mixer;
@@ -99,6 +104,13 @@ public final class AudioDeviceManager {
                 line.close();
             }
         }
+    }
+
+    private static boolean matchesRequested(Mixer.Info info, String requested) {
+        if (info.getName().equalsIgnoreCase(requested)) return true;
+        String description = info.getDescription();
+        return description != null && !description.isBlank()
+                && (info.getName() + " — " + description).equalsIgnoreCase(requested);
     }
 
     public static boolean inputAvailable(String requested) {
