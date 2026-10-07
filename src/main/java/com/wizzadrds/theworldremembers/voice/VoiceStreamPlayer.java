@@ -16,6 +16,7 @@ public final class VoiceStreamPlayer implements AutoCloseable {
     private static final AudioFormat FORMAT = new AudioFormat(16000.0f, 16, 1, true, false);
     private static final int MAX_SPEAKER_QUEUED_FRAMES = 6;
     private static final int MAX_REORDER_FRAMES = 4;
+    private static final int MAX_PCM_FRAME_BYTES = 16_000; // 500 ms at 16 kHz, 16-bit mono
     private static final int IDLE_SLEEP_MILLIS = 5;
 
     private final Map<UUID, Integer> lastSequences = new LinkedHashMap<>(128, 0.75f, true) {
@@ -81,12 +82,15 @@ public final class VoiceStreamPlayer implements AutoCloseable {
     }
 
     public synchronized void enqueue(UUID speaker, int sequence, byte[] pcm) {
-        if (speaker == null || pcm == null || pcm.length == 0) return;
+        if (speaker == null || pcm == null || pcm.length == 0 || pcm.length > MAX_PCM_FRAME_BYTES) return;
         Integer previous = lastSequences.get(speaker);
         if (previous != null && sequence <= previous) return;
 
         TreeMap<Integer, byte[]> pending =
                 pendingSequences.computeIfAbsent(speaker, ignored -> new TreeMap<>());
+        if (pending.size() >= MAX_REORDER_FRAMES && !pending.containsKey(sequence)) {
+            pending.pollFirstEntry();
+        }
         if (previous == null || sequence == previous + 1) {
             if (!enqueueReadyFrame(speaker, sequence, pcm.clone())) {
                 pending.putIfAbsent(sequence, pcm.clone());
