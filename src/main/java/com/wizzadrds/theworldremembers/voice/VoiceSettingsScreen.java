@@ -505,26 +505,16 @@ public final class VoiceSettingsScreen extends Screen {
         if (page == 0) {
             graphics.text(this.font, "INPUT / OUTPUT", left, top - 9, 0xFFE6E6E6, false);
             graphics.text(this.font, "CONTROLS + TESTS", right, top - 9, 0xFFE6E6E6, false);
-            graphics.text(this.font, "Detected: " + microphones.size() + " mic · " + outputs.size() + " output",
-                    left, top + 122, 0xFF9E9E9E, false);
-            graphics.text(this.font, fit("Mic: " + AudioDeviceManager.describeAvailability(actualDeviceName(microphones.get(microphoneIndex)), true), COL_W * 2 + GAP),
-                    left, top + 136, 0xFFAAAAAA, false);
-            graphics.text(this.font, fit("Out: " + AudioDeviceManager.describeAvailability(actualDeviceName(outputs.get(outputIndex)), false), COL_W * 2 + GAP),
-                    left, top + 150, 0xFFAAAAAA, false);
+            graphics.text(this.font, fit("Detected: " + microphones.size() + " mic · " + outputs.size() + " output", CONTENT_W),
+                    left, top + 198, 0xFF9E9E9E, false);
         } else if (page == 1) {
             graphics.text(this.font, "ONLINE VOICE / AI", left, top - 9, 0xFFE6E6E6, false);
-            graphics.text(this.font, "LOCAL OPTIONAL", left, top + 84, 0xFFE6E6E6, false);
-            graphics.text(this.font, "Leave local fields empty for online voice.", left, top + 122, 0xFFAAAAAA, false);
+            graphics.text(this.font, fit("Leave local fields empty for online voice.", CONTENT_W),
+                    left, top + 198, 0xFFAAAAAA, false);
         } else {
             graphics.text(this.font, "VILLAGER VOICE", left, top - 9, 0xFFE6E6E6, false);
-            graphics.text(this.font, "PERSONALITY + SPEAKING RULES", left, top + 48, 0xFFE6E6E6, false);
-            graphics.text(this.font, "Speech style only; simulation unchanged.", left, top + 76, 0xFFAAAAAA, false);
-            graphics.text(this.font, "Temperament: " + prettyTemperament(temperaments.get(temperamentIndex)),
-                    left, top + 92, 0xFF9E9E9E, false);
-            String error = TheWorldRemembersClient.lastVillagerVoiceError();
-            if (error != null && !error.isBlank()) {
-                graphics.text(this.font, fit("TTS: " + error, CONTENT_W), left, top + 108, 0xFFFF7777, false);
-            }
+            graphics.text(this.font, fit("Speech style only; simulation unchanged.", CONTENT_W),
+                    left, top + 198, 0xFFAAAAAA, false);
         }
 
         graphics.text(this.font, "Unsaved changes", left, this.height - 44, 0xFFE0C070, false);
