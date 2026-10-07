@@ -18,6 +18,17 @@ jobs:
           java-version: '25'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+      - name: Capture build environment
+        shell: bash
+        run: |
+          set +e
+          {
+            echo "commit=${GITHUB_SHA}"
+            echo "ref=${GITHUB_REF}"
+            java -version 2>&1
+            gradle --version 2>&1
+          } | tee build-environment.log
+
       - name: Compile and test
         shell: bash
         run: |
@@ -89,6 +100,7 @@ jobs:
             **/build/run/**/*.log
             server.log
             build-ci.log
+            build-environment.log
           if-no-files-found: ignore
           retention-days: 7
 
@@ -104,7 +116,10 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
       - name: Run Fabric client GameTests
-        run: xvfb-run -a gradle runClientGameTest
+        shell: bash
+        run: |
+          set -o pipefail
+          xvfb-run -a gradle runClientGameTest --stacktrace 2>&1 | tee client-game-test.log
       - name: Store client GameTest diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -114,6 +129,7 @@ jobs:
             **/build/reports/
             **/build/test-results/
             **/build/run/**/*.log
+            client-game-test.log
           if-no-files-found: ignore
           retention-days: 7
 
