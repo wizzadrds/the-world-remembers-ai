@@ -326,10 +326,38 @@ public final class VoiceSettingsScreen extends Screen {
         }
     }
 
-    private String fieldHelp(String label) {\n        return switch (label) {\n            case "Language" -> "Language/locale sent to speech services. Example: es-ES";\n            case "AI model" -> "Online AI model used to generate villager dialogue.";\n            case "STT model" -> "Speech-to-text model. Online example: gpt-4o-mini-transcribe.";\n            case "TTS model" -> "Text-to-speech model. Online example: gpt-4o-mini-tts.";\n            case "TTS voice" -> "Voice name used by online TTS, for example alloy.";\n            case "API key (OpenAI)" -> "Paste your OpenAI API key here. It is saved in Minecraft config, not in the world.";\n            case "Local STT command" -> "Optional local speech-to-text command. Use {pcm} where the PCM file path should go.";\n            case "Local TTS command" -> "Optional local text-to-speech command. Use {text}, {output}, {language}, {model}, {rate}, {pitch}, {expressiveness}.";\n            case "Speaking style" -> "Instructions controlling how the villager voice sounds. Full text is kept; the field scrolls horizontally.";\n            case "AI rules" -> "Rules sent to the dialogue AI. Full text is kept; the field scrolls horizontally.";\n            case "Input volume" -> "Microphone volume multiplier, 0 to 2.";\n            case "Output volume" -> "Speaker/headset volume multiplier, 0 to 2.";\n            case "Range (blocks)" -> "Maximum voice distance, 1 to 64 blocks.";\n            default -> label;\n        };\n    }\n\n    private EditBox field(int x, int y, String label, String value) {
+    private String fieldHelp(String label) {
+        return switch (label) {
+            case "Language" -> "Language/locale sent to speech services. Example: es-ES";
+            case "AI model" -> "Online AI model used to generate villager dialogue.";
+            case "STT model" -> "Speech-to-text model. Online example: gpt-4o-mini-transcribe.";
+            case "TTS model" -> "Text-to-speech model. Online example: gpt-4o-mini-tts.";
+            case "TTS voice" -> "Voice name used by online TTS, for example alloy.";
+            case "API key (OpenAI)" -> "Paste your OpenAI API key here. It is saved in Minecraft config, not in the world.";
+            case "Local STT command" -> "Optional local speech-to-text command. Use {pcm} where the PCM file path should go.";
+            case "Local TTS command" -> "Optional local text-to-speech command. Use {text}, {output}, {language}, {model}, {rate}, {pitch}, {expressiveness}.";
+            case "Speaking style" -> "Instructions controlling how the villager voice sounds. Full text is kept; the field scrolls horizontally.";
+            case "AI rules" -> "Rules sent to the dialogue AI. Full text is kept; the field scrolls horizontally.";
+            case "Input volume" -> "Microphone volume multiplier, 0 to 2.";
+            case "Output volume" -> "Speaker/headset volume multiplier, 0 to 2.";
+            case "Range (blocks)" -> "Maximum voice distance, 1 to 64 blocks.";
+            default -> label;
+        };
+    }\n\n    private String shortHint(String label) {
+        return switch (label) {
+            case "API key (OpenAI)" -> "API key";
+            case "Local STT command" -> "{pcm}";
+            case "Local TTS command" -> "{text} {output}";
+            case "Speaking style" -> "Enter voice style...";
+            case "AI rules" -> "Enter AI rules...";
+            default -> label;
+        };
+    }
+
+    private EditBox field(int x, int y, String label, String value) {
         EditBox box = new EditBox(this.font, x, y, COL_W, 20, Component.literal(label));
         box.setValue(value == null ? "" : value);
-        box.setHint(Component.literal(label));
+        box.setHint(Component.literal(shortHint(label)));
         box.setTooltip(Component.literal(fieldHelp(label)));
         addRenderableWidget(box);
         return box;
