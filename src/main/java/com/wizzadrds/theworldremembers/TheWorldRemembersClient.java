@@ -434,7 +434,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             } else {
                 Path audio = tts.synthesize(text, profile, output);
                 if (audio == null || !Files.isRegularFile(audio)) throw new IllegalStateException("TTS did not produce audio");
-                voicePlayer.play(audio, voiceConfig.outputVolume);
+                voicePlayer.playVillager(audio, voiceConfig.outputVolume);
             }
         } catch (Exception e) {
             if (session == voiceSessionGeneration.get()) throw new RuntimeException("Voice TTS failed", e);
@@ -511,13 +511,13 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 float volume = Math.max(0.0f, Math.min(2.0f, voiceConfig.outputVolume));
                 if (streamedAudio != null) {
                     lastVillagerVoiceError = "";
-                    voicePlayer.playPcmStream(streamedAudio, volume);
+                    voicePlayer.playVillagerPcmStream(streamedAudio, volume);
                 } else {
                     Path audio = tts.synthesize(payload.text(), profile, output);
                     if (session != voiceSessionGeneration.get()) return;
                     if (audio != null && Files.isRegularFile(audio)) {
                         lastVillagerVoiceError = "";
-                        voicePlayer.play(audio, volume);
+                        voicePlayer.playVillager(audio, volume);
                     } else {
                         lastVillagerVoiceError = "TTS did not produce a WAV file";
                     }
