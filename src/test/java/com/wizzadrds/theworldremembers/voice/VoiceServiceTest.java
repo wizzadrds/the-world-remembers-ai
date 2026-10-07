@@ -68,6 +68,22 @@ class VoiceServiceTest {
     }
 
     @Test
+    void localTtsRefusesToTreatStaleOutputAsFreshAudio() throws Exception {
+        Path output = Files.createTempFile("twr-tts-stale", ".wav");
+        Files.writeString(output, "stale");
+        try {
+            var adapter = new LocalProcessTtsAdapter(List.of("sh", "-c", "exit 0"));
+            assertThrows(IOException.class, () -> adapter.synthesize(
+                    "hello",
+                    new VoiceProfile("es-ES", "piper", VoiceTemperament.WARM, 1, 1, .5f),
+                    output));
+            assertFalse(Files.exists(output));
+        } finally {
+            Files.deleteIfExists(output);
+        }
+    }
+
+    @Test
     void configRoundTripPersistsDeviceAndVoiceSettings() throws Exception {
         Path gameDir = Files.createTempDirectory("twr-voice-roundtrip");
         VoiceClientConfig config = new VoiceClientConfig();
