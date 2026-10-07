@@ -130,7 +130,7 @@ class VoiceServiceTest {
                         service,
                         new VoiceProfile("es-ES", "piper", VoiceTemperament.WARM, 1, 1, .5f),
                         output,
-                        (audio, volume) -> {},
+                        new VoiceAudioPlayer(),
                         1.0f,
                         ignored -> fail("stale synthesis completed"));
                 controller.reset();
@@ -187,7 +187,7 @@ class VoiceServiceTest {
         String missing = "Definitely-Not-A-Real-Audio-Device";
         assertFalse(AudioDeviceManager.inputAvailable(missing));
         assertFalse(AudioDeviceManager.outputAvailable(missing));
-        assertFalse(AudioDeviceManager.playTestTone(missing));
+        assertFalse(AudioDeviceManager.playTestTone(missing, 1.0f));
     }
 
 }
