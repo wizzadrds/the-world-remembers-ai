@@ -83,7 +83,7 @@ public final class VoiceSettingsScreen extends Screen {
             deviceScanPending = true;
             AudioDeviceManager.refreshDevicesAsync(() -> Minecraft.getInstance().execute(() -> {
                 deviceScanPending = false;
-                if (Minecraft.getInstance().screen == this) {
+                if (Minecraft.getInstance().gui.screen() == this) {
                     refreshDevicesFromCache();
                     rebuildPage();
                 }
