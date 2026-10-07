@@ -19,15 +19,15 @@ public final class VoiceClientConfig {
     public float inputVolume = 1.0f;
     public float outputVolume = 1.0f;
     public float voiceDistance = 32.0f;
-    public String provider = "openai";
+    public String provider = "gemini";
     public String language = "es-ES";
     public String apiKey = "";
-    public String model = "";
-    public String sttModel = "faster-whisper";
+    public String model = "gemini-3.8-flash";
+    public String sttModel = "gemini-3.5-transcribe";
     public String sttCommand = "";
     public String ttsCommand = "";
-    public String ttsModel = "piper";
-    public String ttsVoice = "";
+    public String ttsModel = "gemini-3.8-flash-tts";
+    public String ttsVoice = "Kore";
     public String ttsInstructions = "Speak naturally as a Minecraft villager: short phrases, warm human-like delivery, no announcer voice.";
     public String systemPrompt = "You are a Minecraft NPC. Answer briefly, naturally, and stay in character.";
 
@@ -53,13 +53,13 @@ public final class VoiceClientConfig {
         inputVolume = finiteClamp(inputVolume, 0.0f, 2.0f, 1.0f);
         outputVolume = finiteClamp(outputVolume, 0.0f, 2.0f, 1.0f);
         voiceDistance = finiteClamp(voiceDistance, 1.0f, 64.0f, 32.0f);
-        if (provider == null || provider.isBlank()) provider = "openai";
+        if (provider == null || provider.isBlank()) provider = "gemini";
         if (language == null || language.isBlank()) language = "es-ES";
-        if (sttModel == null || sttModel.isBlank()) sttModel = "faster-whisper";
+        if (sttModel == null || sttModel.isBlank()) sttModel = "gemini-3.5-transcribe";
         else sttModel = sttModel.trim();
-        if (ttsModel == null || ttsModel.isBlank()) ttsModel = "piper";
+        if (ttsModel == null || ttsModel.isBlank()) ttsModel = "gemini-3.8-flash-tts";
         else ttsModel = ttsModel.trim();
-        if (ttsVoice == null) ttsVoice = "";
+        if (ttsVoice == null || ttsVoice.isBlank()) ttsVoice = "Kore";
         else ttsVoice = ttsVoice.trim();
         if (sttCommand == null) sttCommand = "";
         else sttCommand = sttCommand.trim();
