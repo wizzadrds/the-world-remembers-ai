@@ -72,7 +72,7 @@ class VoiceServiceTest {
         Path output = Files.createTempFile("twr-tts-stale", ".wav");
         Files.writeString(output, "stale");
         try {
-            var adapter = new LocalProcessTtsAdapter(List.of("sh", "-c", "exit 0"));
+            var adapter = new LocalProcessTtsAdapter(List.of("java", "-version"));
             assertThrows(IOException.class, () -> adapter.synthesize(
                     "hello",
                     new VoiceProfile("es-ES", "piper", VoiceTemperament.WARM, 1, 1, .5f),
