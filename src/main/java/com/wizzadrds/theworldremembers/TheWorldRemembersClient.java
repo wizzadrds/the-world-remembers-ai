@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.nio.file.Files;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -36,7 +37,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static int voiceSequence;
     private static ExecutorService villagerSpeechExecutor;
     private static String appliedOutputDevice;
-    private static int pendingVillagerSpeech;
+    private static final AtomicInteger pendingVillagerSpeech = new AtomicInteger();
 
     public static VoicePacket lastVoice() { return lastVoice; }
     public static VoiceClientConfig voiceConfig() { return voiceConfig; }
@@ -194,19 +195,19 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         voicePlayer.stop();
         if (villagerSpeechExecutor != null) {
             villagerSpeechExecutor.shutdownNow();
-            villagerSpeechExecutor = Executors.newSingleThreadExecutor(r -> {
-                Thread thread = new Thread(r, "twr-villager-voice");
-                thread.setDaemon(true);
-                return thread;
-            });
+            villagerSpeechExecutor = null;
         }
+        pendingVillagerSpeech.set(0);
     }
 
     private static void speakVillager(VoicePacket payload) {
         if (voiceConfig == null || voiceConfig.ttsCommand == null || voiceConfig.ttsCommand.isBlank()) return;
         if (villagerSpeechExecutor == null) return;
-        if (pendingVillagerSpeech >= 4) return;
-        pendingVillagerSpeech++;
+        int reserved;
+        do {
+            reserved = pendingVillagerSpeech.get();
+            if (reserved >= 4) return;
+        } while (!pendingVillagerSpeech.compareAndSet(reserved, reserved + 1));
         villagerSpeechExecutor.submit(() -> {
             Path output = null;
             try {
@@ -238,7 +239,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 if (output != null) {
                     try { Files.deleteIfExists(output); } catch (Exception ignored) {}
                 }
-                pendingVillagerSpeech = Math.max(0, pendingVillagerSpeech - 1);
+                pendingVillagerSpeech.updateAndGet(value -> Math.max(0, value - 1));
             }
         });
     }
