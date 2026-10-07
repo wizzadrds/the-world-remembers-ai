@@ -8,7 +8,6 @@ import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.TargetDataLine;
 import java.util.ArrayList;
 import java.util.List;
-import javax.sound.sampled.AudioFormat.Encoding;
 
 public final class AudioDeviceManager {
     public static final String DEFAULT_DEVICE = "Default";
