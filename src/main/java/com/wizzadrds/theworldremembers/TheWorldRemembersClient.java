@@ -202,8 +202,10 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                     throw new IllegalStateException("AI returned an empty reply");
                 }
 
+                String responseVoice = voiceConfig.ttsVoice == null || voiceConfig.ttsVoice.isBlank()
+                        ? voiceConfig.ttsModel : voiceConfig.ttsVoice.trim();
                 VoiceProfile profile = new VoiceProfile(
-                        speechLanguage(), voiceConfig.ttsModel, VoiceTemperament.CALM, 1.0f, 1.0f, 0.5f);
+                        speechLanguage(), responseVoice, VoiceTemperament.CALM, 1.0f, 1.0f, 0.5f);
                 Path output = Minecraft.getInstance().gameDirectory.toPath()
                         .resolve("config")
                         .resolve("the_world_remembers_voice_response_" + UUID.randomUUID() + ".wav");
