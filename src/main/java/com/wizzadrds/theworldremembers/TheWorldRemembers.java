@@ -87,7 +87,31 @@ public class TheWorldRemembers implements ModInitializer {
     /** Short-lived danger cache: monster spatial queries are expensive and do not need to run every NPC pass. */
     private static final java.util.Map<ServerLevel,java.util.Map<UUID,DangerSample>> DANGER_CACHE = new java.util.WeakHashMap<>();
     private static final long DANGER_CACHE_TICKS = 10;
+    private static final java.util.Map<ServerLevel,VillagerSpatialIndex> VILLAGER_SPATIAL_INDEX = new java.util.WeakHashMap<>();
+    private static final long VILLAGER_SPATIAL_INDEX_TICKS = 10;
     private record DangerSample(long gameTime, boolean danger) {}
+    private record VillagerSpatialIndex(long gameTime, java.util.Map<Long,java.util.List<Villager>> buckets) {
+        private static long key(int x, int z) {
+            return (((long)(x >> 4)) << 32) ^ ((z >> 4) & 0xffffffffL);
+        }
+        private java.util.List<Villager> nearby(Villager origin, double radius) {
+            int cells = (int)Math.ceil(radius / 16.0);
+            int cx = origin.blockPosition().getX() >> 4;
+            int cz = origin.blockPosition().getZ() >> 4;
+            double max = radius * radius;
+            java.util.List<Villager> result = new java.util.ArrayList<>();
+            java.util.Set<UUID> seen = new java.util.HashSet<>();
+            for (int dx = -cells; dx <= cells; dx++) for (int dz = -cells; dz <= cells; dz++) {
+                java.util.List<Villager> bucket = buckets.get(key((cx + dx) << 4, (cz + dz) << 4));
+                if (bucket == null) continue;
+                for (Villager villager : bucket) {
+                    if (!villager.isAlive() || villager.isRemoved() || !seen.add(villager.getUUID())) continue;
+                    if (origin.distanceToSqr(villager) <= max) result.add(villager);
+                }
+            }
+            return result;
+        }
+    }
     private static final double HOME_RADIUS=3.5;
     private static final NpcBehaviorEngine BEHAVIOR_ENGINE = new NpcBehaviorEngine();
 
@@ -578,7 +602,9 @@ public class TheWorldRemembers implements ModInitializer {
     }
 
     private static void linkBabyToNearbyParents(ServerLevel world, Villager child, com.wizzadrds.theworldremembers.family.FamilyManager families, MemoryManager memories) {
-        java.util.List<Villager> adults=world.getEntitiesOfClass(Villager.class, child.getBoundingBox().inflate(8), v -> v.isAlive() && !v.isBaby() && !v.getUUID().equals(child.getUUID()));
+        java.util.List<Villager> adults=nearbyVillagers(world, child, 8).stream()
+                .filter(v -> !v.isBaby() && !v.getUUID().equals(child.getUUID()))
+                .toList();
         if(adults.size()!=2) return;
         families.addParentChild(adults.get(0).getUUID(), child.getUUID());
         families.addParentChild(adults.get(1).getUUID(), child.getUUID());
@@ -592,11 +618,12 @@ public class TheWorldRemembers implements ModInitializer {
         }
     }
     private static void processCourtship(ServerLevel world, Villager villager, FamilyManager families, FamilyCourtshipManager courtship, MemoryManager memories, NpcAgeManager ages) {
-        java.util.List<Villager> candidates = world.getEntitiesOfClass(Villager.class, villager.getBoundingBox().inflate(4),
-            other -> other.isAlive() && !other.isBaby() && !other.getUUID().equals(villager.getUUID())
+        java.util.List<Villager> candidates = nearbyVillagers(world, villager, 4).stream()
+            .filter(other -> !other.isBaby() && !other.getUUID().equals(villager.getUUID())
                 && ages.get(other.getUUID()) != null && ages.get(other.getUUID()).isAdult()
                 && !families.hasSpouse(other.getUUID()) && !families.areRelated(villager.getUUID(), other.getUUID())
-                && marriageCompatible(villager, other, ages));
+                && marriageCompatible(villager, other, ages))
+            .toList();
         if (candidates.isEmpty()) return;
         Villager partner = candidates.stream().min(java.util.Comparator.comparingDouble(villager::distanceToSqr)).orElse(null);
         if (partner == null || villager.getUUID().compareTo(partner.getUUID()) > 0) return;
@@ -607,6 +634,25 @@ public class TheWorldRemembers implements ModInitializer {
         memories.rememberEvent(villager.getUUID(), partner.getUUID(), MemoryEventType.NPC_MARRIED, time, MemoryImportance.IMPORTANT);
         memories.rememberEvent(partner.getUUID(), villager.getUUID(), MemoryEventType.NPC_MARRIED, time, MemoryImportance.IMPORTANT);
         courtship.clear(villager.getUUID(), partner.getUUID());
+    }
+
+    private static java.util.List<Villager> nearbyVillagers(ServerLevel world, Villager origin, double radius) {
+        long now = world.getGameTime();
+        VillagerSpatialIndex index = VILLAGER_SPATIAL_INDEX.get(world);
+        if (index == null || now - index.gameTime() >= VILLAGER_SPATIAL_INDEX_TICKS) {
+            java.util.Map<Long,java.util.List<Villager>> buckets = new java.util.HashMap<>();
+            java.util.List<UUID> ids = VILLAGER_REGISTRY.get(world);
+            if (ids != null) for (UUID id : ids) {
+                Entity entity = world.getEntity(id);
+                if (!(entity instanceof Villager villager) || !villager.isAlive() || villager.isRemoved()) continue;
+                int x = villager.blockPosition().getX(), z = villager.blockPosition().getZ();
+                long key = (((long)(x >> 4)) << 32) ^ ((z >> 4) & 0xffffffffL);
+                buckets.computeIfAbsent(key, ignored -> new java.util.ArrayList<>()).add(villager);
+            }
+            index = new VillagerSpatialIndex(now, buckets);
+            VILLAGER_SPATIAL_INDEX.put(world, index);
+        }
+        return index.nearby(origin, radius);
     }
 
     private static boolean marriageCompatible(Villager first, Villager second, NpcAgeManager ages) {
