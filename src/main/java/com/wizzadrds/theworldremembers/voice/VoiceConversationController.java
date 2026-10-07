@@ -129,7 +129,11 @@ public final class VoiceConversationController implements AutoCloseable {
 
     private void setState(VoiceConversationState next) {
         state = next;
-        stateListener.accept(next);
+        try {
+            stateListener.accept(next);
+        } catch (RuntimeException ignored) {
+            // UI/state observers must never break the voice worker or leave it wedged.
+        }
     }
 
     @Override
