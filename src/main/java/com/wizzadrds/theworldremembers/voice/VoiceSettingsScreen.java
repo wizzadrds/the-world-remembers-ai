@@ -158,13 +158,6 @@ public final class VoiceSettingsScreen extends Screen {
         int right = rightColumn();
         int top = contentTop();
 
-        addRenderableWidget(Button.builder(Component.literal("AUDIO"), b -> switchPage(0))
-                .bounds(left, 32, COL_W, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("AI & SPEECH"), b -> switchPage(1))
-                .bounds(right - 2 * (COL_W + GAP) / 2 + COL_W + GAP, 32, COL_W, 20).build());
-        // Reposition the second tab so all three tabs form one compact centered strip.
-        this.children().removeIf(w -> false);
-        clearWidgets();
         int tabsX = Math.max(6, (this.width - 3 * 86 - 2 * 4) / 2);
         addRenderableWidget(Button.builder(Component.literal("AUDIO"), b -> switchPage(0)).bounds(tabsX, 32, 86, 20).build());
         addRenderableWidget(Button.builder(Component.literal("AI & SPEECH"), b -> switchPage(1)).bounds(tabsX + 90, 32, 86, 20).build());
