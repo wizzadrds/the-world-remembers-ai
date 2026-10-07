@@ -41,6 +41,24 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
 
     public static VoicePacket lastVoice() { return lastVoice; }
     public static VoiceClientConfig voiceConfig() { return voiceConfig; }
+    public static float microphoneLevel() {
+        return microphone == null ? 0.0f : microphone.level();
+    }
+
+    public static boolean microphoneCapturing() {
+        return microphone != null && microphone.isCapturing();
+    }
+
+    public static boolean startMicrophoneTest() {
+        if (microphone == null || voiceConfig == null) return false;
+        if (microphone.isCapturing()) return true;
+        return microphone.start(voiceConfig.microphone, voiceConfig.inputVolume, ignored -> {});
+    }
+
+    public static void stopMicrophoneTest() {
+        if (microphone != null) microphone.stop();
+    }
+
     public static VoiceConversationState voiceState() {
         return voiceConversation == null ? VoiceConversationState.IDLE : voiceConversation.state();
     }
@@ -105,7 +123,9 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             }
 
             if (client.player != null && client.gui.screen() == null) {
-                boolean down = VOICE_KEY.isDown();
+                boolean down = voiceConfig.pushToTalkMode
+                        ? InputConstants.isKeyDown(client.getWindow().getWindow(), voiceConfig.pushToTalkKey)
+                        : false;
                 if (down && !voiceKeyWasDown) {
                     boolean started = microphone.start(voiceConfig.microphone, voiceConfig.inputVolume, frame ->
                             sendVoiceFrame(client, frame));
