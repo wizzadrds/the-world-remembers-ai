@@ -59,6 +59,7 @@ public final class LocalProcessTtsAdapter implements TtsAdapter {
         }
 
         Process process = new ProcessBuilder(args).redirectErrorStream(true).start();
+        boolean success = false;
         Thread logReader = Thread.ofVirtual().name("twr-tts-log").start(() -> {
             try {
                 process.getInputStream().transferTo(java.io.OutputStream.nullOutputStream());
@@ -74,12 +75,19 @@ public final class LocalProcessTtsAdapter implements TtsAdapter {
             if (process.exitValue() != 0) {
                 throw new IOException("Local TTS failed with exit code " + process.exitValue());
             }
-            if (!Files.isRegularFile(output) || Files.size(output) == 0) {
+            if (!Files.isRegularFile(target) || Files.size(target) == 0) {
                 throw new IOException("TTS produced no audio output");
             }
-            return output;
+            success = true;
+            return target;
         } finally {
             if (process.isAlive()) process.destroyForcibly();
+            if (!success) {
+                try {
+                    Files.deleteIfExists(target);
+                } catch (IOException ignored) {
+                }
+            }
             try {
                 logReader.join(500);
             } catch (InterruptedException e) {
