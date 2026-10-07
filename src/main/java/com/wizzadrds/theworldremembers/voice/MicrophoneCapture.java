@@ -23,6 +23,7 @@ public final class MicrophoneCapture implements AutoCloseable {
     private volatile float level;
     private volatile float inputVolume = 1.0f;
     private volatile Consumer<byte[]> frameListener = ignored -> {};
+    private volatile String lastError = "";
 
     public static List<String> devices() {
         return AudioDeviceManager.inputDevices();
@@ -38,11 +39,15 @@ public final class MicrophoneCapture implements AutoCloseable {
 
     public synchronized boolean start(String deviceName, float volume, Consumer<byte[]> listener) {
         if (line != null) return true;
+        lastError = "";
         inputVolume = Math.max(0.0f, Math.min(2.0f, volume));
         frameListener = listener == null ? ignored -> {} : listener;
         try {
             String requested = deviceName == null || deviceName.isBlank() ? DEFAULT_DEVICE : deviceName;
-            if (!requested.equalsIgnoreCase(DEFAULT_DEVICE) && !AudioDeviceManager.inputAvailable(requested)) return false;
+            if (!requested.equalsIgnoreCase(DEFAULT_DEVICE) && !AudioDeviceManager.inputAvailable(requested)) {
+                lastError = "Microphone unavailable: " + requested;
+                return false;
+            }
             Mixer mixer = AudioDeviceManager.findInputMixer(requested);
             TargetDataLine target = mixer == null ? AudioSystem.getTargetDataLine(FORMAT)
                     : (TargetDataLine) mixer.getLine(new DataLine.Info(TargetDataLine.class, FORMAT));
@@ -54,6 +59,7 @@ public final class MicrophoneCapture implements AutoCloseable {
             captureThread = Thread.ofVirtual().name("twr-microphone").start(() -> capture(target, captureBuffer, frameListener));
             return true;
         } catch (LineUnavailableException | RuntimeException e) {
+            lastError = e.getClass().getSimpleName() + ": " + (e.getMessage() == null ? "could not open microphone" : e.getMessage());
             close();
             return false;
         }
@@ -103,6 +109,7 @@ public final class MicrophoneCapture implements AutoCloseable {
 
     public float level() { return level; }
     public boolean isCapturing() { return line != null; }
+    public String lastError() { return lastError; }
 
     private static void applyGain(byte[] pcm, int length, float gain) {
         if (gain == 1.0f) return;
