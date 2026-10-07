@@ -114,13 +114,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 if (voiceConfig != null && voiceConfig.villagerVoicesEnabled) speakVillager(payload);
             });
         });
-        ClientPlayNetworking.registerGlobalReceiver(VoicePacket.TYPE, (payload, context) -> {
-            lastVoice = payload;
-            Minecraft client = context.client();
-            client.execute(() -> {
-                if (voiceConfig != null && voiceConfig.villagerVoicesEnabled) speakVillager(payload);
-            });
-        });
+        ClientPlayNetworking.registerGlobalReceiver(VoicePacket.TYPE, (payload, context) -> lastVoice = payload);
         ClientPlayNetworking.registerGlobalReceiver(ChronicleResponsePacket.TYPE, (payload, context) ->
                 Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.setScreen(new ChronicleScreen(payload.lines()))));
 
@@ -139,7 +133,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
 
             if (client.player != null && client.gui.screen() == null) {
                 boolean down = voiceConfig.pushToTalkMode
-                        ? InputConstants.isKeyDown(client.getWindow().getWindow(), voiceConfig.pushToTalkKey)
+                        ? InputConstants.isKeyDown(client.getWindow().handle(), voiceConfig.pushToTalkKey)
                         : false;
                 if (down && !voiceKeyWasDown) {
                     boolean started = microphone.start(voiceConfig.microphone, voiceConfig.inputVolume, frame ->
