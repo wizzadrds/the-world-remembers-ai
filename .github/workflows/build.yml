@@ -170,7 +170,22 @@ jobs:
           test -s "${jars[0]}"
           unzip -t "${jars[0]}"
           unzip -p "${jars[0]}" fabric.mod.json | grep -q '"id"[[:space:]]*:[[:space:]]*"the_world_remembers"'
-          unzip -l "${jars[0]}" | grep -q 'com/wizzadrds/theworldremembers/TheWorldRemembers.class'
+          contents="$(mktemp)"
+          unzip -Z1 "${jars[0]}" > "$contents"
+          for required in \
+            fabric.mod.json \
+            com/wizzadrds/theworldremembers/TheWorldRemembers.class \
+            com/wizzadrds/theworldremembers/TheWorldRemembersClient.class \
+            com/wizzadrds/theworldremembers/voice/VoiceClientConfig.class \
+            com/wizzadrds/theworldremembers/voice/VoiceSettingsScreen.class \
+            com/wizzadrds/theworldremembers/voice/VillagerVoiceEmitter.class \
+            com/wizzadrds/theworldremembers/voice/LocalProcessTtsAdapter.class \
+            com/wizzadrds/theworldremembers/voice/LocalProcessSttAdapter.class; do
+            grep -Fxq "$required" "$contents" || {
+              echo "Final artifact gate missing: $required"
+              exit 1
+            }
+          done
           sha256sum "${jars[0]}" > artifact/SHA256SUMS.txt
           printf 'commit=%s\nbranch=%s\n' "${GITHUB_SHA}" "${GITHUB_REF_NAME}" > artifact/BUILD-VERIFIED.txt
           cat artifact/SHA256SUMS.txt
