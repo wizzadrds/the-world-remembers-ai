@@ -399,13 +399,24 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 TtsAdapter tts = gemini
                         ? new GeminiTtsAdapter(voiceConfig.apiKey, voiceConfig.ttsModel, voiceConfig.ttsVoice, voiceConfig.ttsInstructions)
                         : new LocalProcessTtsAdapter(VoiceCommandParser.parse(voiceConfig.ttsCommand), voiceConfig.ttsInstructions);
-                Path audio = tts.synthesize(payload.text(), profile, output);
-                if (session != voiceSessionGeneration.get()) return;
-                if (audio != null && Files.isRegularFile(audio)) {
+                InputStream streamedAudio = tts.synthesizeStream(payload.text(), profile);
+                if (session != voiceSessionGeneration.get()) {
+                    if (streamedAudio != null) streamedAudio.close();
+                    return;
+                }
+                float volume = Math.max(0.0f, Math.min(2.0f, voiceConfig.outputVolume));
+                if (streamedAudio != null) {
                     lastVillagerVoiceError = "";
-                    voicePlayer.play(audio, Math.max(0.0f, Math.min(2.0f, voiceConfig.outputVolume)));
+                    voicePlayer.playPcmStream(streamedAudio, volume);
                 } else {
-                    lastVillagerVoiceError = "TTS did not produce a WAV file";
+                    Path audio = tts.synthesize(payload.text(), profile, output);
+                    if (session != voiceSessionGeneration.get()) return;
+                    if (audio != null && Files.isRegularFile(audio)) {
+                        lastVillagerVoiceError = "";
+                        voicePlayer.play(audio, volume);
+                    } else {
+                        lastVillagerVoiceError = "TTS did not produce a WAV file";
+                    }
                 }
             } catch (Exception e) {
                 lastVillagerVoiceError = e.getClass().getSimpleName() + ": " + (e.getMessage() == null ? "TTS failed" : e.getMessage());
