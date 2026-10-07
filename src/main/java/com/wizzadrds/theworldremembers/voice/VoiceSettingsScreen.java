@@ -147,11 +147,11 @@ public final class VoiceSettingsScreen extends Screen {
         this.clearWidgets();
         int left = this.width / 2 - 155;
         int right = this.width / 2 + 5;
-        int top = 52;
+        int top = 66;
 
-        addRenderableWidget(Button.builder(Component.literal("Audio"), b -> switchPage(0)).bounds(left, 24, 100, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("AI / TTS"), b -> switchPage(1)).bounds(left + 105, 24, 100, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("NPC voices"), b -> switchPage(2)).bounds(left + 210, 24, 100, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("1  Audio"), b -> switchPage(0)).bounds(left, 42, 100, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("2  AI & Speech"), b -> switchPage(1)).bounds(left + 105, 42, 100, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("3  Villagers"), b -> switchPage(2)).bounds(left + 210, 42, 100, 20).build());
 
         if (page == 0) buildAudioPage(left, right, top);
         else if (page == 1) buildAiPage(left, right, top);
@@ -163,25 +163,30 @@ public final class VoiceSettingsScreen extends Screen {
     }
 
     private void buildAudioPage(int left, int right, int top) {
-        microphoneButton = addButton("Mic: " + microphones.get(microphoneIndex), left, top, this::cycleMicrophone);
-        outputButton = addButton("Output: " + outputs.get(outputIndex), right, top, this::cycleOutput);
-        inputVolume = field(left, top + 46, "Input volume", Float.toString(config.inputVolume));
-        outputVolume = field(right, top + 46, "Output volume", Float.toString(config.outputVolume));
-        distance = field(left, top + 92, "Voice distance", Float.toString(config.voiceDistance));
-        pushToTalkButton = addButton("Push-to-talk: " + (config.pushToTalkMode ? "ON" : "OFF"), right, top + 92, () -> {
+        microphoneButton = addButton("Microphone: " + microphones.get(microphoneIndex), left, top, this::cycleMicrophone);
+        outputButton = addButton("Speaker: " + outputs.get(outputIndex), right, top, this::cycleOutput);
+
+        inputVolume = field(left, top + 42, "Input volume (0–2)", Float.toString(config.inputVolume));
+        outputVolume = field(right, top + 42, "Output volume (0–2)", Float.toString(config.outputVolume));
+
+        distance = field(left, top + 84, "Voice range (blocks)", Float.toString(config.voiceDistance));
+        pushToTalkButton = addButton("Push-to-talk: " + (config.pushToTalkMode ? "ON" : "OFF"), right, top + 84, () -> {
             config.pushToTalkMode = !config.pushToTalkMode;
             pushToTalkButton.setMessage(Component.literal("Push-to-talk: " + (config.pushToTalkMode ? "ON" : "OFF")));
         });
-        pttKeyButton = addButton("PTT key: " + keyName(config.pushToTalkKey), left, top + 184, this::cyclePushToTalkKey);
-        microphoneTestButton = addButton("Test microphone", left, top + 230, this::toggleMicrophoneTest);
-        villagerVoicesButton = addButton("Villager voices: " + (config.villagerVoicesEnabled ? "ON" : "OFF"), left, top + 138, () -> {
+
+        villagerVoicesButton = addButton("Villager voices: " + (config.villagerVoicesEnabled ? "ON" : "OFF"), left, top + 126, () -> {
             config.villagerVoicesEnabled = !config.villagerVoicesEnabled;
             villagerVoicesButton.setMessage(Component.literal("Villager voices: " + (config.villagerVoicesEnabled ? "ON" : "OFF")));
         });
-        addRenderableWidget(Button.builder(Component.literal("Test output"), b -> {
+
+        pttKeyButton = addButton("PTT key: " + keyName(config.pushToTalkKey), right, top + 126, this::cyclePushToTalkKey);
+
+        microphoneTestButton = addButton("Test microphone", left, top + 168, this::toggleMicrophoneTest);
+        addRenderableWidget(Button.builder(Component.literal("Test speaker"), b -> {
             if (testToneRunning) return;
             testToneRunning = true;
-            b.setMessage(Component.literal("Testing..."));
+            b.setMessage(Component.literal("Testing speaker..."));
             String selected = actualDeviceName(outputs.get(outputIndex));
             float volume = config.outputVolume;
             java.util.concurrent.CompletableFuture
@@ -190,17 +195,24 @@ public final class VoiceSettingsScreen extends Screen {
                         testToneRunning = false;
                         if (Minecraft.getInstance().gui.screen() == this) {
                             b.setMessage(Component.literal(error == null && Boolean.TRUE.equals(ok)
-                                    ? "Test played" : "Test failed — check device"));
+                                    ? "Speaker test OK" : "Speaker test failed"));
                         }
                     }));
-        }).bounds(right, top + 138, 150, 20).build());
-        microphoneStatusButton = addStatusButton("Mic: " + AudioDeviceManager.describeAvailability(config.microphone, true), left, top + 256);
-        outputStatusButton = addStatusButton("Out: " + AudioDeviceManager.describeAvailability(config.outputDevice, false), right, top + 256);
-        addRenderableWidget(Button.builder(Component.literal("Rescan devices (" + microphones.size() + " mic / " + outputs.size() + " out)"), b -> {
-            savePageToConfig();
-            refreshDevices();
-            refreshDeviceButtons();
-        }).bounds(right, top + 164, 150, 20).build());
+        }).bounds(right, top + 168, 150, 20).build());
+
+        addRenderableWidget(Button.builder(
+                Component.literal("Rescan audio devices"),
+                b -> {
+                    savePageToConfig();
+                    refreshDevices();
+                    refreshDeviceButtons();
+                    b.setMessage(Component.literal("Devices refreshed"));
+                }).bounds(left, top + 210, 150, 20).build());
+
+        addRenderableWidget(Button.builder(
+                Component.literal("What do these settings do?"),
+                b -> Minecraft.getInstance().gui.setScreen(new VoiceSetupScreen(this)))
+                .bounds(right, top + 210, 150, 20).build());
     }
 
     private void buildAiPage(int left, int right, int top) {
@@ -208,48 +220,70 @@ public final class VoiceSettingsScreen extends Screen {
             config.provider = nextProvider(config.provider);
             providerButton.setMessage(Component.literal("AI provider: " + displayProvider(config.provider)));
         });
-        apiKey = field(left, top + 46, "API key", config.apiKey);
+
+        language = field(left, top + 42, "Speech language", config.language);
+        model = field(right, top + 42, "AI model", config.model);
+
+        sttModel = field(left, top + 84, "STT model", config.sttModel);
+        ttsModel = field(right, top + 84, "TTS model", config.ttsModel);
+
+        ttsVoice = field(left, top + 126, "TTS voice", config.ttsVoice);
+        apiKey = field(right, top + 126, "API key (stored locally)", config.apiKey);
         apiKey.setMaxLength(512);
-        apiKey.setSuggestion("stored locally in config");
-        model = field(right, top + 46, "AI model", config.model);
-        language = field(left, top + 230, "Speech language", config.language);
-        sttModel = field(left, top + 92, "STT model", config.sttModel);
-        ttsModel = field(right, top + 92, "TTS model", config.ttsModel);
-        ttsVoice = field(left, top + 138, "TTS voice", config.ttsVoice);
-        sttCommand = field(right, top + 138, "STT command", config.sttCommand);
-        sttCommand.setSuggestion("local command; final argument is the PCM file");
-        ttsCommand = field(left, top + 184, "TTS command", config.ttsCommand);
-        ttsCommand.setSuggestion("text output language/model/rate are appended");
+        apiKey.setSuggestion("Your API key is saved only in the local config");
+
+        sttCommand = field(left, top + 168, "Local STT command", config.sttCommand);
+        sttCommand.setSuggestion("Optional: program that receives the audio file path");
+
+        ttsCommand = field(right, top + 168, "Local TTS command", config.ttsCommand);
+        ttsCommand.setSuggestion("Optional: program that receives text and produces audio");
+
+        addRenderableWidget(Button.builder(Component.literal("Use recommended AI defaults"), b -> {
+            language.setValue("en-US");
+            model.setValue("gpt-4o-mini");
+            sttModel.setValue("gpt-4o-mini-transcribe");
+            ttsModel.setValue("gpt-4o-mini-tts");
+            ttsVoice.setValue("alloy");
+            sttCommand.setValue("");
+            ttsCommand.setValue("");
+            b.setMessage(Component.literal("Recommended defaults applied"));
+        }).bounds(left, top + 210, 150, 20).build());
+
+        addRenderableWidget(Button.builder(Component.literal("Open setup guide"), b ->
+                Minecraft.getInstance().gui.setScreen(new VoiceSetupScreen(this)))
+                .bounds(right, top + 210, 150, 20).build());
     }
 
     private void buildNpcPage(int left, int right, int top) {
-        temperamentButton = addButton("Temperament: " + temperaments.get(temperamentIndex), left, top, this::cycleTemperament);
-        addRenderableWidget(Button.builder(Component.literal("Reload local devices"), b -> {
-            refreshDevices();
-            refreshDeviceButtons();
-        }).bounds(right, top, 150, 20).build());
-        ttsInstructions = field(left, top + 46, "Villager voice instructions", config.ttsInstructions);
-        systemPrompt = field(right, top + 46, "AI system prompt", config.systemPrompt);
-        addRenderableWidget(Button.builder(Component.literal("Use villager-safe defaults"), b -> {
-            ttsInstructions.setValue("Speak like a Minecraft villager: warm, conversational, slightly rustic, short phrases, natural pauses. Avoid announcer, robotic or radio-presenter delivery.");
-            systemPrompt.setValue("You are a Minecraft villager. Speak briefly, naturally and in character. Only use facts supplied by the simulation. Never invent world state.");
-        }).bounds(left, top + 92, 150, 20).build());
-        villagerVoiceTestButton = addButton("Test villager voice", left, top + 138, () -> {
+        temperamentButton = addButton("Temperament: " + prettyTemperament(temperaments.get(temperamentIndex)), left, top, this::cycleTemperament);
+        villagerVoiceTestButton = addButton("Test villager voice", right, top, () -> {
             TheWorldRemembersClient.testVillagerVoice();
-            villagerVoiceTestButton.setMessage(Component.literal("TTS test started"));
+            villagerVoiceTestButton.setMessage(Component.literal("Villager TTS test started"));
         });
-        addRenderableWidget(Button.builder(Component.literal("About local voice"), b ->
-                Minecraft.getInstance().gui.setScreen(new VoiceSetupScreen(this))).bounds(right, top + 92, 150, 20).build());
+
+        ttsInstructions = field(left, top + 42, "Villager speaking style", config.ttsInstructions);
+        systemPrompt = field(right, top + 42, "AI system rules", config.systemPrompt);
+
+        addRenderableWidget(Button.builder(Component.literal("Apply villager-safe defaults"), b -> {
+            ttsInstructions.setValue("Speak like a Minecraft villager: warm, conversational, slightly rustic, short phrases, natural pauses. Avoid robotic or announcer delivery.");
+            systemPrompt.setValue("You are a Minecraft villager. Speak briefly, naturally and in character. Only use facts supplied by the simulation. Never invent world state.");
+            b.setMessage(Component.literal("Villager defaults applied"));
+        }).bounds(left, top + 84, 150, 20).build());
+
+        addRenderableWidget(Button.builder(Component.literal("Open voice guide"), b ->
+                Minecraft.getInstance().gui.setScreen(new VoiceSetupScreen(this)))
+                .bounds(right, top + 84, 150, 20).build());
+
+        addRenderableWidget(Button.builder(Component.literal("How villager voice works"), b ->
+                Minecraft.getInstance().gui.setScreen(new VoiceSetupScreen(this)))
+                .bounds(left, top + 126, 150, 20).build());
+
+        addRenderableWidget(Button.builder(Component.literal("Return to Audio"), b -> switchPage(0))
+                .bounds(right, top + 126, 150, 20).build());
     }
 
     private Button addButton(String text, int x, int y, Runnable action) {
         Button button = Button.builder(Component.literal(text), ignored -> action.run()).bounds(x, y, 150, 20).build();
-        addRenderableWidget(button);
-        return button;
-    }
-
-    private Button addStatusButton(String text, int x, int y) {
-        Button button = Button.builder(Component.literal(text), ignored -> refreshDeviceStatus()).bounds(x, y, 150, 20).build();
         addRenderableWidget(button);
         return button;
     }
@@ -335,7 +369,13 @@ public final class VoiceSettingsScreen extends Screen {
     private void cycleTemperament() {
         temperamentIndex = (temperamentIndex + 1) % temperaments.size();
         config.villagerVoiceTemperament = temperaments.get(temperamentIndex);
-        temperamentButton.setMessage(Component.literal("Temperament: " + temperaments.get(temperamentIndex)));
+        temperamentButton.setMessage(Component.literal("Temperament: " + prettyTemperament(temperaments.get(temperamentIndex))));
+    }
+
+    private static String prettyTemperament(String value) {
+        if (value == null || value.isBlank()) return "Neutral";
+        String normalized = value.replace('_', ' ').toLowerCase(java.util.Locale.ROOT);
+        return Character.toUpperCase(normalized.charAt(0)) + normalized.substring(1);
     }
 
     private void savePageToConfig() {
@@ -431,16 +471,71 @@ public final class VoiceSettingsScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         if (this.width <= 0 || this.height <= 0) return;
         super.extractRenderState(graphics, mouseX, mouseY, delta);
+
         graphics.centeredText(this.font, "THE WORLD REMEMBERS — VOICE & AI", this.width / 2, 10, 0xFFFFFFFF);
+
         String subtitle = switch (page) {
-            case 0 -> "Audio devices, volume and push-to-talk";
-            case 1 -> "AI, speech-to-text and text-to-speech";
-            default -> "Villager personality and grounded speech";
+            case 0 -> "Audio: choose your microphone, speaker and push-to-talk settings";
+            case 1 -> "AI & speech: configure the service that turns villager text into voice";
+            default -> "Villagers: shape their personality without changing their simulation memory";
         };
-        graphics.centeredText(this.font, subtitle, this.width / 2, 38, 0xFFAAAAAA);
+        graphics.centeredText(this.font, subtitle, this.width / 2, 27, 0xFFB8B8B8);
+
+        int left = this.width / 2 - 155;
+        int right = this.width / 2 + 5;
+        int top = 66;
+
+        if (page == 0) {
+            drawLabel(graphics, "Microphone", left, top - 11);
+            drawLabel(graphics, "Speaker / output", right, top - 11);
+            drawLabel(graphics, "Input loudness", left, top + 31);
+            drawLabel(graphics, "Output loudness", right, top + 31);
+            drawLabel(graphics, "Maximum voice range", left, top + 73);
+            drawLabel(graphics, "Hold-to-talk behavior", right, top + 73);
+            drawLabel(graphics, "NPC speech", left, top + 115);
+            drawLabel(graphics, "Push-to-talk key", right, top + 115);
+            drawLabel(graphics, "Quick tests", left, top + 157);
+            drawLabel(graphics, "Quick tests", right, top + 157);
+            graphics.text(this.font, "Detected: " + microphones.size() + " microphone(s) · " + outputs.size() + " output(s)",
+                    left, top + 200, 0xFF9E9E9E, false);
+            graphics.text(this.font, "Use the guide if you are unsure what to choose.", right, top + 200, 0xFF9E9E9E, false);
+            graphics.text(this.font, "Mic status: " + AudioDeviceManager.describeAvailability(actualDeviceName(microphones.get(microphoneIndex)), true),
+                    left, top + 232, 0xFFAAAAAA, false);
+            graphics.text(this.font, "Speaker status: " + AudioDeviceManager.describeAvailability(actualDeviceName(outputs.get(outputIndex)), false),
+                    right, top + 232, 0xFFAAAAAA, false);
+        } else if (page == 1) {
+            drawLabel(graphics, "Provider", left, top - 11);
+            drawLabel(graphics, "Language / model", left, top + 31);
+            drawLabel(graphics, "Language / model", right, top + 31);
+            drawLabel(graphics, "Speech recognition", left, top + 73);
+            drawLabel(graphics, "Speech synthesis", right, top + 73);
+            drawLabel(graphics, "Voice", left, top + 115);
+            drawLabel(graphics, "Authentication", right, top + 115);
+            drawLabel(graphics, "Optional local adapter", left, top + 157);
+            drawLabel(graphics, "Optional local adapter", right, top + 157);
+            graphics.text(this.font, "Leave local commands empty when using the built-in online provider.",
+                    left, top + 232, 0xFFAAAAAA, false);
+        } else {
+            drawLabel(graphics, "Personality", left, top - 11);
+            drawLabel(graphics, "Test", right, top - 11);
+            drawLabel(graphics, "Style instructions", left, top + 31);
+            drawLabel(graphics, "AI behavior rules", right, top + 31);
+            graphics.text(this.font, "These instructions affect how a villager speaks; they do not replace the simulation.",
+                    left, top + 116, 0xFFAAAAAA, false);
+            graphics.text(this.font, "Temperament: " + prettyTemperament(temperaments.get(temperamentIndex)),
+                    left, top + 148, 0xFF9E9E9E, false);
+        }
+
+        graphics.text(this.font, "Changes are not saved until you press Save.", left, this.height - 48, 0xFFE0C070, false);
+
         if (page == 2) {
             String error = TheWorldRemembersClient.lastVillagerVoiceError();
-            if (error != null && !error.isBlank()) graphics.centeredText(this.font, "TTS: " + error, this.width / 2, this.height - 48, 0xFFFF7777);
+            if (error != null && !error.isBlank()) {
+                graphics.text(this.font, "TTS error: " + error, left, this.height - 64, 0xFFFF7777, false);
+            }
         }
     }
-}
+
+    private void drawLabel(GuiGraphicsExtractor graphics, String text, int x, int y) {
+        graphics.text(this.font, text, x, y, 0xFFE6E6E6, false);
+    }}
