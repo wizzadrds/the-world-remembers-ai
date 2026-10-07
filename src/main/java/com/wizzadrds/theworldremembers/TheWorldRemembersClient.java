@@ -39,6 +39,8 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static int autoVoiceSilenceTicks;
     private static final float AUTO_VOICE_THRESHOLD = 0.025f;
     private static final int AUTO_VOICE_SILENCE_TICKS = 12;
+    private static final int AUTO_VOICE_PREROLL_BYTES = 12800; // 0.4s at 16 kHz mono 16-bit
+    private static byte[] autoVoicePreroll = new byte[0];
     private static int voiceSequence;
     private static int audioDevicePollTicks;
     private static ExecutorService villagerSpeechExecutor;
@@ -284,7 +286,10 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     }
 
     private static void processVoice(byte[] pcm) {
-        saveMicrophoneRecording(pcm);
+        if (pcm != null && pcm.length > 0) {
+            byte[] recordingCopy = pcm.clone();
+            Thread.ofVirtual().name("twr-voice-recording-save").start(() -> saveMicrophoneRecording(recordingCopy));
+        }
         final long session = voiceSessionGeneration.get();
         if (pcm == null || pcm.length == 0 || session != voiceSessionGeneration.get()) {
             voiceConversation.fail();
