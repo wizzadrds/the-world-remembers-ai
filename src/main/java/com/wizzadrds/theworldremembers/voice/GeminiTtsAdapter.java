@@ -29,7 +29,7 @@ public final class GeminiTtsAdapter implements TtsAdapter {
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("Gemini API key is required");
         this.apiKey = apiKey.trim();
         this.model = model == null || model.isBlank() ? "gemini-3.8-flash-tts" : model.trim();
-        this.defaultVoice = defaultVoice == null || defaultVoice.isBlank() ? "Kore" : defaultVoice.trim();
+        this.defaultVoice = defaultVoice == null || defaultVoice.isBlank() ? "Algenib" : defaultVoice.trim();
         this.instructions = instructions == null ? "" : instructions.trim();
     }
 
