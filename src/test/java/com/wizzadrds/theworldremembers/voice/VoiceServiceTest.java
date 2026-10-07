@@ -84,6 +84,42 @@ class VoiceServiceTest {
     }
 
     @Test
+    void conversationResetCancelsStaleTranscriptionTask() throws Exception {
+        var controller = new VoiceConversationController();
+        try {
+            controller.beginListening();
+            var interrupted = new java.util.concurrent.CountDownLatch(1);
+            var service = new VoiceService(pcm -> {
+                try {
+                    Thread.sleep(30_000);
+                } catch (InterruptedException e) {
+                    interrupted.countDown();
+                    throw e;
+                }
+                return "late";
+            }, (t, p, o) -> o);
+            controller.finishListening(new byte[] {1, 2}, service, ignored -> fail("stale transcript delivered"));
+            controller.reset();
+            assertTrue(interrupted.await(2, java.util.concurrent.TimeUnit.SECONDS));
+            assertEquals(VoiceConversationState.IDLE, controller.state());
+        } finally {
+            controller.close();
+        }
+    }
+
+    @Test
+    void stateListenerFailureDoesNotBreakStateTransition() {
+        var controller = new VoiceConversationController();
+        try {
+            controller.setStateListener(ignored -> { throw new IllegalStateException("UI failed"); });
+            controller.beginListening();
+            assertEquals(VoiceConversationState.LISTENING, controller.state());
+        } finally {
+            controller.close();
+        }
+    }
+
+    @Test
     void configRoundTripPersistsDeviceAndVoiceSettings() throws Exception {
         Path gameDir = Files.createTempDirectory("twr-voice-roundtrip");
         VoiceClientConfig config = new VoiceClientConfig();
