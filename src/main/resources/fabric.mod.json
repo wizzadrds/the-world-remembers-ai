@@ -9,6 +9,7 @@
   "license": "All-Rights-Reserved",
   "environment": "*",
   "entrypoints": {"main": ["com.wizzadrds.theworldremembers.TheWorldRemembers"], "client": ["com.wizzadrds.theworldremembers.TheWorldRemembersClient"]},
+  "mixins": {"client": ["the_world_remembers.client.mixins.json"]},
   "mixins": {
     "client": ["the_world_remembers.client.mixins.json"]
   },
