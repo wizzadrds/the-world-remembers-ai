@@ -157,6 +157,16 @@ class VoiceServiceTest {
     }
 
     @Test
+    void unavailableExplicitAudioDeviceIsNeverTreatedAsDefault() {
+        String missing = "TWR definitely missing audio device 9f4c2d";
+        assertFalse(AudioDeviceManager.inputAvailable(missing));
+        assertFalse(AudioDeviceManager.outputAvailable(missing));
+        assertFalse(AudioDeviceManager.playTestTone(missing, 1.0f));
+        assertTrue(AudioDeviceManager.inputAvailable(AudioDeviceManager.DEFAULT_DEVICE));
+        assertTrue(AudioDeviceManager.outputAvailable(AudioDeviceManager.DEFAULT_DEVICE));
+    }
+
+    @Test
     void configRoundTripPersistsDeviceAndVoiceSettings() throws Exception {
         Path gameDir = Files.createTempDirectory("twr-voice-roundtrip");
         VoiceClientConfig config = new VoiceClientConfig();
