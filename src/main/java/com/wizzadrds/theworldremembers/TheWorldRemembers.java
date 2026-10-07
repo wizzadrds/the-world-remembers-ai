@@ -752,7 +752,7 @@ public class TheWorldRemembers implements ModInitializer {
                 storageCache.put(villageId,storageSample);
             }
             villageStorage.observe(villageId,storageSample.storage());
-            resources.observe(villageId,new VillageResources(food,0,storageSample.storage().occupied(),storageSample.storage().capacity()));
+            resources.observe(villageId,new VillageResources(food,0,storageSample.storage().occupiedSlots(),storageSample.storage().capacitySlots()));
             int golems=world.getEntitiesOfClass(IronGolem.class,new net.minecraft.world.phys.AABB(center).inflate(32),g->g.isAlive()).size();
             defense.observe(villageId,new VillageDefense(golems,0,0));
             for(var pos:world.getPoiManager().findAllWithType(type->type.is(PoiTypeTags.VILLAGE),pos->true,center,32,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).map(pair->pair.getSecond()).toList())
@@ -788,7 +788,7 @@ public class TheWorldRemembers implements ModInitializer {
     private static boolean hasRecentIntrusion(MemoryManager memories,Villager villager,ServerPlayer player,long gameTime){
         return memories.findMostRecentMemory(villager.getUUID(),player.getUUID(),MemoryEventType.PLAYER_ENTERED_NPC_HOME).map(m->gameTime-m.gameTime()<INTRUSION_COOLDOWN).orElse(false);
     }
-    private static java.util.List<ServerPlayer> nearbyPlayers(net.minecraft.world.entity.npc.Villager villager, java.util.List<ServerPlayer> players) {
+    private static java.util.List<ServerPlayer> nearbyPlayers(Villager villager, java.util.List<ServerPlayer> players) {
         java.util.ArrayList<ServerPlayer> nearby = new java.util.ArrayList<>();
         for (ServerPlayer player : players) {
             if (player.isAlive() && villager.distanceToSqr(player) <= 144.0) nearby.add(player);
