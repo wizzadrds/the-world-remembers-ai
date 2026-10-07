@@ -146,7 +146,7 @@ public final class VoiceSettingsScreen extends Screen {
         temperamentButton = addButton("Temperament: " + temperaments.get(temperamentIndex), left, top, this::cycleTemperament);
         addRenderableWidget(Button.builder(Component.literal("Reload local devices"), b -> {
             refreshDevices();
-            b.setMessage(Component.literal("Devices rescanned"));
+            rebuildPage();
         }).bounds(right, top, 150, 20).build());
         ttsInstructions = field(left, top + 46, "Villager voice instructions", config.ttsInstructions);
         systemPrompt = field(right, top + 46, "AI system prompt", config.systemPrompt);
@@ -209,16 +209,19 @@ public final class VoiceSettingsScreen extends Screen {
 
     private void cycleMicrophone() {
         microphoneIndex = (microphoneIndex + 1) % microphones.size();
+        config.microphone = microphones.get(microphoneIndex);
         microphoneButton.setMessage(Component.literal("Mic: " + microphones.get(microphoneIndex)));
     }
 
     private void cycleOutput() {
         outputIndex = (outputIndex + 1) % outputs.size();
+        config.outputDevice = outputs.get(outputIndex);
         outputButton.setMessage(Component.literal("Output: " + outputs.get(outputIndex)));
     }
 
     private void cycleTemperament() {
         temperamentIndex = (temperamentIndex + 1) % temperaments.size();
+        config.villagerVoiceTemperament = temperaments.get(temperamentIndex);
         temperamentButton.setMessage(Component.literal("Temperament: " + temperaments.get(temperamentIndex)));
     }
 
