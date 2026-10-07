@@ -316,13 +316,8 @@ public class TheWorldRemembers implements ModInitializer {
         }
         if (budgeted) metrics.recordVillagers(System.nanoTime() - villagersStarted);
 
-        if (!budgeted) {
-            for (Villager villager : world.getEntitiesOfClass(Villager.class,
-                    new net.minecraft.world.phys.AABB(-30_000_000,-2048,-30_000_000,30_000_000,2048,30_000_000),
-                    v -> v.isAlive() && !v.isRemoved())) {
-                synchronizeFamilyHome(villager, families, homes);
-            }
-        }
+        // Family-home synchronization is already performed inside the main villager pass.
+        // Keeping a second full-world entity scan here only duplicated the same work.
     }
     /**
      * Gives villagers an actual gameplay pickup path instead of only mirroring whatever is already in their inventory.
