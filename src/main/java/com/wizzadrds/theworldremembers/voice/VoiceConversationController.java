@@ -47,6 +47,7 @@ public final class VoiceConversationController implements AutoCloseable {
         try {
             activeTask = worker.submit(() -> {
                 try {
+                    if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
                     String transcript = service.transcribe(pcm);
                     if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
                     if (transcript == null || transcript.isBlank()) {
