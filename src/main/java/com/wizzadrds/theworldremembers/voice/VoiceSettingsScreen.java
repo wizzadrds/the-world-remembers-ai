@@ -364,7 +364,6 @@ public final class VoiceSettingsScreen extends Screen {
         if (microphoneTestButton != null && TheWorldRemembersClient.microphoneCapturing()) {
             microphoneTestButton.setMessage(Component.literal("Mic level: " + percentLevel()));
         }
-        refreshDeviceStatus();
     }
 
     @Override
