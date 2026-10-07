@@ -83,7 +83,7 @@ public final class VoiceClientConfig {
         }
     }
 
-    private static Path file(Path gameDir) {
+    private static void backupCorruptConfig(Path file) {\n        try {\n            if (!Files.isRegularFile(file)) return;\n            Path backup = file.resolveSibling(file.getFileName() + ".broken");\n            Files.move(file, backup, java.nio.file.StandardCopyOption.REPLACE_EXISTING);\n        } catch (IOException ignored) {\n        }\n    }\n\n    private static Path file(Path gameDir) {
         return gameDir.resolve("config").resolve("the_world_remembers_voice.json");
     }
 }
