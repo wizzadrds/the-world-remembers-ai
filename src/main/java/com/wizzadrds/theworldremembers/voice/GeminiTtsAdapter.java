@@ -63,10 +63,8 @@ public final class GeminiTtsAdapter implements TtsAdapter {
 
         body.add("response_format", JsonParser.parseString("{\"type\":\"audio\"}"));
         JsonObject generation = new JsonObject();
-        JsonArray speechConfig = new JsonArray();
-        JsonObject voiceConfig = new JsonObject();
-        voiceConfig.addProperty("voice", voice);
-        speechConfig.add(voiceConfig);
+        JsonObject speechConfig = new JsonObject();
+        speechConfig.addProperty("voice", voice);
         generation.add("speech_config", speechConfig);
         body.add("generation_config", generation);
 
@@ -77,7 +75,7 @@ public final class GeminiTtsAdapter implements TtsAdapter {
                 .build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new IOException("Gemini TTS failed: HTTP " + response.statusCode());
+            throw new IOException("Gemini TTS failed: HTTP " + response.statusCode() + " - " + response.body());
         }
 
         String encoded = extractAudio(response.body());
