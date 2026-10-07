@@ -10,6 +10,7 @@ import java.util.*;
 
 public final class KnowledgeManager extends SavedData {
     private final Map<UUID, List<KnowledgeFact>> data = new HashMap<>();
+    private transient Map<UUID,List<KnowledgeFact>> factsIndex;
     private static final Codec<KnowledgeManager> C = Codec.unboundedMap(
             Codec.STRING.xmap(UUID::fromString, UUID::toString),
             KnowledgeFact.CODEC.listOf())
@@ -30,21 +31,28 @@ public final class KnowledgeManager extends SavedData {
 
     public void learn(UUID npc, KnowledgeFact fact) {
         var list = data.computeIfAbsent(npc, k -> new ArrayList<>());
+        if (factsIndex == null) factsIndex = new HashMap<>(data);
         for (int i = 0; i < list.size(); i++) {
             KnowledgeFact existing = list.get(i);
             if (!existing.subject().equals(fact.subject()) || existing.eventType() != fact.eventType()) continue;
             if (existing.equals(fact)) return;
             list.set(i, fact);
+            factsIndex = null;
             setDirty();
             return;
         }
         list.add(fact);
         if (list.size() > 32) list.remove(0);
+        factsIndex = null;
         setDirty();
     }
 
     public List<KnowledgeFact> facts(UUID npc) {
-        return List.copyOf(data.getOrDefault(npc, List.of()));
+        if (factsIndex == null) {
+            factsIndex = new HashMap<>();
+            data.forEach((id, list) -> factsIndex.put(id, List.copyOf(list)));
+        }
+        return factsIndex.getOrDefault(npc, List.of());
     }
 
     public void decay(long tick) {
@@ -56,6 +64,7 @@ public final class KnowledgeManager extends SavedData {
                 if (next.confidence() != old.confidence()) {
                     list.set(i, next);
                     dirty = true;
+                    factsIndex = null;
                 }
             }
         }
