@@ -24,6 +24,8 @@ public final class LocalProcessTtsAdapter implements TtsAdapter {
 
     @Override
     public Path synthesize(String text, VoiceProfile profile, Path output) throws IOException, InterruptedException {
+        if (text == null || text.isBlank()) throw new IllegalArgumentException("TTS text is empty");
+        if (profile == null) throw new IllegalArgumentException("TTS voice profile is null");
         if (output == null) throw new IllegalArgumentException("TTS output path is null");
         Path target = output.toAbsolutePath();
         Path parent = target.getParent();
@@ -60,9 +62,10 @@ public final class LocalProcessTtsAdapter implements TtsAdapter {
 
         Process process = new ProcessBuilder(args).redirectErrorStream(true).start();
         boolean success = false;
+        var outputBuffer = new CappedOutputStream(64 * 1024);
         Thread logReader = Thread.ofVirtual().name("twr-tts-log").start(() -> {
             try {
-                process.getInputStream().transferTo(java.io.OutputStream.nullOutputStream());
+                process.getInputStream().transferTo(outputBuffer);
             } catch (IOException ignored) {
             }
         });
@@ -73,7 +76,8 @@ public final class LocalProcessTtsAdapter implements TtsAdapter {
                 throw new IOException("Local TTS timed out after " + PROCESS_TIMEOUT_SECONDS + " seconds");
             }
             if (process.exitValue() != 0) {
-                throw new IOException("Local TTS failed with exit code " + process.exitValue());
+                throw new IOException("Local TTS failed with exit code " + process.exitValue() + ": "
+                        + outputBuffer.text());
             }
             if (!Files.isRegularFile(target) || Files.size(target) == 0) {
                 throw new IOException("TTS produced no audio output");
@@ -93,6 +97,26 @@ public final class LocalProcessTtsAdapter implements TtsAdapter {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
+        }
+    }
+
+    private static final class CappedOutputStream extends java.io.OutputStream {
+        private final int maxBytes;
+        private final java.io.ByteArrayOutputStream delegate = new java.io.ByteArrayOutputStream();
+        private boolean truncated;
+        private CappedOutputStream(int maxBytes) { this.maxBytes = maxBytes; }
+        @Override public synchronized void write(int value) {
+            if (delegate.size() < maxBytes) delegate.write(value); else truncated = true;
+        }
+        @Override public synchronized void write(byte[] bytes, int offset, int length) {
+            if (bytes == null) throw new NullPointerException("bytes");
+            int remaining = maxBytes - delegate.size();
+            if (remaining > 0) delegate.write(bytes, offset, Math.min(length, remaining));
+            if (length > remaining) truncated = true;
+        }
+        private synchronized String text() {
+            String text = delegate.toString(java.nio.charset.StandardCharsets.UTF_8);
+            return truncated ? text + "\n[output truncated at 64 KiB]" : text;
         }
     }
 
