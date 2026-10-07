@@ -75,6 +75,12 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 voiceStreamPlayer.enqueue(payload.speaker(), payload.sequence(), scalePcm(payload.pcm(), gain));
             });
         });
+        ClientPlayNetworking.registerGlobalReceiver(VillagerVoicePacket.TYPE, (payload, context) -> {
+            Minecraft client = context.client();
+            client.execute(() -> {
+                if (voiceConfig != null && voiceConfig.villagerVoicesEnabled) speakVillager(payload);
+            });
+        });
         ClientPlayNetworking.registerGlobalReceiver(VoicePacket.TYPE, (payload, context) -> {
             lastVoice = payload;
             Minecraft client = context.client();
@@ -200,7 +206,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         pendingVillagerSpeech.set(0);
     }
 
-    private static void speakVillager(VoicePacket payload) {
+    private static void speakVillager(VillagerVoicePacket payload) {
         if (voiceConfig == null || voiceConfig.ttsCommand == null || voiceConfig.ttsCommand.isBlank()) return;
         if (villagerSpeechExecutor == null) return;
         int reserved;
@@ -213,18 +219,14 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             try {
                 var command = VoiceCommandParser.parse(voiceConfig.ttsCommand);
                 if (command.isEmpty()) return;
-                VoiceTemperament temperament;
-                try {
-                    temperament = VoiceTemperament.valueOf(
-                            voiceConfig.villagerVoiceTemperament == null ? "WARM" : voiceConfig.villagerVoiceTemperament.toUpperCase(java.util.Locale.ROOT));
-                } catch (IllegalArgumentException ignored) {
-                    temperament = VoiceTemperament.WARM;
-                }
-                float rate = clampVoice(payload.rate(), 0.60f, 1.30f);
-                float pitch = clampVoice(payload.pitch(), 0.70f, 1.30f);
+                VoiceTemperament temperament = resolveVillagerTemperament(payload.profession());
+                long seed = payload.speaker().getMostSignificantBits() ^ payload.speaker().getLeastSignificantBits();
+                float stablePitch = 0.94f + ((seed & 0xFFL) / 255.0f) * 0.12f;
+                float stableRate = 0.94f + (((seed >>> 8) & 0xFFL) / 255.0f) * 0.12f;
+                float rate = clampVoice(payload.rate() * stableRate, 0.60f, 1.30f);
+                float pitch = clampVoice(payload.pitch() * stablePitch, 0.70f, 1.30f);
                 float expressiveness = clampVoice(payload.expressiveness(), 0.0f, 1.0f);
-                String modelOrVoice = voiceConfig.ttsVoice == null || voiceConfig.ttsVoice.isBlank()
-                        ? voiceConfig.ttsModel : voiceConfig.ttsVoice;
+                String modelOrVoice = selectVillagerVoice(payload.speaker());
                 VoiceProfile profile = new VoiceProfile(speechLanguage(), modelOrVoice, temperament, rate, pitch, expressiveness);
                 output = Minecraft.getInstance().gameDirectory.toPath().resolve("config")
                         .resolve("twr_villager_" + UUID.randomUUID() + ".wav");
@@ -242,6 +244,29 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 pendingVillagerSpeech.updateAndGet(value -> Math.max(0, value - 1));
             }
         });
+    }
+
+    private static String selectVillagerVoice(UUID speaker) {
+        String configured = voiceConfig == null ? null : voiceConfig.ttsVoice;
+        if (configured == null || configured.isBlank()) return voiceConfig.ttsModel;
+        String[] voices = java.util.Arrays.stream(configured.split(","))
+                .map(String::trim).filter(s -> !s.isBlank()).toArray(String[]::new);
+        if (voices.length == 0) return voiceConfig.ttsModel;
+        int index = Math.floorMod(speaker.hashCode(), voices.length);
+        return voices[index];
+    }
+
+    private static VoiceTemperament resolveVillagerTemperament(String profession) {
+        String p = profession == null ? "" : profession.toLowerCase(java.util.Locale.ROOT);
+        if (p.contains("cleric") || p.contains("librarian")) return VoiceTemperament.CALM;
+        if (p.contains("butcher") || p.contains("weaponsmith") || p.contains("toolsmith")) return VoiceTemperament.ASSERTIVE;
+        if (p.contains("farmer") || p.contains("fisherman")) return VoiceTemperament.CHEERFUL;
+        if (p.contains("nitwit")) return VoiceTemperament.TIMID;
+        try {
+            return VoiceTemperament.valueOf(voiceConfig.villagerVoiceTemperament == null ? "WARM" : voiceConfig.villagerVoiceTemperament.toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException ignored) {
+            return VoiceTemperament.WARM;
+        }
     }
 
     private static String speechLanguage() {
