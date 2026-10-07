@@ -61,9 +61,6 @@ public final class VoiceConversationController implements AutoCloseable {
                     } catch (RuntimeException e) {
                         if (generation == sessionGeneration && state == VoiceConversationState.PROCESSING) fail();
                     }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    if (generation == sessionGeneration && state == VoiceConversationState.PROCESSING) fail();
                 } catch (Exception e) {
                     if (generation == sessionGeneration && state == VoiceConversationState.PROCESSING) fail();
                 }
