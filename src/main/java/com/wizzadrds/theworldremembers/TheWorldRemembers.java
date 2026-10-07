@@ -372,11 +372,17 @@ public class TheWorldRemembers implements ModInitializer {
         return null;
     }
 
+    private static String professionId(Villager villager) {
+        return villager.getVillagerData().profession().unwrapKey()
+                .map(key -> key.location().getPath())
+                .orElse("villager");
+    }
+
     private static boolean isWarrior(Villager villager) {
-        String profession = villager.getVillagerData().toString().toLowerCase(java.util.Locale.ROOT);
-        return profession.contains("weaponsmith") || profession.contains("armorer")
-                || profession.contains("toolsmith") || profession.contains("warrior")
-                || profession.contains("guardian");
+        String profession = professionId(villager);
+        return profession.equals("weaponsmith") || profession.equals("armorer")
+                || profession.equals("toolsmith") || profession.equals("warrior")
+                || profession.equals("guardian");
     }
 
     /** Lets a villager actually use food it carries when injured instead of keeping food as inert inventory state. */
@@ -441,7 +447,7 @@ public class TheWorldRemembers implements ModInitializer {
 
     private static void applyLiveSocialBehavior(ServerLevel world, Villager villager, RelationshipManager relationships, NpcStressManager stress, NpcBehaviorEngine behavior, NpcHomeManager homes, NpcHomeStorageManager homeStorage, java.util.List<ServerPlayer> nearbyPlayers, PersonalityProfile personality) {
         if (!villager.getNavigation().isDone() && !villager.isTrading()) return;
-        String role=villager.getVillagerData().toString().toLowerCase(java.util.Locale.ROOT);
+        String role=professionId(villager);
         boolean worker=role.contains("farmer")||role.contains("librarian")||role.contains("cleric")||role.contains("armorer")||role.contains("toolsmith")||role.contains("weaponsmith");
         boolean danger=isDangerNearby(world, villager);
         if(danger){NpcHome home=homes.get(villager.getUUID());if(home!=null)villager.getNavigation().moveTo(home.homePos().getX(),home.homePos().getY(),home.homePos().getZ(),1.15);stress.increase(villager.getUUID(),2);return;}
