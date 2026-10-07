@@ -10,6 +10,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.function.Consumer;
 
 public final class GeminiResponsesAdapter implements AiChatAdapter {
     private final HttpClient client = HttpClient.newHttpClient();
@@ -45,6 +48,60 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
             throw new IOException("Gemini request failed: HTTP " + response.statusCode() + " - " + response.body());
         }
         return extractText(response.body());
+    }
+
+    @Override
+    public String respondStreaming(String userText, String systemPrompt, Consumer<String> chunkConsumer) throws IOException, InterruptedException {
+        if (chunkConsumer == null) return respond(userText, systemPrompt);
+
+        JsonObject body = new JsonObject();
+        body.addProperty("model", model);
+        body.addProperty("input", userText == null ? "" : userText);
+        if (systemPrompt != null && !systemPrompt.isBlank()) body.addProperty("system_instruction", systemPrompt);
+        JsonObject generationConfig = new JsonObject();
+        generationConfig.addProperty("thinking_level", "low");
+        body.add("generation_config", generationConfig);
+        body.addProperty("stream", true);
+
+        HttpRequest request = HttpRequest.newBuilder(URI.create("https://generativelanguage.googleapis.com/v1beta/interactions"))
+                .header("x-goog-api-key", apiKey)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<java.io.InputStream> response =
+                client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            try (java.io.InputStream stream = response.body()) {
+                throw new IOException("Gemini request failed: HTTP " + response.statusCode() + " - "
+                        + new String(stream.readAllBytes(), StandardCharsets.UTF_8));
+            }
+        }
+
+        StringBuilder full = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(response.body(), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (!line.startsWith("data:")) continue;
+                String data = line.substring(5).trim();
+                if (data.isEmpty() || "[DONE]".equals(data)) continue;
+                JsonObject event;
+                try {
+                    event = JsonParser.parseString(data).getAsJsonObject();
+                } catch (RuntimeException ignored) {
+                    continue;
+                }
+                if (!"step.delta".equals(event.get("event_type").getAsString())) continue;
+                JsonObject delta = event.getAsJsonObject("delta");
+                if (delta == null || !"text".equals(delta.get("type").getAsString()) || !delta.has("text")) continue;
+                String chunk = delta.get("text").getAsString();
+                if (chunk.isBlank()) continue;
+                full.append(chunk);
+                chunkConsumer.accept(chunk);
+            }
+        }
+        if (full.toString().isBlank()) throw new IOException("Gemini streaming response did not contain output text");
+        return full.toString().trim();
     }
 
     static String extractText(String json) throws IOException {
