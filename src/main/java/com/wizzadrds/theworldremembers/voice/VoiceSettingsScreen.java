@@ -37,6 +37,7 @@ public final class VoiceSettingsScreen extends Screen {
     private Button villagerVoiceTestButton;
     private Button microphoneStatusButton;
     private Button outputStatusButton;
+    private Button saveButton;
 
     private EditBox inputVolume;
     private EditBox outputVolume;
@@ -179,7 +180,7 @@ public final class VoiceSettingsScreen extends Screen {
         int bottom = Math.max(0, this.height - 27);
         addRenderableWidget(Button.builder(Component.literal("DEFAULTS"), b -> resetDefaults()).bounds(left, bottom, COL_W, 20).build());
         addRenderableWidget(Button.builder(Component.literal("CANCEL"), b -> close()).bounds(right, bottom, COL_W, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("SAVE"), b -> saveAndClose())
+        saveButton = addRenderableWidget(Button.builder(Component.literal("SAVE"), b -> saveAndClose())
                 .bounds(this.width / 2 - 45, bottom - 25, 90, 20).build());
     }
 
@@ -462,8 +463,13 @@ public final class VoiceSettingsScreen extends Screen {
 
     private void saveAndClose() {
         savePageToConfig();
-        config.save(Minecraft.getInstance().gameDirectory.toPath());
-        close();
+        boolean saved = config.save(Minecraft.getInstance().gameDirectory.toPath());
+        if (saved) {
+            if (saveButton != null) saveButton.setMessage(Component.literal("SAVED"));
+            close();
+        } else if (saveButton != null) {
+            saveButton.setMessage(Component.literal("SAVE FAILED"));
+        }
     }
 
     private void resetDefaults() {
