@@ -38,6 +38,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static ExecutorService villagerSpeechExecutor;
     private static String appliedOutputDevice;
     private static final AtomicInteger pendingVillagerSpeech = new AtomicInteger();
+    private static volatile String lastVillagerVoiceError = "";
 
     public static VoicePacket lastVoice() { return lastVoice; }
     public static VoiceClientConfig voiceConfig() { return voiceConfig; }
@@ -47,6 +48,17 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
 
     public static boolean microphoneCapturing() {
         return microphone != null && microphone.isCapturing();
+    }
+
+    public static String lastVillagerVoiceError() { return lastVillagerVoiceError; }
+
+    public static void testVillagerVoice() {
+        if (voiceConfig == null || !voiceConfig.villagerVoicesEnabled) {
+            lastVillagerVoiceError = "Villager voices are disabled";
+            return;
+        }
+        UUID speaker = UUID.nameUUIDFromBytes("twr-villager-test".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        speakVillager(new VillagerVoicePacket(speaker, "farmer", "Hola, vecino. Soy un aldeano. ¿Me escuchas bien?", 0, 0, 0, 32.0f, 1.0f, 1.0f, 1.0f, 0.7f, 1));
     }
 
     public static boolean startMicrophoneTest() {
@@ -238,7 +250,10 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             Path output = null;
             try {
                 var command = VoiceCommandParser.parse(voiceConfig.ttsCommand);
-                if (command.isEmpty()) return;
+                if (command.isEmpty()) {
+                    lastVillagerVoiceError = "TTS command is empty";
+                    return;
+                }
                 VoiceTemperament temperament = resolveVillagerTemperament(payload.profession());
                 long seed = payload.speaker().getMostSignificantBits() ^ payload.speaker().getLeastSignificantBits();
                 float stablePitch = 0.94f + ((seed & 0xFFL) / 255.0f) * 0.12f;
@@ -253,9 +268,13 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 var tts = new LocalProcessTtsAdapter(command);
                 Path audio = tts.synthesize(payload.text(), profile, output);
                 if (audio != null && Files.isRegularFile(audio)) {
+                    lastVillagerVoiceError = "";
                     voicePlayer.play(audio, Math.max(0.0f, Math.min(2.0f, voiceConfig.outputVolume)));
+                } else {
+                    lastVillagerVoiceError = "TTS did not produce a WAV file";
                 }
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                lastVillagerVoiceError = e.getClass().getSimpleName() + ": " + (e.getMessage() == null ? "TTS failed" : e.getMessage());
                 // Local TTS is optional: a missing/broken adapter must never stop gameplay.
             } finally {
                 if (output != null) {
