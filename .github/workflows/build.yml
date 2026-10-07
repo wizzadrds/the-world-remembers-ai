@@ -50,6 +50,144 @@ jobs:
           sha256sum artifact/*.jar > artifact/SHA256SUMS.txt
           test -s artifact/*.jar
           unzip -t artifact/*.jar
+          jar tf artifact/*.jar > artifact/JAR-CONTENTS.txt
+          for required in \
+            fabric.mod.json \
+            com/wizzadrds/theworldremembers/TheWorldRemembers.class \
+            com/wizzadrds/theworldremembers/client/TheWorldRemembersClient.class \
+            com/wizzadrds/theworldremembers/voice/VoiceClientConfig.class \
+            com/wizzadrds/theworldremembers/voice/VoiceSettingsScreen.class \
+            com/wizzadrds/theworldremembers/voice/VillagerVoiceEmitter.class \
+            com/wizzadrds/theworldremembers/voice/LocalProcessTtsAdapter.class \
+            com/wizzadrds/theworldremembers/voice/LocalProcessSttAdapter.class; do
+            grep -Fxq "$required" artifact/JAR-CONTENTS.txt || {
+              echo "Required runtime class/resource missing from artifact: $required"
+              exit 1
+            }
+          done
+          printf 'jar_bytes=%s\nclass_count=%s\n' \
+            "$(stat -c '%s' artifact/*.jar)" \
+            "$(grep -c '\.class
+
+      - name: Prepare server EULA
+        run: |
+          mkdir -p run
+          printf 'eula=true\n' > run/eula.txt
+      - name: Start Fabric server smoke test
+        shell: bash
+        run: |
+          set -e
+          rm -f server.log
+          gradle runServer > server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in {1..120}; do
+            if grep -q "The World Remembers" server.log; then
+              echo "Mod initialization detected."
+              exit 0
+            fi
+            if ! kill -0 $SERVER_PID 2>/dev/null; then
+              cat server.log
+              exit 1
+            fi
+            sleep 2
+          done
+          cat server.log
+          echo "Fabric server did not initialize the mod within the smoke-test window."
+          exit 1
+
+      - name: Upload release candidate for final gate
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate-${{ github.sha }}
+          path: artifact/
+          if-no-files-found: error
+          compression-level: 0
+          include-hidden-files: false
+          retention-days: 2
+
+      - name: Store build and server diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-diagnostics-${{ github.sha }}
+          path: |
+            **/build/reports/
+            **/build/test-results/
+            **/build/run/**/*.log
+            server.log
+            build-ci.log
+            build-environment.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+  client-game-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Run Fabric client GameTests
+        shell: bash
+        run: |
+          set -o pipefail
+          xvfb-run -a gradle runClientGameTest --stacktrace 2>&1 | tee client-game-test.log
+      - name: Store client GameTest diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-game-test-diagnostics-${{ github.sha }}
+          path: |
+            **/build/reports/
+            **/build/test-results/
+            **/build/run/**/*.log
+            client-game-test.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+  publish-artifact:
+    name: Publish fully validated artifact
+    needs: [build, client-game-test]
+    if: ${{ needs.build.result == 'success' && needs.client-game-test.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: release-candidate-${{ github.sha }}
+          path: artifact
+      - name: Final artifact integrity gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t jars < <(find artifact -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-gametest.jar' -print | sort)
+          if [ ${#jars[@]} -ne 1 ]; then
+            echo "Final artifact gate expected exactly one distributable JAR, found ${#jars[@]}."
+            exit 1
+          fi
+          test -s "${jars[0]}"
+          unzip -t "${jars[0]}"
+          unzip -p "${jars[0]}" fabric.mod.json | grep -q '"id"[[:space:]]*:[[:space:]]*"the_world_remembers"'
+          unzip -l "${jars[0]}" | grep -q 'com/wizzadrds/theworldremembers/TheWorldRemembers.class'
+          sha256sum "${jars[0]}" > artifact/SHA256SUMS.txt
+          printf 'commit=%s\nbranch=%s\n' "${GITHUB_SHA}" "${GITHUB_REF_NAME}" > artifact/BUILD-VERIFIED.txt
+          cat artifact/SHA256SUMS.txt
+          cat artifact/BUILD-VERIFIED.txt
+      - name: Publish fully validated mod artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: the-world-remembers-${{ github.sha }}
+          path: artifact/
+          if-no-files-found: error
+          compression-level: 0
+          include-hidden-files: false
+          retention-days: 14
+ artifact/JAR-CONTENTS.txt)" > artifact/ARTIFACT-METADATA.txt
           ls -lah artifact/
 
       - name: Prepare server EULA
