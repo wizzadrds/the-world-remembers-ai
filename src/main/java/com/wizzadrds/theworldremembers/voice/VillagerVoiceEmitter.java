@@ -49,7 +49,7 @@ public final class VillagerVoiceEmitter {
         float pitch = clamp(0.90f + (social - calm) * 0.14f, 0.78f, 1.20f);
         float expressiveness = clamp(0.35f + social * 0.45f, 0.20f, 0.90f);
         String profession = villager.getVillagerData().profession().unwrapKey()
-                .map(key -> key.location().getPath()).orElse("villager");
+                .map(key -> key.identifier().getPath()).orElse("villager");
         return new VillagerVoicePacket(villager.getUUID(), profession, line,
                 villager.getX(), villager.getY() + 1.5, villager.getZ(),
                 MAX_DISTANCE, 0.90f, rate, pitch, expressiveness, 1);
