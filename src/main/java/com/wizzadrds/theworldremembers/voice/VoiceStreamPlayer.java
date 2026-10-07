@@ -83,16 +83,19 @@ public final class VoiceStreamPlayer implements AutoCloseable {
         TreeMap<Integer, byte[]> pending =
                 pendingSequences.computeIfAbsent(speaker, ignored -> new TreeMap<>());
         if (previous == null || sequence == previous + 1) {
-            enqueueReadyFrame(speaker, sequence, pcm.clone());
+            if (!enqueueReadyFrame(speaker, sequence, pcm.clone())) {
+                pending.putIfAbsent(sequence, pcm.clone());
+                return;
+            }
             flushContiguous(speaker, pending);
             return;
         }
 
         if (pending.putIfAbsent(sequence, pcm.clone()) != null) return;
         if (pending.size() >= MAX_REORDER_FRAMES) {
-            Map.Entry<Integer, byte[]> next = pending.pollFirstEntry();
-            if (next != null) {
-                enqueueReadyFrame(speaker, next.getKey(), next.getValue());
+            Map.Entry<Integer, byte[]> next = pending.firstEntry();
+            if (next != null && enqueueReadyFrame(speaker, next.getKey(), next.getValue())) {
+                pending.pollFirstEntry();
             }
         }
         if (pending.isEmpty()) pendingSequences.remove(speaker);
@@ -103,16 +106,16 @@ public final class VoiceStreamPlayer implements AutoCloseable {
         while (last != null) {
             Map.Entry<Integer, byte[]> next = pending.firstEntry();
             if (next == null || next.getKey() != last + 1) break;
+            if (!enqueueReadyFrame(speaker, next.getKey(), next.getValue())) break;
             pending.pollFirstEntry();
-            enqueueReadyFrame(speaker, next.getKey(), next.getValue());
             last = next.getKey();
         }
         if (pending.isEmpty()) pendingSequences.remove(speaker);
     }
 
-    private void enqueueReadyFrame(UUID speaker, int sequence, byte[] pcm) {
+    private boolean enqueueReadyFrame(UUID speaker, int sequence, byte[] pcm) {
         start();
-        if (!running) return;
+        if (!running) return false;
 
         lastSequences.put(speaker, sequence);
         Deque<byte[]> queue = speakerQueues.computeIfAbsent(speaker, ignored -> new ArrayDeque<>());
@@ -120,6 +123,7 @@ public final class VoiceStreamPlayer implements AutoCloseable {
             queue.pollFirst();
         }
         queue.offerLast(pcm);
+        return true;
     }
 
     private byte[] nextMixedFrame() {
