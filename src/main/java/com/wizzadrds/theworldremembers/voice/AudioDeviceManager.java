@@ -183,12 +183,19 @@ public final class AudioDeviceManager {
     }
 
     public static boolean inputAvailable(String requested) {
-        return requested == null || requested.isBlank() || requested.equalsIgnoreCase(DEFAULT_DEVICE)
-                || findInputMixer(requested) != null;
+        if (requested == null || requested.isBlank() || requested.equalsIgnoreCase(DEFAULT_DEVICE)) return true;
+        refreshIfStale();
+        return containsIgnoreCase(cachedInputs, requested);
     }
 
     public static boolean outputAvailable(String requested) {
-        return requested == null || requested.isBlank() || requested.equalsIgnoreCase(DEFAULT_DEVICE)
-                || findOutputMixer(requested) != null;
+        if (requested == null || requested.isBlank() || requested.equalsIgnoreCase(DEFAULT_DEVICE)) return true;
+        refreshIfStale();
+        return containsIgnoreCase(cachedOutputs, requested);
+    }
+
+    private static boolean containsIgnoreCase(List<String> values, String requested) {
+        for (String value : values) if (requested.equalsIgnoreCase(value)) return true;
+        return false;
     }
 }
