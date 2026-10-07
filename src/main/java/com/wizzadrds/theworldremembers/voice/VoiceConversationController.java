@@ -142,6 +142,7 @@ public final class VoiceConversationController implements AutoCloseable {
     }
 
     private synchronized Future<?> submitTracked(Runnable task) {
+        cancelActiveTask();
         FutureTask<Void> future = new FutureTask<>(task, null);
         activeTask = future;
         try {
