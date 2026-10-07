@@ -36,18 +36,49 @@ public final class VoiceClientConfig {
         try {
             if (Files.exists(file)) {
                 VoiceClientConfig config = GSON.fromJson(Files.readString(file), VoiceClientConfig.class);
-                if (config != null) return config;
+                if (config != null) return config.normalized();
             }
         } catch (Exception ignored) {
         }
         return new VoiceClientConfig();
     }
 
+    public VoiceClientConfig normalized() {
+        if (microphone == null || microphone.isBlank()) microphone = AudioDeviceManager.DEFAULT_DEVICE;
+        if (outputDevice == null || outputDevice.isBlank()) outputDevice = AudioDeviceManager.DEFAULT_DEVICE;
+        if (villagerVoiceTemperament == null || villagerVoiceTemperament.isBlank()) villagerVoiceTemperament = "WARM";
+        if (pushToTalkKey <= 0) pushToTalkKey = 86;
+        inputVolume = finiteClamp(inputVolume, 0.0f, 2.0f, 1.0f);
+        outputVolume = finiteClamp(outputVolume, 0.0f, 2.0f, 1.0f);
+        voiceDistance = finiteClamp(voiceDistance, 1.0f, 64.0f, 32.0f);
+        if (provider == null || provider.isBlank()) provider = "openai";
+        if (language == null || language.isBlank()) language = "es-ES";
+        if (sttModel == null || sttModel.isBlank()) sttModel = "faster-whisper";
+        if (ttsModel == null || ttsModel.isBlank()) ttsModel = "piper";
+        if (ttsInstructions == null || ttsInstructions.isBlank()) {
+            ttsInstructions = "Speak naturally as a Minecraft villager: short phrases, warm human-like delivery, no announcer voice.";
+        }
+        if (systemPrompt == null || systemPrompt.isBlank()) {
+            systemPrompt = "You are a Minecraft NPC. Answer briefly, naturally, and stay in character.";
+        }
+        return this;
+    }
+
+    private static float finiteClamp(float value, float min, float max, float fallback) {
+        return Float.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback;
+    }
+
     public void save(Path gameDir) {
         Path file = file(gameDir);
         try {
             Files.createDirectories(file.getParent());
-            Files.writeString(file, GSON.toJson(this), StandardCharsets.UTF_8);
+            Path temp = file.resolveSibling(file.getFileName() + ".tmp");
+            Files.writeString(temp, GSON.toJson(normalized()), StandardCharsets.UTF_8);
+            try {
+                Files.move(temp, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+            } catch (java.nio.file.AtomicMoveNotSupportedException ignored) {
+                Files.move(temp, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (IOException ignored) {
         }
     }
