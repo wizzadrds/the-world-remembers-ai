@@ -324,7 +324,6 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                     java.util.List<java.util.concurrent.Future<?>> speechJobs =
                             new java.util.concurrent.CopyOnWriteArrayList<>();
                     StringBuilder sentence = new StringBuilder();
-                    final Object speechLock = new Object();
                     try {
                         String reply = ai.respondStreaming(transcript, voiceConfig.systemPrompt, chunk -> {
                             sentence.append(chunk);
@@ -334,14 +333,14 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                                 sentence.delete(0, boundary + 1);
                                 if (!part.isBlank()) {
                                     speechJobs.add(speechQueue.submit(() ->
-                                            speakResponseSentence(part, service, session, speechLock)));
+                                            speakResponseSentence(part, service, session)));
                                 }
                             }
                         });
                         String tail = sentence.toString().trim();
                         if (!tail.isBlank()) {
                             speechJobs.add(speechQueue.submit(() ->
-                                    speakResponseSentence(tail, service, session, speechLock)));
+                                    speakResponseSentence(tail, service, session)));
                         }
                         for (java.util.concurrent.Future<?> job : speechJobs) job.get();
                         if (reply == null || reply.isBlank()) throw new IllegalStateException("AI returned an empty reply");
@@ -355,7 +354,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                     if (reply == null || reply.isBlank()) {
                         throw new IllegalStateException("AI returned an empty reply");
                     }
-                    speakResponseSentence(reply, service, session, new Object());
+                    speakResponseSentence(reply, service, session);
                     if (session == voiceSessionGeneration.get()) voiceConversation.finishSpeaking();
                 }
             } catch (InterruptedException e) {
@@ -383,7 +382,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         return -1;
     }
 
-    private static void speakResponseSentence(String text, VoiceService service, long session, Object speechLock) {
+    private static void speakResponseSentence(String text, VoiceService service, long session) {
         if (session != voiceSessionGeneration.get() || text == null || text.isBlank()) return;
         String responseVoice = voiceConfig.ttsVoice == null || voiceConfig.ttsVoice.isBlank()
                 ? voiceConfig.ttsModel : voiceConfig.ttsVoice.trim();
@@ -397,18 +396,16 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                     ? new GeminiTtsAdapter(voiceConfig.apiKey, voiceConfig.ttsModel, voiceConfig.ttsVoice, voiceConfig.ttsInstructions)
                     : new LocalProcessTtsAdapter(VoiceCommandParser.parse(voiceConfig.ttsCommand), voiceConfig.ttsInstructions);
             InputStream stream = tts.synthesizeStream(text, profile);
-            synchronized (speechLock) {
-                if (session != voiceSessionGeneration.get()) {
-                    if (stream != null) stream.close();
-                    return;
-                }
-                if (stream != null) {
-                    voicePlayer.playPcmStream(stream, voiceConfig.outputVolume);
-                } else {
-                    Path audio = tts.synthesize(text, profile, output);
-                    if (audio == null || !Files.isRegularFile(audio)) throw new IllegalStateException("TTS did not produce audio");
-                    voicePlayer.play(audio, voiceConfig.outputVolume);
-                }
+            if (session != voiceSessionGeneration.get()) {
+                if (stream != null) stream.close();
+                return;
+            }
+            if (stream != null) {
+                voicePlayer.playPcmStream(stream, voiceConfig.outputVolume);
+            } else {
+                Path audio = tts.synthesize(text, profile, output);
+                if (audio == null || !Files.isRegularFile(audio)) throw new IllegalStateException("TTS did not produce audio");
+                voicePlayer.play(audio, voiceConfig.outputVolume);
             }
         } catch (Exception e) {
             if (session == voiceSessionGeneration.get()) throw new RuntimeException("Voice TTS failed", e);
