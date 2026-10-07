@@ -1,5 +1,6 @@
 package com.wizzadrds.theworldremembers.voice;
 
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
@@ -91,6 +92,20 @@ public final class VoiceConversationController implements AutoCloseable {
                 Path audio = null;
                 try {
                     if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
+
+                    InputStream streamedAudio = service.synthesizeStream(text, profile);
+                    if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) {
+                        closeQuietly(streamedAudio);
+                        return;
+                    }
+                    if (streamedAudio != null) {
+                        setState(VoiceConversationState.SPEAKING);
+                        player.playPcmStream(streamedAudio, outputVolume);
+                        completed.accept(null);
+                        finishSpeaking();
+                        return;
+                    }
+
                     audio = service.synthesize(text, profile, output);
                     if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
                     if (audio == null || !Files.exists(audio)) {
@@ -140,6 +155,14 @@ public final class VoiceConversationController implements AutoCloseable {
             current = current.getCause();
         }
         return error == null ? "Voice processing failed" : error.getClass().getSimpleName();
+    }
+
+    private static void closeQuietly(InputStream stream) {
+        if (stream == null) return;
+        try {
+            stream.close();
+        } catch (Exception ignored) {
+        }
     }
 
     public synchronized void reset() {
