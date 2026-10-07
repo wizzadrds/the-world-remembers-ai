@@ -107,11 +107,15 @@ public final class VoiceSettingsScreen extends Screen {
             config.villagerVoicesEnabled = !config.villagerVoicesEnabled;
             villagerVoicesButton.setMessage(Component.literal("Villager voices: " + (config.villagerVoicesEnabled ? "ON" : "OFF")));
         });
+        addRenderableWidget(Button.builder(Component.literal("Test output"), b -> {
+            boolean ok = AudioDeviceManager.playTestTone(outputs.get(outputIndex), config.outputVolume);
+            b.setMessage(Component.literal(ok ? "Test played" : "Test failed"));
+        }).bounds(right, top + 138, 150, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Rescan devices (" + microphones.size() + " mic / " + outputs.size() + " out)"), b -> {
             savePageToConfig();
             refreshDevices();
             rebuildPage();
-        }).bounds(right, top + 138, 150, 20).build());
+        }).bounds(right, top + 164, 150, 20).build());
     }
 
     private void buildAiPage(int left, int right, int top) {
