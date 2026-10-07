@@ -59,6 +59,8 @@ public final class VoiceSettingsScreen extends Screen {
 
     @Override
     protected void init() {
+        // The GUI renderer can enter a transient zero-height state during resize/reload.
+        if (this.width <= 0 || this.height <= 0) return;
         refreshDevices();
         rebuildPage();
     }
@@ -86,7 +88,7 @@ public final class VoiceSettingsScreen extends Screen {
                 deviceScanPending = false;
                 if (Minecraft.getInstance().gui.screen() == this) {
                     refreshDevicesFromCache();
-                    rebuildPage();
+                    refreshDeviceButtons();
                 }
             }));
         }
@@ -197,7 +199,7 @@ public final class VoiceSettingsScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal("Rescan devices (" + microphones.size() + " mic / " + outputs.size() + " out)"), b -> {
             savePageToConfig();
             refreshDevices();
-            rebuildPage();
+            refreshDeviceButtons();
         }).bounds(right, top + 164, 150, 20).build());
     }
 
@@ -224,7 +226,7 @@ public final class VoiceSettingsScreen extends Screen {
         temperamentButton = addButton("Temperament: " + temperaments.get(temperamentIndex), left, top, this::cycleTemperament);
         addRenderableWidget(Button.builder(Component.literal("Reload local devices"), b -> {
             refreshDevices();
-            rebuildPage();
+            refreshDeviceButtons();
         }).bounds(right, top, 150, 20).build());
         ttsInstructions = field(left, top + 46, "Villager voice instructions", config.ttsInstructions);
         systemPrompt = field(right, top + 46, "AI system prompt", config.systemPrompt);
@@ -252,12 +254,26 @@ public final class VoiceSettingsScreen extends Screen {
         return button;
     }
 
+    private void refreshDeviceButtons() {
+        if (microphones.isEmpty()) microphones = List.of(AudioDeviceManager.DEFAULT_DEVICE);
+        if (outputs.isEmpty()) outputs = List.of(AudioDeviceManager.DEFAULT_DEVICE);
+        microphoneIndex = Math.max(0, Math.min(microphoneIndex, microphones.size() - 1));
+        outputIndex = Math.max(0, Math.min(outputIndex, outputs.size() - 1));
+        if (microphoneButton != null) {
+            microphoneButton.setMessage(Component.literal("Mic: " + microphones.get(microphoneIndex)));
+        }
+        if (outputButton != null) {
+            outputButton.setMessage(Component.literal("Output: " + outputs.get(outputIndex)));
+        }
+        refreshDeviceStatus();
+    }
+
     private void refreshDeviceStatus() {
-        if (microphoneStatusButton != null) {
+        if (microphoneStatusButton != null && !microphones.isEmpty()) {
             microphoneStatusButton.setMessage(Component.literal(
                     "Mic: " + AudioDeviceManager.describeAvailability(actualDeviceName(microphones.get(microphoneIndex)), true)));
         }
-        if (outputStatusButton != null) {
+        if (outputStatusButton != null && !outputs.isEmpty()) {
             outputStatusButton.setMessage(Component.literal(
                     "Out: " + AudioDeviceManager.describeAvailability(actualDeviceName(outputs.get(outputIndex)), false)));
         }
@@ -413,6 +429,7 @@ public final class VoiceSettingsScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        if (this.width <= 0 || this.height <= 0) return;
         super.extractRenderState(graphics, mouseX, mouseY, delta);
         graphics.centeredText(this.font, "THE WORLD REMEMBERS — VOICE & AI", this.width / 2, 10, 0xFFFFFFFF);
         String subtitle = switch (page) {
