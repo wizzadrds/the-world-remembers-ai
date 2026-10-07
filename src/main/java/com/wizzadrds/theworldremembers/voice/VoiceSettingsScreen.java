@@ -147,6 +147,11 @@ public final class VoiceSettingsScreen extends Screen {
     private static final int ROW_H = 28;
     private static final int CONTENT_W = COL_W * 2 + GAP;
 
+    private int rowHeight() {
+        // Keep the normal breathing room, but compress only when the window is genuinely short.
+        return Math.min(ROW_H, Math.max(22, (this.height - 130) / 5));
+    }
+
     private int leftColumn() { return Math.max(6, (this.width - CONTENT_W) / 2); }
     private int rightColumn() { return leftColumn() + COL_W + GAP; }
     private int contentTop() { return 58; }
@@ -177,11 +182,11 @@ public final class VoiceSettingsScreen extends Screen {
 
     private void buildAudioPage(int left, int right, int top) {
         int row = 0;
-        microphoneButton = addButton(fit("Mic: " + microphones.get(microphoneIndex), COL_W - 8), left, top + row++ * ROW_H, this::cycleMicrophone);
+        microphoneButton = addButton(fit("Mic: " + microphones.get(microphoneIndex), COL_W - 8), left, top + row++ * rowHeight(), this::cycleMicrophone);
         outputButton = addButton(fit("Out: " + outputs.get(outputIndex), COL_W - 8), right, top, this::cycleOutput);
 
-        inputVolume = field(left, top + row * ROW_H, "Input volume", Float.toString(config.inputVolume));
-        outputVolume = field(right, top + row++ * ROW_H, "Output volume", Float.toString(config.outputVolume));
+        inputVolume = field(left, top + row * rowHeight(), "Input volume", Float.toString(config.inputVolume));
+        outputVolume = field(right, top + row++ * rowHeight(), "Output volume", Float.toString(config.outputVolume));
 
         distance = field(left, top + row * ROW_H, "Range (blocks)", Float.toString(config.voiceDistance));
         pushToTalkButton = addButton("Hold to talk: " + (config.pushToTalkMode ? "ON" : "OFF"), right, top + row++ * ROW_H, () -> {
@@ -505,19 +510,23 @@ public final class VoiceSettingsScreen extends Screen {
         if (page == 0) {
             graphics.text(this.font, "INPUT / OUTPUT", left, top - 9, 0xFFE6E6E6, false);
             graphics.text(this.font, "CONTROLS + TESTS", right, top - 9, 0xFFE6E6E6, false);
-            graphics.text(this.font, fit("Detected: " + microphones.size() + " mic · " + outputs.size() + " output", CONTENT_W),
-                    left, top + 198, 0xFF9E9E9E, false);
         } else if (page == 1) {
             graphics.text(this.font, "ONLINE VOICE / AI", left, top - 9, 0xFFE6E6E6, false);
-            graphics.text(this.font, fit("Leave local fields empty for online voice.", CONTENT_W),
-                    left, top + 198, 0xFFAAAAAA, false);
         } else {
             graphics.text(this.font, "VILLAGER VOICE", left, top - 9, 0xFFE6E6E6, false);
-            graphics.text(this.font, fit("Speech style only; simulation unchanged.", CONTENT_W),
-                    left, top + 198, 0xFFAAAAAA, false);
         }
 
-        graphics.text(this.font, "Unsaved changes", left, this.height - 44, 0xFFE0C070, false);
+        if (this.height >= 285) {
+            String footer = page == 0
+                    ? "Detected: " + microphones.size() + " mic · " + outputs.size() + " output"
+                    : page == 1
+                    ? "Leave local fields empty for online voice."
+                    : "Speech style only; simulation unchanged.";
+            graphics.text(this.font, fit(footer, CONTENT_W), left, this.height - 68, 0xFFAAAAAA, false);
+        }
+        if (this.height >= 250) {
+            graphics.text(this.font, "Unsaved changes", left, this.height - 44, 0xFFE0C070, false);
+        }
     }
 
     private void drawLabel(GuiGraphicsExtractor graphics, String text, int x, int y) {
