@@ -9,10 +9,7 @@
   "license": "All-Rights-Reserved",
   "environment": "*",
   "entrypoints": {"main": ["com.wizzadrds.theworldremembers.TheWorldRemembers"], "client": ["com.wizzadrds.theworldremembers.TheWorldRemembersClient"]},
-  "mixins": {"client": ["the_world_remembers.client.mixins.json"]},
-  "mixins": {
-    "client": ["the_world_remembers.client.mixins.json"]
-  },
+  "mixins": ["the_world_remembers.client.mixins.json"],
   "depends": {
     "fabricloader": ">=0.19.3",
     "minecraft": "~26.2",
