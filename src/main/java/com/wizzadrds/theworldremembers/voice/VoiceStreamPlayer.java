@@ -60,6 +60,10 @@ public final class VoiceStreamPlayer implements AutoCloseable {
     public synchronized void start() {
         if (running) return;
         try {
+            if (!outputDevice.equalsIgnoreCase(AudioDeviceManager.DEFAULT_DEVICE)
+                    && !AudioDeviceManager.outputAvailable(outputDevice)) {
+                return;
+            }
             var mixer = AudioDeviceManager.findOutputMixer(outputDevice);
             SourceDataLine output = (SourceDataLine) (mixer == null
                     ? AudioSystem.getLine(new DataLine.Info(SourceDataLine.class, FORMAT))
@@ -72,6 +76,7 @@ public final class VoiceStreamPlayer implements AutoCloseable {
         } catch (Exception ignored) {
             running = false;
             line = null;
+            if (worker != null) worker = null;
         }
     }
 
