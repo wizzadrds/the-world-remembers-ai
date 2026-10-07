@@ -111,10 +111,10 @@ public final class VoiceStreamPlayer implements AutoCloseable {
     }
 
     private void enqueueReadyFrame(UUID speaker, int sequence, byte[] pcm) {
-        lastSequences.put(speaker, sequence);
         start();
         if (!running) return;
 
+        lastSequences.put(speaker, sequence);
         Deque<byte[]> queue = speakerQueues.computeIfAbsent(speaker, ignored -> new ArrayDeque<>());
         if (queue.size() >= MAX_SPEAKER_QUEUED_FRAMES) {
             queue.pollFirst();
