@@ -31,31 +31,38 @@ public final class VoiceSetupScreen extends Screen {
         graphics.centeredText(this.font, "LOCAL VOICE SETUP", this.width / 2, 10, 0xFFFFFFFF);
 
         String[] lines = {
-                "1. Install a local STT engine such as faster-whisper.",
-                "2. Install a local TTS engine such as Piper.",
-                "3. Create wrapper commands using the arguments below.",
-                "4. Put them in Voice Settings > AI & Speech.",
-                "5. Select your microphone and headset in Audio.",
-                "6. Test with V (push-to-talk). Villagers use the same TTS.",
+                "1. Local STT: faster-whisper (or another compatible engine).",
+                "2. Local TTS: Piper (or another compatible engine).",
+                "3. Put wrapper commands in AI & Speech.",
+                "4. Select mic/headset in Audio and test with V.",
                 "",
                 "STT: <program> <pcm-file>",
                 "TTS: <program> <text> <wav-output> <language> <model> <rate> <pitch> <expressiveness>",
                 "",
-                "Local TTS does not require an API key.",
-                "The API key is only for the optional online AI reply provider."
+                "Local TTS needs no API key. API key is only for optional online AI."
         };
 
         int y = 30;
+        int bottomLimit = Math.max(y, this.height - 44);
+        boolean clipped = false;
         for (String line : lines) {
             if (line.isEmpty()) {
-                y += 7;
+                y += 6;
                 continue;
             }
             for (String wrapped : wrap(line, maxWidth)) {
+                if (y + 11 > bottomLimit) {
+                    clipped = true;
+                    break;
+                }
                 graphics.text(this.font, wrapped, margin, y, 0xFFE0E0E0, false);
                 y += 11;
             }
-            y += 2;
+            if (clipped) break;
+            y += 1;
+        }
+        if (clipped && y + 11 <= bottomLimit) {
+            graphics.text(this.font, "...", margin, y, 0xFFAAAAAA, false);
         }
     }
 
