@@ -114,7 +114,24 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 if (voiceConfig != null && voiceConfig.villagerVoicesEnabled) speakVillager(payload);
             });
         });
-        ClientPlayNetworking.registerGlobalReceiver(VoicePacket.TYPE, (payload, context) -> lastVoice = payload);
+        ClientPlayNetworking.registerGlobalReceiver(VoicePacket.TYPE, (payload, context) -> {
+            lastVoice = payload;
+            Minecraft client = context.client();
+            client.execute(() -> {
+                if (voiceConfig == null || !voiceConfig.villagerVoicesEnabled || client.player == null) return;
+                double distance = client.player.distanceToSqr(payload.x(), payload.y(), payload.z());
+                double radius = Math.max(1.0, Math.min(64.0, payload.maxDistance()));
+                if (distance >= radius * radius) return;
+                UUID speaker = UUID.nameUUIDFromBytes(
+                        (payload.text() + "|" + payload.x() + "|" + payload.y() + "|" + payload.z())
+                                .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                speakVillager(new VillagerVoicePacket(
+                        speaker, "villager", payload.text(),
+                        payload.x(), payload.y(), payload.z(),
+                        payload.maxDistance(), payload.volume(), payload.rate(),
+                        payload.pitch(), payload.expressiveness(), payload.priority()));
+            });
+        });
         ClientPlayNetworking.registerGlobalReceiver(ChronicleResponsePacket.TYPE, (payload, context) ->
                 Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.setScreen(new ChronicleScreen(payload.lines()))));
 
