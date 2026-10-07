@@ -83,7 +83,7 @@ public final class VoiceConversationController implements AutoCloseable {
         setState(VoiceConversationState.PROCESSING);
         final long generation = sessionGeneration;
         try {
-            worker.submit(() -> {
+            activeTask = worker.submit(() -> {
                 Path audio = null;
                 try {
                     if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
@@ -110,6 +110,7 @@ public final class VoiceConversationController implements AutoCloseable {
                         } catch (Exception ignored) {
                         }
                     }
+                    activeTask = null;
                 }
             });
         } catch (RejectedExecutionException e) {
