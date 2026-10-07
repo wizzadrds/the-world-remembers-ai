@@ -31,7 +31,6 @@ public final class KnowledgeManager extends SavedData {
 
     public void learn(UUID npc, KnowledgeFact fact) {
         var list = data.computeIfAbsent(npc, k -> new ArrayList<>());
-        if (factsIndex == null) factsIndex = new HashMap<>(data);
         for (int i = 0; i < list.size(); i++) {
             KnowledgeFact existing = list.get(i);
             if (!existing.subject().equals(fact.subject()) || existing.eventType() != fact.eventType()) continue;
