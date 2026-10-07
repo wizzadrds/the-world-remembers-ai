@@ -584,7 +584,8 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static String buildVillagerPrompt(VillagerSpeaker villager) {
         String base = voiceConfig.systemPrompt == null ? "" : voiceConfig.systemPrompt.trim();
         return base
-                + " The speaking character is the nearby villager named \\"" + villager.name()\n                + "\". You are that villager, not an AI narrator. Output only the dialogue that this villager would say to the player. "
+                + " The speaking character is the nearby villager named \"" + villager.name()
+                + "\". You are that villager, not an AI narrator. Output only the dialogue that this villager would say to the player. "
                 + "Do not prefix the answer with the villager name. Do not describe actions or scenes. "
                 + "Finish every sentence naturally before stopping.";
     }
