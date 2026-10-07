@@ -69,9 +69,9 @@ public class TheWorldRemembers implements ModInitializer {
     /** Item pickup is staggered to avoid running spatial item queries for every villager every tick. */
     private static final int ITEM_PICKUP_INTERVAL=5;
     /** Global village scans are deliberately much less frequent than individual NPC simulation. */
-    private static final int VILLAGE_SCAN_INTERVAL=40;
+    private static final int VILLAGE_SCAN_INTERVAL=20;
     /** A village observation processes only a bounded number of village clusters per live tick. */
-    private static final int VILLAGE_SCAN_BUDGET=2;
+    private static final int VILLAGE_SCAN_BUDGET=1;
     /** Registry discovery is much less frequent than the per-tick simulation rotation. */
     private static final int VILLAGER_DISCOVERY_INTERVAL=600;
     private static final int SOCIAL_BUDGET_PER_TICK=8;
