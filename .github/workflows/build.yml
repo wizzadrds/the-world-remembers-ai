@@ -25,16 +25,17 @@ jobs:
         run: |
           set -e
           mkdir -p artifact
-          shopt -s nullglob
-          jars=(build/libs/*.jar)
-          if [ ${#jars[@]} -eq 0 ]; then
-            echo "No JAR was produced by Gradle."
-            find build -maxdepth 3 -type f | sort || true
+          mapfile -t jars < <(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-gametest.jar' -print | sort)
+          if [ ${#jars[@]} -ne 1 ]; then
+            echo "Expected exactly one distributable mod JAR, found ${#jars[@]}."
+            printf '%s\\n' "${jars[@]}"
+            find build/libs -maxdepth 1 -type f -printf '%f\\n' | sort || true
             exit 1
           fi
-          for jar in "${jars[@]}"; do
-            cp "$jar" artifact/
-          done
+          cp "${jars[0]}" artifact/
+          sha256sum artifact/*.jar > artifact/SHA256SUMS.txt
+          test -s artifact/*.jar
+          unzip -t artifact/*.jar
           ls -lah artifact/
 
       - name: Upload release candidate JAR
@@ -44,6 +45,7 @@ jobs:
           path: artifact/
           if-no-files-found: error
           compression-level: 0
+          include-hidden-files: false
           retention-days: 14
 
       - name: Store build and test reports
