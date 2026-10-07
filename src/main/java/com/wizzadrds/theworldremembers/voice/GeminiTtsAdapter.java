@@ -196,6 +196,7 @@ public final class GeminiTtsAdapter implements TtsAdapter {
                 } catch (RuntimeException ignored) {
                     continue;
                 }
+                if (!"step.delta".equals(getString(event, "event_type"))) continue;
                 JsonObject delta = event.getAsJsonObject("delta");
                 if (delta == null || !"audio".equals(getString(delta, "type")) || !delta.has("data")) continue;
 
