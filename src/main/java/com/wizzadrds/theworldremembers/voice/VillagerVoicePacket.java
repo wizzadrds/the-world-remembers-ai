@@ -27,7 +27,7 @@ public record VillagerVoicePacket(
 
     public static final StreamCodec<RegistryFriendlyByteBuf, VillagerVoicePacket> CODEC =
             StreamCodec.composite(
-                    ByteBufCodecs.UUID, VillagerVoicePacket::speaker,
+                    ByteBufCodecs.STRING_UTF8.map(UUID::fromString, UUID::toString), VillagerVoicePacket::speaker,
                     ByteBufCodecs.STRING_UTF8, VillagerVoicePacket::profession,
                     ByteBufCodecs.STRING_UTF8, VillagerVoicePacket::text,
                     ByteBufCodecs.DOUBLE, VillagerVoicePacket::x,
