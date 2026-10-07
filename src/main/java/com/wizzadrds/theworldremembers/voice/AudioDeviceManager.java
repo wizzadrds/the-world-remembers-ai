@@ -8,6 +8,7 @@ import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.TargetDataLine;
 import java.util.ArrayList;
 import java.util.List;
+import javax.sound.sampled.AudioFormat.Encoding;
 
 public final class AudioDeviceManager {
     public static final String DEFAULT_DEVICE = "Default";
@@ -65,6 +66,38 @@ public final class AudioDeviceManager {
             }
         }
         return null;
+    }
+
+    public static boolean playTestTone(String requested, float volume) {
+        AudioFormat format = new AudioFormat(44100.0f, 16, 1, true, false);
+        SourceDataLine line = null;
+        try {
+            Mixer mixer = findMixer(requested, SourceDataLine.class, format);
+            line = (SourceDataLine) (mixer == null
+                    ? AudioSystem.getLine(new DataLine.Info(SourceDataLine.class, format))
+                    : mixer.getLine(new DataLine.Info(SourceDataLine.class, format)));
+            line.open(format, 4096);
+            line.start();
+            int samples = 44100 / 5;
+            byte[] pcm = new byte[samples * 2];
+            double gain = Math.max(0.0, Math.min(1.0, volume));
+            for (int i = 0; i < samples; i++) {
+                double envelope = Math.min(1.0, i / 400.0) * Math.min(1.0, (samples - i) / 400.0);
+                short sample = (short) (Math.sin(2.0 * Math.PI * 440.0 * i / 44100.0) * 12000.0 * gain * envelope);
+                pcm[i * 2] = (byte) sample;
+                pcm[i * 2 + 1] = (byte) (sample >> 8);
+            }
+            line.write(pcm, 0, pcm.length);
+            line.drain();
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        } finally {
+            if (line != null) {
+                line.stop();
+                line.close();
+            }
+        }
     }
 
     public static boolean inputAvailable(String requested) {
