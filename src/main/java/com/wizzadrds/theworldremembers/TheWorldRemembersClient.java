@@ -36,6 +36,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static VoiceAudioPlayer voicePlayer;
     private static boolean voiceKeyWasDown;
     private static int voiceSequence;
+    private static int audioDevicePollTicks;
     private static ExecutorService villagerSpeechExecutor;
     private static String appliedOutputDevice;
     private static final AtomicInteger pendingVillagerSpeech = new AtomicInteger();
@@ -136,6 +137,10 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 Minecraft.getInstance().execute(() -> Minecraft.getInstance().gui.setScreen(new ChronicleScreen(payload.lines()))));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (++audioDevicePollTicks >= 20) {
+                audioDevicePollTicks = 0;
+                checkSelectedAudioDevices();
+            }
             while (CHRONICLE_KEY.consumeClick()) {
                 if (client.player != null) openChronicles();
             }
@@ -165,6 +170,31 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 voiceKeyWasDown = down;
             }
         });
+    }
+
+    /**
+     * Detect selected-device removal without ever falling back to another device.
+     * The check is deliberately throttled because Java Sound mixer enumeration can be expensive.
+     */
+    private static void checkSelectedAudioDevices() {
+        if (voiceConfig == null) return;
+        String microphoneDevice = voiceConfig.microphone;
+        if (microphoneDevice != null
+                && !microphoneDevice.isBlank()
+                && !microphoneDevice.equalsIgnoreCase(AudioDeviceManager.DEFAULT_DEVICE)
+                && !AudioDeviceManager.inputAvailable(microphoneDevice)) {
+            if (microphone.isCapturing()) microphone.stop();
+            if (voiceConversation.state() != VoiceConversationState.IDLE) voiceConversation.fail();
+        }
+
+        String outputDevice = voiceConfig.outputDevice;
+        if (outputDevice != null
+                && !outputDevice.isBlank()
+                && !outputDevice.equalsIgnoreCase(AudioDeviceManager.DEFAULT_DEVICE)
+                && !AudioDeviceManager.outputAvailable(outputDevice)) {
+            voiceStreamPlayer.stop();
+            voicePlayer.stop();
+        }
     }
 
     private static void sendVoiceFrame(Minecraft client, byte[] pcm) {
