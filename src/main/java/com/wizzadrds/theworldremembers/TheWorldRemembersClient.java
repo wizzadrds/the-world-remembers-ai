@@ -370,7 +370,13 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static int sentenceBoundary(StringBuilder text) {
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
-            if ((c == '.' || c == '!' || c == '?' || c == '…') && (i + 1 == text.length() || Character.isWhitespace(text.charAt(i + 1)))) {
+            if (c == '\n' || c == '…' || c == '.' || c == '!' || c == '?') {
+                if ((c == '.' || c == '!' || c == '?') && i + 1 < text.length()) {
+                    char next = text.charAt(i + 1);
+                    if (!Character.isWhitespace(next)) continue;
+                    if (c == '.' && i > 0 && i + 1 < text.length()
+                            && Character.isDigit(text.charAt(i - 1)) && Character.isDigit(next)) continue;
+                }
                 return i;
             }
         }
