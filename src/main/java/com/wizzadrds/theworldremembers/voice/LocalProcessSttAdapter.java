@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.io.OutputStream;
 import java.util.concurrent.TimeUnit;
 
 public final class LocalProcessSttAdapter implements SttAdapter {
@@ -29,7 +30,7 @@ public final class LocalProcessSttAdapter implements SttAdapter {
                 args.add(file.toString());
             }
             Process process = new ProcessBuilder(args).redirectErrorStream(true).start();
-            var outputBuffer = new java.io.ByteArrayOutputStream();
+            var outputBuffer = new CappedOutputStream(64 * 1024);
             Thread outputReader = Thread.ofVirtual().name("twr-stt-output").start(() -> {
                 try {
                     process.getInputStream().transferTo(outputBuffer);
@@ -56,6 +57,37 @@ public final class LocalProcessSttAdapter implements SttAdapter {
             }
         } finally {
             Files.deleteIfExists(file);
+        }
+    }
+
+    private static final class CappedOutputStream extends OutputStream {
+        private final int maxBytes;
+        private final java.io.ByteArrayOutputStream delegate = new java.io.ByteArrayOutputStream();
+        private boolean truncated;
+
+        private CappedOutputStream(int maxBytes) {
+            this.maxBytes = maxBytes;
+        }
+
+        @Override
+        public synchronized void write(int value) {
+            if (delegate.size() < maxBytes) delegate.write(value);
+            else truncated = true;
+        }
+
+        @Override
+        public synchronized void write(byte[] bytes, int offset, int length) {
+            if (bytes == null) throw new NullPointerException("bytes");
+            if (offset < 0 || length < 0 || offset > bytes.length - length) throw new IndexOutOfBoundsException();
+            int remaining = maxBytes - delegate.size();
+            if (remaining > 0) delegate.write(bytes, offset, Math.min(length, remaining));
+            if (length > remaining) truncated = true;
+        }
+
+        @Override
+        public synchronized String toString() {
+            String text = delegate.toString(java.nio.charset.StandardCharsets.UTF_8);
+            return truncated ? text + "\n[output truncated at 64 KiB]" : text;
         }
     }
 }
