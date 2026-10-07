@@ -142,19 +142,19 @@ public final class VoiceSettingsScreen extends Screen {
         return value.endsWith(suffix) ? value.substring(0, value.length() - suffix.length()) : value;
     }
 
-    private static final int COL_W = 128;
-    private static final int GAP = 12;
-    private static final int ROW_H = 28;
+    private static final int COL_W = 112;
+    private static final int GAP = 6;
+    private static final int ROW_H = 23;
     private static final int CONTENT_W = COL_W * 2 + GAP;
 
     private int rowHeight() {
         // Keep the normal breathing room, but compress only when the window is genuinely short.
-        return Math.min(ROW_H, Math.max(22, (this.height - 130) / 5));
+        return Math.min(ROW_H, Math.max(20, (this.height - 112) / 5));
     }
 
     private int leftColumn() { return Math.max(6, (this.width - CONTENT_W) / 2); }
     private int rightColumn() { return leftColumn() + COL_W + GAP; }
-    private int contentTop() { return 58; }
+    private int contentTop() { return 48; }
 
     private void rebuildPage() {
         savePageToConfig();
@@ -242,14 +242,14 @@ public final class VoiceSettingsScreen extends Screen {
         ttsModel = field(right, top + row++ * rowHeight(), "TTS model", config.ttsModel);
 
         ttsVoice = field(left, top + row * rowHeight(), "TTS voice", config.ttsVoice);
-        apiKey = field(right, top + row++ * rowHeight(), "API key", config.apiKey);
+        apiKey = field(right, top + row++ * rowHeight(), "API key (OpenAI)", config.apiKey);
         apiKey.setMaxLength(512);
-        apiKey.setSuggestion("Stored locally in your Minecraft config");
+        apiKey.setSuggestion("Paste your OpenAI API key here");
 
-        sttCommand = field(left, top + row * rowHeight(), "Local STT (optional)", config.sttCommand);
-        sttCommand.setSuggestion("Optional local speech-to-text command");
-        ttsCommand = field(right, top + row++ * rowHeight(), "Local TTS (optional)", config.ttsCommand);
-        ttsCommand.setSuggestion("Optional local text-to-speech command");
+        sttCommand = field(left, top + row * rowHeight(), "Local STT command", config.sttCommand);
+        sttCommand.setSuggestion("Optional: command + {pcm}");
+        ttsCommand = field(right, top + row++ * rowHeight(), "Local TTS command", config.ttsCommand);
+        ttsCommand.setSuggestion("Optional: command + {text} {output}");
 
         addRenderableWidget(Button.builder(Component.literal("Recommended defaults"), b -> {
             language.setValue("en-US");
@@ -324,10 +324,11 @@ public final class VoiceSettingsScreen extends Screen {
         }
     }
 
-    private EditBox field(int x, int y, String label, String value) {
+    private String fieldHelp(String label) {\n        return switch (label) {\n            case "Language" -> "Language/locale sent to speech services. Example: es-ES";\n            case "AI model" -> "Online AI model used to generate villager dialogue.";\n            case "STT model" -> "Speech-to-text model. Online example: gpt-4o-mini-transcribe.";\n            case "TTS model" -> "Text-to-speech model. Online example: gpt-4o-mini-tts.";\n            case "TTS voice" -> "Voice name used by online TTS, for example alloy.";\n            case "API key (OpenAI)" -> "Paste your OpenAI API key here. It is saved in Minecraft config, not in the world.";\n            case "Local STT command" -> "Optional local speech-to-text command. Use {pcm} where the PCM file path should go.";\n            case "Local TTS command" -> "Optional local text-to-speech command. Use {text}, {output}, {language}, {model}, {rate}, {pitch}, {expressiveness}.";\n            case "Speaking style" -> "Instructions controlling how the villager voice sounds. Full text is kept; the field scrolls horizontally.";\n            case "AI rules" -> "Rules sent to the dialogue AI. Full text is kept; the field scrolls horizontally.";\n            case "Input volume" -> "Microphone volume multiplier, 0 to 2.";\n            case "Output volume" -> "Speaker/headset volume multiplier, 0 to 2.";\n            case "Range (blocks)" -> "Maximum voice distance, 1 to 64 blocks.";\n            default -> label;\n        };\n    }\n\n    private EditBox field(int x, int y, String label, String value) {
         EditBox box = new EditBox(this.font, x, y, COL_W, 20, Component.literal(label));
-        box.setValue(value == null ? "" : fit(value, COL_W - 10));
+        box.setValue(value == null ? "" : value);
         box.setHint(Component.literal(label));
+        box.setTooltip(Component.literal(fieldHelp(label)));
         addRenderableWidget(box);
         return box;
     }
@@ -501,7 +502,7 @@ public final class VoiceSettingsScreen extends Screen {
             case 1 -> "AI & Speech";
             default -> "Villagers";
         };
-        graphics.centeredText(this.font, subtitle + "  •  compact voice configuration", this.width / 2, 20, 0xFFB8B8B8);
+        graphics.centeredText(this.font, subtitle + "  •  compact", this.width / 2, 20, 0xFFB8B8B8);
 
         int left = leftColumn();
         int right = rightColumn();
@@ -516,7 +517,7 @@ public final class VoiceSettingsScreen extends Screen {
             graphics.text(this.font, "VILLAGER VOICE", left, top - 9, 0xFFE6E6E6, false);
         }
 
-        if (this.height >= 285) {
+        if (this.height >= 245) {
             String footer = page == 0
                     ? "Detected: " + microphones.size() + " mic · " + outputs.size() + " output"
                     : page == 1
@@ -524,7 +525,7 @@ public final class VoiceSettingsScreen extends Screen {
                     : "Speech style only; simulation unchanged.";
             graphics.text(this.font, fit(footer, CONTENT_W), left, this.height - 68, 0xFFAAAAAA, false);
         }
-        if (this.height >= 250) {
+        if (this.height >= 225) {
             graphics.text(this.font, "Unsaved changes", left, this.height - 44, 0xFFE0C070, false);
         }
     }
