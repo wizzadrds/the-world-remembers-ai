@@ -24,8 +24,12 @@ public final class LocalProcessTtsAdapter implements TtsAdapter {
 
     @Override
     public Path synthesize(String text, VoiceProfile profile, Path output) throws IOException, InterruptedException {
-        Path parent = output.toAbsolutePath().getParent();
+        if (output == null) throw new IllegalArgumentException("TTS output path is null");
+        Path target = output.toAbsolutePath();
+        Path parent = target.getParent();
         if (parent != null) Files.createDirectories(parent);
+        // Never accept audio left by a previous failed/aborted synthesis.
+        Files.deleteIfExists(target);
 
         boolean templated = command.stream().anyMatch(LocalProcessTtsAdapter::containsPlaceholder);
         List<String> args = new ArrayList<>();
@@ -33,7 +37,7 @@ public final class LocalProcessTtsAdapter implements TtsAdapter {
             for (String token : command) {
                 args.add(token
                         .replace("{text}", text)
-                        .replace("{output}", output.toAbsolutePath().toString())
+                        .replace("{output}", target.toString())
                         .replace("{language}", profile.language())
                         .replace("{model}", profile.modelId())
                         .replace("{voice}", profile.modelId())
@@ -46,7 +50,7 @@ public final class LocalProcessTtsAdapter implements TtsAdapter {
         } else {
             args.addAll(command);
             args.add(text);
-            args.add(output.toAbsolutePath().toString());
+            args.add(target.toString());
             args.add(profile.language());
             args.add(profile.modelId());
             args.add(Float.toString(profile.rate()));
