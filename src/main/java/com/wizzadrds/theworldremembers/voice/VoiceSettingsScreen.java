@@ -244,9 +244,9 @@ public final class VoiceSettingsScreen extends Screen {
         ttsModel = field(right, top + row++ * rowHeight(), "TTS model", config.ttsModel);
 
         ttsVoice = field(left, top + row * rowHeight(), "TTS voice", config.ttsVoice);
-        apiKey = field(right, top + row++ * rowHeight(), "API key (OpenAI)", config.apiKey);
+        apiKey = field(right, top + row++ * rowHeight(), "API key (Google Gemini)", config.apiKey);
         apiKey.setMaxLength(512);
-        apiKey.setSuggestion("Paste your OpenAI API key here");
+        apiKey.setSuggestion("Paste your Gemini API key here");
 
         sttCommand = field(left, top + row * rowHeight(), "Local STT command", config.sttCommand);
         sttCommand.setSuggestion("Optional: command + {pcm}");
