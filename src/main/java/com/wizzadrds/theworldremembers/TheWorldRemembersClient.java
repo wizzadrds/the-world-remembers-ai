@@ -38,7 +38,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static boolean autoVoiceActive;
     private static int autoVoiceSilenceTicks;
     private static final float AUTO_VOICE_THRESHOLD = 0.025f;
-    private static final int AUTO_VOICE_SILENCE_TICKS = 12;
+    private static final int AUTO_VOICE_SILENCE_TICKS = 24;
     private static int voiceSequence;
     private static int audioDevicePollTicks;
     private static ExecutorService villagerSpeechExecutor;
@@ -214,23 +214,18 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
 
         if (!autoVoiceActive) {
             if (!microphone.isCapturing()) {
-                boolean started = microphone.start(voiceConfig.microphone, voiceConfig.inputVolume, ignored -> {});
+                boolean started = microphone.start(voiceConfig.microphone, voiceConfig.inputVolume, frame -> {
+                    if (autoVoiceActive) sendVoiceFrame(client, frame);
+                });
                 if (!started) {
-                    voiceConversation.fail();
+                    voiceConversation.fail(microphone.lastError());
                     return;
                 }
             }
             if (microphone.level() >= AUTO_VOICE_THRESHOLD) {
-                microphone.stop();
-                boolean started = microphone.start(voiceConfig.microphone, voiceConfig.inputVolume, frame ->
-                        sendVoiceFrame(client, frame));
-                if (started) {
-                    autoVoiceActive = true;
-                    autoVoiceSilenceTicks = 0;
-                    voiceConversation.beginListening();
-                } else {
-                    voiceConversation.fail();
-                }
+                autoVoiceActive = true;
+                autoVoiceSilenceTicks = 0;
+                voiceConversation.beginListening();
             }
             return;
         }
@@ -242,7 +237,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             autoVoiceActive = false;
             autoVoiceSilenceTicks = 0;
             if (pcm.length > 0) processVoice(pcm);
-            else voiceConversation.fail();
+            else voiceConversation.fail(microphone.lastError());
         }
     }
 
