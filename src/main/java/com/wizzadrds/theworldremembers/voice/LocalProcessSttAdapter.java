@@ -48,7 +48,7 @@ public final class LocalProcessSttAdapter implements SttAdapter {
                     throw new IOException("Local STT timed out after 45 seconds");
                 }
                 outputReader.join(1000);
-                String output = outputBuffer.toString(java.nio.charset.StandardCharsets.UTF_8);
+                String output = outputBuffer.toString();
                 if (process.exitValue() != 0) throw new IOException("Local STT failed with exit code " + process.exitValue() + ": " + output);
                 return output.trim();
             } finally {
