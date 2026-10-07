@@ -39,7 +39,9 @@ public final class MicrophoneCapture implements AutoCloseable {
         inputVolume = Math.max(0.0f, Math.min(2.0f, volume));
         frameListener = listener == null ? ignored -> {} : listener;
         try {
-            Mixer mixer = AudioDeviceManager.findInputMixer(deviceName);
+            String requested = deviceName == null || deviceName.isBlank() ? DEFAULT_DEVICE : deviceName;
+            if (!requested.equalsIgnoreCase(DEFAULT_DEVICE) && !AudioDeviceManager.inputAvailable(requested)) return false;
+            Mixer mixer = AudioDeviceManager.findInputMixer(requested);
             TargetDataLine target = mixer == null ? AudioSystem.getTargetDataLine(FORMAT)
                     : (TargetDataLine) mixer.getLine(new DataLine.Info(TargetDataLine.class, FORMAT));
             target.open(FORMAT, 3200);
