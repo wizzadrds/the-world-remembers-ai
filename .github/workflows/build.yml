@@ -19,7 +19,10 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
       - name: Compile and test
-        run: gradle build
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle build --stacktrace 2>&1 | tee build-ci.log
       - name: Prepare release artifact
         shell: bash
         run: |
@@ -85,6 +88,7 @@ jobs:
             **/build/test-results/
             **/build/run/**/*.log
             server.log
+            build-ci.log
           if-no-files-found: ignore
           retention-days: 7
 
