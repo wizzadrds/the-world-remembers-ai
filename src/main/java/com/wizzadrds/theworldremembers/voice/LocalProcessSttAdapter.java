@@ -9,6 +9,8 @@ import java.io.OutputStream;
 import java.util.concurrent.TimeUnit;
 
 public final class LocalProcessSttAdapter implements SttAdapter {
+    private static final int MAX_PCM_BYTES = 4 * 1024 * 1024;
+    private static final long PROCESS_TIMEOUT_SECONDS = 45;
     private final List<String> command;
 
     public LocalProcessSttAdapter(List<String> command) {
@@ -18,6 +20,8 @@ public final class LocalProcessSttAdapter implements SttAdapter {
 
     @Override
     public String transcribe(byte[] pcm) throws IOException, InterruptedException {
+        if (pcm == null || pcm.length == 0) throw new IllegalArgumentException("STT audio is empty");
+        if (pcm.length > MAX_PCM_BYTES) throw new IOException("STT audio exceeds 4 MiB limit");
         Path file = Files.createTempFile("twr-stt-", ".pcm");
         try {
             Files.write(file, pcm);
