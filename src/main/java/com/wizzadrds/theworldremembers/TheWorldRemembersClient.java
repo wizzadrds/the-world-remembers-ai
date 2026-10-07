@@ -35,6 +35,10 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static VoiceStreamPlayer voiceStreamPlayer;
     private static VoiceAudioPlayer voicePlayer;
     private static boolean voiceKeyWasDown;
+    private static boolean autoVoiceActive;
+    private static int autoVoiceSilenceTicks;
+    private static final float AUTO_VOICE_THRESHOLD = 0.025f;
+    private static final int AUTO_VOICE_SILENCE_TICKS = 12;
     private static int voiceSequence;
     private static int audioDevicePollTicks;
     private static ExecutorService villagerSpeechExecutor;
@@ -154,20 +158,25 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             }
 
             if (client.player != null && client.gui.screen() == null) {
-                boolean down = voiceConfig.pushToTalkMode
-                        ? InputConstants.isKeyDown(client.getWindow(), voiceConfig.pushToTalkKey)
-                        : false;
-                if (down && !voiceKeyWasDown) {
-                    boolean started = microphone.start(voiceConfig.microphone, voiceConfig.inputVolume, frame ->
-                            sendVoiceFrame(client, frame));
-                    if (started) voiceConversation.beginListening();
-                    else voiceConversation.fail();
-                } else if (!down && voiceKeyWasDown) {
-                    byte[] pcm = microphone.stop();
-                    if (pcm.length > 0) processVoice(pcm);
-                    else voiceConversation.fail();
+                if (voiceConfig.pushToTalkMode) {
+                    autoVoiceActive = false;
+                    autoVoiceSilenceTicks = 0;
+                    boolean down = InputConstants.isKeyDown(client.getWindow(), voiceConfig.pushToTalkKey);
+                    if (down && !voiceKeyWasDown) {
+                        boolean started = microphone.start(voiceConfig.microphone, voiceConfig.inputVolume, frame ->
+                                sendVoiceFrame(client, frame));
+                        if (started) voiceConversation.beginListening();
+                        else voiceConversation.fail();
+                    } else if (!down && voiceKeyWasDown) {
+                        byte[] pcm = microphone.stop();
+                        if (pcm.length > 0) processVoice(pcm);
+                        else voiceConversation.fail();
+                    }
+                    voiceKeyWasDown = down;
+                } else {
+                    voiceKeyWasDown = false;
+                    handleVoiceActivation(client);
                 }
-                voiceKeyWasDown = down;
             }
         });
     }
@@ -197,6 +206,46 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         }
     }
 
+    private static void handleVoiceActivation(Minecraft client) {
+        if (voiceConversation.state() == VoiceConversationState.PROCESSING
+                || voiceConversation.state() == VoiceConversationState.SPEAKING) {
+            return;
+        }
+
+        if (!autoVoiceActive) {
+            if (!microphone.isCapturing()) {
+                boolean started = microphone.start(voiceConfig.microphone, voiceConfig.inputVolume, ignored -> {});
+                if (!started) {
+                    voiceConversation.fail();
+                    return;
+                }
+            }
+            if (microphone.level() >= AUTO_VOICE_THRESHOLD) {
+                microphone.stop();
+                boolean started = microphone.start(voiceConfig.microphone, voiceConfig.inputVolume, frame ->
+                        sendVoiceFrame(client, frame));
+                if (started) {
+                    autoVoiceActive = true;
+                    autoVoiceSilenceTicks = 0;
+                    voiceConversation.beginListening();
+                } else {
+                    voiceConversation.fail();
+                }
+            }
+            return;
+        }
+
+        if (microphone.level() >= AUTO_VOICE_THRESHOLD) {
+            autoVoiceSilenceTicks = 0;
+        } else if (++autoVoiceSilenceTicks >= AUTO_VOICE_SILENCE_TICKS) {
+            byte[] pcm = microphone.stop();
+            autoVoiceActive = false;
+            autoVoiceSilenceTicks = 0;
+            if (pcm.length > 0) processVoice(pcm);
+            else voiceConversation.fail();
+        }
+    }
+
     private static void sendVoiceFrame(Minecraft client, byte[] pcm) {
         if (client.player == null || !ClientPlayNetworking.canSend(VoiceAudioPacket.TYPE)) return;
         ClientPlayNetworking.send(new VoiceAudioPacket(
@@ -222,7 +271,32 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         return result;
     }
 
+    private static void saveMicrophoneRecording(byte[] pcm) {
+        if (pcm == null || pcm.length == 0) return;
+        try {
+            Path directory = Minecraft.getInstance().gameDirectory.toPath()
+                    .resolve("the_world_remembers")
+                    .resolve("voice");
+            Files.createDirectories(directory);
+            Path wav = directory.resolve("last_recording.wav");
+            Files.write(wav, MicrophoneCapture.wavBytes(pcm, (int) MicrophoneCapture.SAMPLE_RATE));
+            if (Minecraft.getInstance().player != null) {
+                Minecraft.getInstance().player.displayClientMessage(
+                        net.minecraft.network.chat.Component.literal(
+                                "Voice recording saved: " + wav + " (" + pcm.length + " PCM bytes, level "
+                                        + String.format(java.util.Locale.ROOT, "%.4f", microphone.lastRecordingLevel()) + ")"),
+                        true);
+            }
+        } catch (Exception e) {
+            if (Minecraft.getInstance().player != null) {
+                Minecraft.getInstance().player.displayClientMessage(
+                        net.minecraft.network.chat.Component.literal("Could not save voice recording: " + e.getMessage()), true);
+            }
+        }
+    }
+
     private static void processVoice(byte[] pcm) {
+        saveMicrophoneRecording(pcm);
         final long session = voiceSessionGeneration.get();
         if (pcm == null || pcm.length == 0 || session != voiceSessionGeneration.get()) {
             voiceConversation.fail();
@@ -290,6 +364,8 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         voiceSessionGeneration.incrementAndGet();
         voiceKeyWasDown = false;
         microphone.stop();
+        autoVoiceActive = false;
+        autoVoiceSilenceTicks = 0;
         voiceConversation.reset();
         voiceStreamPlayer.stop();
         voicePlayer.stop();
