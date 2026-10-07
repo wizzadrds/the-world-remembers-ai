@@ -9,6 +9,7 @@ import javax.sound.sampled.TargetDataLine;
 import java.util.List;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public final class AudioDeviceManager {
     public static final String DEFAULT_DEVICE = "Default";
@@ -18,6 +19,7 @@ public final class AudioDeviceManager {
     private static volatile List<String> cachedOutputs = List.of(DEFAULT_DEVICE);
     private static volatile long cacheTimeMillis;
     private static volatile boolean scanRunning;
+    private static final List<Runnable> DEVICE_SCAN_CALLBACKS = new CopyOnWriteArrayList<>();
     private static final java.util.concurrent.ExecutorService DEVICE_SCAN_EXECUTOR =
             java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
                 Thread thread = new Thread(r, "twr-audio-device-scan");
@@ -44,7 +46,7 @@ public final class AudioDeviceManager {
 
     /** Starts a Java Sound scan off the Minecraft/render thread. */
     public static void refreshDevicesAsync(Runnable onComplete) {
-        if (scanRunning) return;
+        if (onComplete != null) DEVICE_SCAN_CALLBACKS.add(onComplete);
         synchronized (AudioDeviceManager.class) {
             if (scanRunning) return;
             scanRunning = true;
@@ -56,13 +58,14 @@ public final class AudioDeviceManager {
                 // Audio drivers are optional and must never terminate Minecraft.
             } finally {
                 scanRunning = false;
-                if (onComplete != null) {
-                    try { onComplete.run(); } catch (Throwable ignored) {}
+                List<Runnable> callbacks = new java.util.ArrayList<>(DEVICE_SCAN_CALLBACKS);
+                DEVICE_SCAN_CALLBACKS.removeAll(callbacks);
+                for (Runnable callback : callbacks) {
+                    try { callback.run(); } catch (Throwable ignored) {}
                 }
             }
         });
     }
-
     private static void refreshIfStale() {
         if (System.currentTimeMillis() - cacheTimeMillis <= CACHE_MILLIS) return;
         refreshDevicesAsync(null);
