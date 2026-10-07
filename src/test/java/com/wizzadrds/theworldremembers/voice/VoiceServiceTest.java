@@ -108,6 +108,43 @@ class VoiceServiceTest {
     }
 
     @Test
+    void conversationResetCancelsStaleSynthesisTask() throws Exception {
+        var controller = new VoiceConversationController();
+        try {
+            var interrupted = new java.util.concurrent.CountDownLatch(1);
+            var service = new VoiceService(
+                    pcm -> "ignored",
+                    (text, profile, output) -> {
+                        try {
+                            Thread.sleep(30_000);
+                        } catch (InterruptedException e) {
+                            interrupted.countDown();
+                            throw e;
+                        }
+                        return output;
+                    });
+            Path output = Files.createTempFile("twr-tts-cancel", ".wav");
+            try {
+                controller.synthesizeAndSpeak(
+                        "hola",
+                        service,
+                        new VoiceProfile("es-ES", "piper", VoiceTemperament.WARM, 1, 1, .5f),
+                        output,
+                        (audio, volume) -> {},
+                        1.0f,
+                        ignored -> fail("stale synthesis completed"));
+                controller.reset();
+                assertTrue(interrupted.await(2, java.util.concurrent.TimeUnit.SECONDS));
+                assertEquals(VoiceConversationState.IDLE, controller.state());
+            } finally {
+                Files.deleteIfExists(output);
+            }
+        } finally {
+            controller.close();
+        }
+    }
+
+    @Test
     void stateListenerFailureDoesNotBreakStateTransition() {
         var controller = new VoiceConversationController();
         try {
