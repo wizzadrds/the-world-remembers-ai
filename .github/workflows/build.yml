@@ -66,7 +66,7 @@ jobs:
           done
           printf 'jar_bytes=%s\nclass_count=%s\n' \
             "$(stat -c '%s' artifact/*.jar)" \
-            "$(grep -c '\\.class$' artifact/JAR-CONTENTS.txt)" > artifact/ARTIFACT-METADATA.txt
+            "$(grep -c '\.class$' artifact/JAR-CONTENTS.txt)" > artifact/ARTIFACT-METADATA.txt
           ls -lah artifact/
       - name: Prepare server EULA
         run: |
