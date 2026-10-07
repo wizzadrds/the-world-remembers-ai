@@ -20,7 +20,7 @@ public final class VoiceAudioPlayer {
         stop();
         try (AudioInputStream stream = AudioSystem.getAudioInputStream(audioFile.toFile())) {
             DataLine.Info info = new DataLine.Info(SourceDataLine.class, stream.getFormat());
-            var mixer = AudioDeviceManager.findOutputMixer(outputDevice);
+            var mixer = AudioDeviceManager.findOutputMixer(outputDevice, stream.getFormat());
             SourceDataLine output = (SourceDataLine) (mixer == null
                     ? AudioSystem.getLine(info)
                     : mixer.getLine(info));
