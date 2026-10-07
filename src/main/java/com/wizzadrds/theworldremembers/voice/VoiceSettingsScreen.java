@@ -281,7 +281,7 @@ public final class VoiceSettingsScreen extends Screen {
         systemPrompt = field(right, top + row++ * rowHeight(), "AI rules", config.systemPrompt);
 
         addRenderableWidget(Button.builder(Component.literal("Villager defaults"), b -> {
-            ttsInstructions.setValue("Speak as a Minecraft villager, not a narrator: nasal, slightly gravelly, closed-mouth resonance, choppy short phrases, little pauses. Only say the villager's actual spoken words.");
+            ttsInstructions.setValue("Minecraft Villager voice. Not narrator/audiobook. Low, muffled, nasal, throaty, slightly gravelly, closed-mouth resonance, compressed tone, short choppy bursts and uneven pauses. Keep a recognizable hmm/hrmm timbre while making Spanish understandable. Only speak the villager's dialogue.");
             systemPrompt.setValue("You are one specific Minecraft villager speaking directly to the player. Reply only with the words this villager would actually say. Never narrate actions, scenes, emotions, or third-person events.");
             b.setMessage(Component.literal("Defaults applied"));
         }).bounds(left, top + row * rowHeight(), COL_W, 20).build());
