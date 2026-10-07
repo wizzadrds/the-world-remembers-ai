@@ -1,7 +1,7 @@
 package com.wizzadrds.theworldremembers.mixin.client;
 
 import com.mojang.blaze3d.systems.RenderPass;
-import net.minecraft.client.gui.ScreenRectangle;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.render.GuiRenderer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
