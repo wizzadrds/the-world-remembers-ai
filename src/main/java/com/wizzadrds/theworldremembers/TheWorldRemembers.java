@@ -198,6 +198,8 @@ public class TheWorldRemembers implements ModInitializer {
         VillageMigrationManager migrations=VillageMigrationManager.get(world.getServer());
         VillageEventManager villageEvents=VillageEventManager.get(world.getServer());
         VillageStorageManager villageStorage=VillageStorageManager.get(world.getServer());
+        // Snapshot players once per world tick; avoid rebuilding world.players().stream() for every villager.
+        java.util.List<ServerPlayer> loadedPlayers = world.players();
 
         SchedulerMetrics metrics = budgeted
                 ? SCHEDULER_METRICS.computeIfAbsent(world, ignored -> new SchedulerMetrics())
@@ -264,9 +266,7 @@ public class TheWorldRemembers implements ModInitializer {
             if(villager.getNavigation().isInProgress())fatigue.increase(villager.getUUID(),1);else fatigue.recover(villager.getUUID(),1);
             applyFamilyProtectionBehavior(world, villager, families, protection, homes, stress, behavior);
             var personality = PersonalityGenerator.generate(villager.getUUID());
-            java.util.List<ServerPlayer> nearbyPlayers = world.players().stream()
-                    .filter(p -> p.isAlive() && villager.distanceToSqr(p) <= 12 * 12)
-                    .toList();
+            java.util.List<ServerPlayer> nearbyPlayers = nearbyPlayers(villager, loadedPlayers);
             applyLiveSocialBehavior(world, villager, relationships, stress, behavior, homes, homeStorage, nearbyPlayers, personality);
             depositInventoryIntoHomeStorage(world, villager, homeStorage.get(villager.getUUID()));
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
