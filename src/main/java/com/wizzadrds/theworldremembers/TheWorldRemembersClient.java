@@ -265,7 +265,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 VoiceProfile profile = new VoiceProfile(speechLanguage(), modelOrVoice, temperament, rate, pitch, expressiveness);
                 output = Minecraft.getInstance().gameDirectory.toPath().resolve("config")
                         .resolve("twr_villager_" + UUID.randomUUID() + ".wav");
-                var tts = new LocalProcessTtsAdapter(command);
+                var tts = new LocalProcessTtsAdapter(command, voiceConfig.ttsInstructions);
                 Path audio = tts.synthesize(payload.text(), profile, output);
                 if (audio != null && Files.isRegularFile(audio)) {
                     lastVillagerVoiceError = "";
