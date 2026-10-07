@@ -1,10 +1,12 @@
 package com.wizzadrds.theworldremembers.voice;
 
+import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;
 import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.FloatControl;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -19,19 +21,31 @@ public final class VoiceAudioPlayer {
     }
 
     public void play(Path audioFile, float volume) throws Exception {
+        try (AudioInputStream stream = AudioSystem.getAudioInputStream(audioFile.toFile())) {
+            playStream(stream, stream.getFormat(), volume);
+        }
+    }
+
+    public void playPcmStream(InputStream stream, float volume) throws Exception {
+        if (stream == null) throw new IllegalArgumentException("Audio stream is null");
+        AudioFormat format = new AudioFormat(24000.0f, 16, 1, true, false);
+        try (InputStream input = stream) {
+            playStream(input, format, volume);
+        }
+    }
+
+    private void playStream(InputStream stream, AudioFormat format, float volume) throws Exception {
         SourceDataLine output = null;
         long generation = playbackGeneration.incrementAndGet();
         closeCurrentLine();
-        try (AudioInputStream stream = AudioSystem.getAudioInputStream(audioFile.toFile())) {
+        try {
             if (!outputDevice.equalsIgnoreCase(AudioDeviceManager.DEFAULT_DEVICE) && !AudioDeviceManager.outputAvailable(outputDevice)) {
                 throw new IllegalStateException("Selected output device is unavailable: " + outputDevice);
             }
-            DataLine.Info info = new DataLine.Info(SourceDataLine.class, stream.getFormat());
-            var mixer = AudioDeviceManager.findOutputMixer(outputDevice, stream.getFormat());
-            output = (SourceDataLine) (mixer == null
-                    ? AudioSystem.getLine(info)
-                    : mixer.getLine(info));
-            output.open(stream.getFormat());
+            DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
+            var mixer = AudioDeviceManager.findOutputMixer(outputDevice, format);
+            output = (SourceDataLine) (mixer == null ? AudioSystem.getLine(info) : mixer.getLine(info));
+            output.open(format);
             if (output.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
                 FloatControl gain = (FloatControl) output.getControl(FloatControl.Type.MASTER_GAIN);
                 float linear = Math.max(0.001f, Math.min(1.0f, volume));
