@@ -89,6 +89,14 @@ public final class VoiceClientConfig {
         try {
             if (!Files.isRegularFile(file)) return;
             Path backup = file.resolveSibling(file.getFileName() + ".broken");
+            if (Files.exists(backup)) {
+                int suffix = 2;
+                Path candidate;
+                do {
+                    candidate = file.resolveSibling(file.getFileName() + ".broken." + suffix++);
+                } while (Files.exists(candidate) && suffix < 1000);
+                backup = candidate;
+            }
             Files.move(file, backup, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException ignored) {
         }
