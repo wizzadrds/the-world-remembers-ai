@@ -2,7 +2,7 @@ name: Build and Minecraft smoke test
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, restore/full-simulation-and-voice-ui ]
   pull_request:
 
 jobs:
