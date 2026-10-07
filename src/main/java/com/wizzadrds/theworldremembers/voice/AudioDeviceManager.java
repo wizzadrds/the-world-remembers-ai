@@ -29,7 +29,7 @@ public final class AudioDeviceManager {
         for (Mixer.Info info : AudioSystem.getMixerInfo()) {
             try {
                 Mixer mixer = AudioSystem.getMixer(info);
-                if (mixer.isLineSupported(new DataLine.Info(type, format))) {
+                if (mixer.isLineSupported(new DataLine.Info(type, VOICE_FORMAT))) {
                     result.add(info.getName());
                 }
             } catch (RuntimeException ignored) {
@@ -60,7 +60,7 @@ public final class AudioDeviceManager {
             if (!info.getName().equalsIgnoreCase(requested)) continue;
             try {
                 Mixer mixer = AudioSystem.getMixer(info);
-                if (mixer.isLineSupported(new DataLine.Info(type, VOICE_FORMAT))) return mixer;
+                if (mixer.isLineSupported(new DataLine.Info(type, format))) return mixer;
             } catch (RuntimeException ignored) {
             }
         }
