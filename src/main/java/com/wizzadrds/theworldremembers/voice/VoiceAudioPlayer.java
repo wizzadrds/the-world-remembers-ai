@@ -39,6 +39,27 @@ public final class VoiceAudioPlayer {
      * villager voice: slightly raised pitch, nasal midrange, compressed dynamics and clipped
      * consonants. This is intentionally a post-process, so the AI only supplies the words.
      */
+    public void playVillager(Path audioFile, float volume) throws Exception {
+        if (audioFile == null) throw new IllegalArgumentException("Villager audio file is null");
+        try (AudioInputStream stream = AudioSystem.getAudioInputStream(audioFile.toFile())) {
+            AudioFormat source = stream.getFormat();
+            if (source.getSampleSizeInBits() != 16 || source.getChannels() != 1 || !source.isBigEndian()) {
+                AudioFormat target = new AudioFormat(
+                        AudioFormat.Encoding.PCM_SIGNED,
+                        source.getSampleRate(), 16, 1, 2, source.getSampleRate(), false);
+                try (AudioInputStream converted = AudioSystem.getAudioInputStream(target, stream)) {
+                    byte[] pcm = converted.readAllBytes();
+                    playStream(new java.io.ByteArrayInputStream(modulateVillager(pcm)),
+                            target, volume);
+                }
+            } else {
+                byte[] pcm = stream.readAllBytes();
+                playStream(new java.io.ByteArrayInputStream(modulateVillager(pcm)),
+                        source, volume);
+            }
+        }
+    }
+
     public void playVillagerPcmStream(InputStream stream, float volume) throws Exception {
         if (stream == null) throw new IllegalArgumentException("Villager audio stream is null");
         byte[] pcm;
