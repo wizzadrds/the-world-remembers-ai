@@ -280,18 +280,11 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             Files.createDirectories(directory);
             Path wav = directory.resolve("last_recording.wav");
             Files.write(wav, MicrophoneCapture.wavBytes(pcm, (int) MicrophoneCapture.SAMPLE_RATE));
-            if (Minecraft.getInstance().player != null) {
-                Minecraft.getInstance().player.displayClientMessage(
-                        net.minecraft.network.chat.Component.literal(
-                                "Voice recording saved: " + wav + " (" + pcm.length + " PCM bytes, level "
-                                        + String.format(java.util.Locale.ROOT, "%.4f", microphone.lastRecordingLevel()) + ")"),
-                        true);
-            }
+            System.out.println("[The World Remembers] Voice recording saved: " + wav
+                    + " (" + pcm.length + " PCM bytes, level "
+                    + String.format(java.util.Locale.ROOT, "%.4f", microphone.lastRecordingLevel()) + ")");
         } catch (Exception e) {
-            if (Minecraft.getInstance().player != null) {
-                Minecraft.getInstance().player.displayClientMessage(
-                        net.minecraft.network.chat.Component.literal("Could not save voice recording: " + e.getMessage()), true);
-            }
+            System.err.println("[The World Remembers] Could not save voice recording: " + e.getMessage());
         }
     }
 
