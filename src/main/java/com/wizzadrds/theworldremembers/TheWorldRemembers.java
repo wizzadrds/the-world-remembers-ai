@@ -289,10 +289,7 @@ public class TheWorldRemembers implements ModInitializer {
             var personality = PersonalityGenerator.generate(villager.getUUID());
             // Player count is usually tiny compared with the number of spatial entity queries.
             // Reuse the world's loaded player list and filter by distance locally.
-            java.util.List<ServerPlayer> nearbyPlayers = world.players().stream()
-                    .filter(ServerPlayer::isAlive)
-                    .filter(p -> villager.distanceToSqr(p) <= 12 * 12)
-                    .toList();
+            java.util.List<ServerPlayer> nearbyPlayers = nearbyPlayers(world, villager);
             applyLiveSocialBehavior(world, villager, relationships, stress, behavior, homes, homeStorage, nearbyPlayers, personality);
             depositInventoryIntoHomeStorage(world, villager, homeStorage.get(villager.getUUID()));
             BlockPos entrance=home.entrancePos()!=null?home.entrancePos():home.homePos();
@@ -431,6 +428,17 @@ public class TheWorldRemembers implements ModInitializer {
             }
         }
     }
+    private static java.util.List<ServerPlayer> nearbyPlayers(ServerLevel world, Villager villager) {
+        if (world.players().isEmpty()) return java.util.List.of();
+        double radius = 12.0;
+        double maxDistance = radius * radius;
+        java.util.ArrayList<ServerPlayer> result = new java.util.ArrayList<>(Math.min(4, world.players().size()));
+        for (ServerPlayer player : world.players()) {
+            if (player.isAlive() && villager.distanceToSqr(player) <= maxDistance) result.add(player);
+        }
+        return result;
+    }
+
     private static void applyLiveSocialBehavior(ServerLevel world, Villager villager, RelationshipManager relationships, NpcStressManager stress, NpcBehaviorEngine behavior, NpcHomeManager homes, NpcHomeStorageManager homeStorage, java.util.List<ServerPlayer> nearbyPlayers, PersonalityProfile personality) {
         if (!villager.getNavigation().isDone() && !villager.isTrading()) return;
         String role=villager.getVillagerData().toString().toLowerCase(java.util.Locale.ROOT);
