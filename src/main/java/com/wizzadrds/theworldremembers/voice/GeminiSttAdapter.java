@@ -48,7 +48,9 @@ public final class GeminiSttAdapter implements SttAdapter {
             JsonArray languages = new JsonArray();
             languages.add(language);
             transcription.add("language_codes", languages);
-            transcription.addProperty("mode", "smart");
+            JsonObject transcriptionMode = new JsonObject();
+            transcriptionMode.addProperty("type", "smart");
+            transcription.add("mode", transcriptionMode);
             generation.add("transcription_config", transcription);
             body.add("generation_config", generation);
 
@@ -70,7 +72,9 @@ public final class GeminiSttAdapter implements SttAdapter {
             JsonObject retryGeneration = new JsonObject();
             JsonObject retryTranscription = new JsonObject();
             retryTranscription.add("language_codes", new JsonArray());
-            retryTranscription.addProperty("mode", "verbatim");
+            JsonObject retryMode = new JsonObject();
+            retryMode.addProperty("type", "verbatim");
+            retryTranscription.add("mode", retryMode);
             retryGeneration.add("transcription_config", retryTranscription);
             retryBody.add("generation_config", retryGeneration);
 
