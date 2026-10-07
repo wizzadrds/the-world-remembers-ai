@@ -458,9 +458,32 @@ public class TheWorldRemembers implements ModInitializer {
         }
         if (world.getGameTime() % KNOWLEDGE_DECAY_INTERVAL == 0) knowledge.decay(world.getGameTime());
         if (world.getGameTime() % SOCIAL_INTERVAL != 0) return;
+        java.util.Map<Long, java.util.List<Villager>> socialBuckets = new java.util.HashMap<>();
+        for (Villager villager : villagers) {
+            if (!villager.isAlive() || villager.isRemoved()) continue;
+            int cellX = net.minecraft.util.Mth.floor(villager.getX() / 8.0);
+            int cellZ = net.minecraft.util.Mth.floor(villager.getZ() / 8.0);
+            long key = (long) cellX << 32 ^ (cellZ & 0xffffffffL);
+            socialBuckets.computeIfAbsent(key, ignored -> new java.util.ArrayList<>()).add(villager);
+        }
         for (Villager first : villagers) {
-            Villager second = world.getEntitiesOfClass(Villager.class, first.getBoundingBox().inflate(4),
-                    v -> v.isAlive() && !v.getUUID().equals(first.getUUID())).stream().findFirst().orElse(null);
+            int cellX = net.minecraft.util.Mth.floor(first.getX() / 8.0);
+            int cellZ = net.minecraft.util.Mth.floor(first.getZ() / 8.0);
+            Villager second = null;
+            for (int dx = -1; dx <= 1 && second == null; dx++) {
+                for (int dz = -1; dz <= 1 && second == null; dz++) {
+                    long key = (long) (cellX + dx) << 32 ^ ((cellZ + dz) & 0xffffffffL);
+                    java.util.List<Villager> candidates = socialBuckets.get(key);
+                    if (candidates == null) continue;
+                    for (Villager candidate : candidates) {
+                        if (!candidate.getUUID().equals(first.getUUID())
+                                && first.distanceToSqr(candidate) <= 16.0) {
+                            second = candidate;
+                            break;
+                        }
+                    }
+                }
+            }
             if (second == null) continue;
             java.util.List<KnowledgeFact> shared = knowledge.facts(first.getUUID()).stream()
                     .filter(f -> f.confidence() >= 20).limit(2)
