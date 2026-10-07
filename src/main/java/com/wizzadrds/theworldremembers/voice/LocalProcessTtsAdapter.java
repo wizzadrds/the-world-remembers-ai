@@ -5,10 +5,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public final class LocalProcessTtsAdapter implements TtsAdapter {
     private final List<String> command;
     private final String instructions;
+    private static final long PROCESS_TIMEOUT_SECONDS = 45;
 
     public LocalProcessTtsAdapter(List<String> command) {
         this(command, "");
@@ -53,10 +55,33 @@ public final class LocalProcessTtsAdapter implements TtsAdapter {
         }
 
         Process process = new ProcessBuilder(args).redirectErrorStream(true).start();
-        String log = new String(process.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-        if (process.waitFor() != 0) throw new IOException("Local TTS failed: " + log);
-        if (!Files.isRegularFile(output)) throw new IOException("TTS produced no output: " + log);
-        return output;
+        Thread logReader = Thread.ofVirtual().name("twr-tts-log").start(() -> {
+            try {
+                process.getInputStream().transferTo(java.io.OutputStream.nullOutputStream());
+            } catch (IOException ignored) {
+            }
+        });
+        try {
+            if (!process.waitFor(PROCESS_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                process.destroy();
+                if (!process.waitFor(2, TimeUnit.SECONDS)) process.destroyForcibly();
+                throw new IOException("Local TTS timed out after " + PROCESS_TIMEOUT_SECONDS + " seconds");
+            }
+            if (process.exitValue() != 0) {
+                throw new IOException("Local TTS failed with exit code " + process.exitValue());
+            }
+            if (!Files.isRegularFile(output) || Files.size(output) == 0) {
+                throw new IOException("TTS produced no audio output");
+            }
+            return output;
+        } finally {
+            if (process.isAlive()) process.destroyForcibly();
+            try {
+                logReader.join(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     private static boolean containsPlaceholder(String value) {
