@@ -181,4 +181,13 @@ class VoiceServiceTest {
         assertEquals(48.0f, loaded.voiceDistance);
         assertEquals("es_ES-carlos", loaded.ttsVoice);
     }
+
+    @Test
+    void unavailableExplicitAudioDevicesNeverFallbackToDefault() {
+        String missing = "Definitely-Not-A-Real-Audio-Device";
+        assertFalse(AudioDeviceManager.inputAvailable(missing));
+        assertFalse(AudioDeviceManager.outputAvailable(missing));
+        assertFalse(AudioDeviceManager.playTestTone(missing));
+    }
+
 }
