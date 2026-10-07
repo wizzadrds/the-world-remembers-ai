@@ -55,6 +55,10 @@ class VoiceServiceTest {
         assertEquals("es-ES", config.language);
         assertFalse(Files.exists(file));
         assertTrue(Files.exists(file.resolveSibling("the_world_remembers_voice.json.broken")));
+
+        Files.writeString(file, "{ still-not-json");
+        VoiceClientConfig.load(gameDir);
+        assertTrue(Files.exists(file.resolveSibling("the_world_remembers_voice.json.broken.2")));
     }
 
     @Test
