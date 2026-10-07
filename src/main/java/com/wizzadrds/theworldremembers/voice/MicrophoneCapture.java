@@ -43,10 +43,11 @@ public final class MicrophoneCapture implements AutoCloseable {
             TargetDataLine target = mixer == null ? AudioSystem.getTargetDataLine(FORMAT)
                     : (TargetDataLine) mixer.getLine(new DataLine.Info(TargetDataLine.class, FORMAT));
             target.open(FORMAT, 3200);
-            buffer = new ByteArrayOutputStream(32000);
+            ByteArrayOutputStream captureBuffer = new ByteArrayOutputStream(32000);
+            buffer = captureBuffer;
             line = target;
             target.start();
-            captureThread = Thread.ofVirtual().name("twr-microphone").start(() -> capture(target));
+            captureThread = Thread.ofVirtual().name("twr-microphone").start(() -> capture(target, captureBuffer, frameListener));
             return true;
         } catch (LineUnavailableException | RuntimeException e) {
             close();
@@ -54,16 +55,20 @@ public final class MicrophoneCapture implements AutoCloseable {
         }
     }
 
-    private void capture(TargetDataLine target) {
+    private void capture(TargetDataLine target, ByteArrayOutputStream captureBuffer, Consumer<byte[]> listener) {
         byte[] chunk = new byte[640];
         try {
             while (line == target) {
                 int read = target.read(chunk, 0, chunk.length);
                 if (read > 0) {
                     applyGain(chunk, read, inputVolume);
-                    buffer.write(chunk, 0, read);
+                    captureBuffer.write(chunk, 0, read);
                     level = calculateLevel(chunk, read);
-                    frameListener.accept(java.util.Arrays.copyOf(chunk, read));
+                    try {
+                        listener.accept(java.util.Arrays.copyOf(chunk, read));
+                    } catch (RuntimeException ignored) {
+                        // A network/audio consumer must never kill microphone capture.
+                    }
                 }
             }
         } finally {
