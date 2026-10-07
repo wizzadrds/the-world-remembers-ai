@@ -45,7 +45,7 @@ class VoiceServiceTest {
         assertEquals(1.0f, config.outputVolume);
         assertEquals(1.0f, config.voiceDistance);
         assertEquals(AudioDeviceManager.DEFAULT_DEVICE, config.microphone);
-        assertEquals("piper", config.ttsModel);
+        assertEquals("gemini-3.8-flash-tts", config.ttsModel);
         assertEquals("es_ES-carlos", config.ttsVoice);
         assertEquals("python stt.py", config.sttCommand);
         assertEquals("python tts.py", config.ttsCommand);
