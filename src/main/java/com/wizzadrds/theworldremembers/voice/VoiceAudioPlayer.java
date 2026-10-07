@@ -9,12 +9,21 @@ import java.nio.file.Path;
 
 public final class VoiceAudioPlayer {
     private volatile SourceDataLine line;
+    private volatile String outputDevice = AudioDeviceManager.DEFAULT_DEVICE;
+
+    public void setOutputDevice(String device) {
+        outputDevice = device == null || device.isBlank() ? AudioDeviceManager.DEFAULT_DEVICE : device;
+        stop();
+    }
 
     public void play(Path audioFile, float volume) throws Exception {
         stop();
         try (AudioInputStream stream = AudioSystem.getAudioInputStream(audioFile.toFile())) {
             DataLine.Info info = new DataLine.Info(SourceDataLine.class, stream.getFormat());
-            SourceDataLine output = (SourceDataLine) AudioSystem.getLine(info);
+            var mixer = AudioDeviceManager.findOutputMixer(outputDevice);
+            SourceDataLine output = (SourceDataLine) (mixer == null
+                    ? AudioSystem.getLine(info)
+                    : mixer.getLine(info));
             output.open(stream.getFormat());
             if (output.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
                 FloatControl gain = (FloatControl) output.getControl(FloatControl.Type.MASTER_GAIN);
