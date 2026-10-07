@@ -105,9 +105,15 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
     }
 
     static String extractText(String json) throws IOException {
+        String text = extractTextOrEmpty(json);
+        if (!text.isBlank()) return text;
+        throw new IOException("Gemini response did not contain output text");
+    }
+
+    static String extractTextOrEmpty(String json) throws IOException {
         JsonObject root = JsonParser.parseString(json).getAsJsonObject();
         JsonElement direct = root.get("output_text");
-        if (direct != null && !direct.isJsonNull()) {
+        if (direct != null && !direct.isJsonNull() && direct.isJsonPrimitive()) {
             String text = direct.getAsString().trim();
             if (!text.isBlank()) return text;
         }
@@ -115,18 +121,21 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
         JsonArray steps = root.getAsJsonArray("steps");
         if (steps != null) {
             for (JsonElement stepElement : steps) {
+                if (!stepElement.isJsonObject()) continue;
                 JsonObject step = stepElement.getAsJsonObject();
                 JsonArray content = step.getAsJsonArray("content");
                 if (content == null) continue;
                 for (JsonElement partElement : content) {
+                    if (!partElement.isJsonObject()) continue;
                     JsonObject part = partElement.getAsJsonObject();
-                    if ("text".equals(part.get("type").getAsString()) && part.has("text")) {
-                        String text = part.get("text").getAsString().trim();
+                    JsonElement value = part.get("text");
+                    if (value != null && !value.isJsonNull() && value.isJsonPrimitive()) {
+                        String text = value.getAsString().trim();
                         if (!text.isBlank()) return text;
                     }
                 }
             }
         }
-        throw new IOException("Gemini response did not contain output text");
+        return "";
     }
 }
