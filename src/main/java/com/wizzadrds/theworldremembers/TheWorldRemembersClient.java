@@ -155,7 +155,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
 
             if (client.player != null && client.gui.screen() == null) {
                 boolean down = voiceConfig.pushToTalkMode
-                        ? InputConstants.isKeyDown(client.getWindow().handle(), voiceConfig.pushToTalkKey)
+                        ? InputConstants.isKeyDown(client.getWindow(), voiceConfig.pushToTalkKey)
                         : false;
                 if (down && !voiceKeyWasDown) {
                     boolean started = microphone.start(voiceConfig.microphone, voiceConfig.inputVolume, frame ->
