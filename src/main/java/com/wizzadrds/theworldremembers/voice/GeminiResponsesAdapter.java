@@ -29,6 +29,12 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
         body.addProperty("input", userText == null ? "" : userText);
         if (systemPrompt != null && !systemPrompt.isBlank()) body.addProperty("system_instruction", systemPrompt);
 
+        // Villager dialogue should answer quickly rather than spend time on deep reasoning.
+        // Gemini documents lower thinking levels as the latency-oriented control.
+        JsonObject generationConfig = new JsonObject();
+        generationConfig.addProperty("thinking_level", "low");
+        body.add("generation_config", generationConfig);
+
         HttpRequest request = HttpRequest.newBuilder(URI.create("https://generativelanguage.googleapis.com/v1beta/interactions"))
                 .header("x-goog-api-key", apiKey)
                 .header("Content-Type", "application/json")
