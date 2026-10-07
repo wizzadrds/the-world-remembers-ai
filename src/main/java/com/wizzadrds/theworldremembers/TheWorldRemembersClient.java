@@ -18,6 +18,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.npc.villager.Villager;
 
 public final class TheWorldRemembersClient implements ClientModInitializer {
     private static final KeyMapping.Category CATEGORY =
@@ -285,6 +286,11 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     }
 
     private static void processVoice(byte[] pcm) {
+        VillagerSpeaker villager = findNearbyVillager();
+        if (villager == null) {
+            voiceConversation.fail("Acércate a un aldeano para hablar con él.");
+            return;
+        }
         if (pcm != null && pcm.length > 0) {
             byte[] recordingCopy = pcm.clone();
             Thread.ofVirtual().name("twr-voice-recording-save").start(() -> saveMicrophoneRecording(recordingCopy));
@@ -315,6 +321,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             try {
                 if (session != voiceSessionGeneration.get()) return;
                 AiChatAdapter ai = createAiAdapter();
+                String villagerPrompt = buildVillagerPrompt(villager);
                 if ("gemini".equalsIgnoreCase(voiceConfig.provider)) {
                     java.util.concurrent.ExecutorService speechQueue = Executors.newSingleThreadExecutor(r -> {
                         Thread thread = new Thread(r, "twr-voice-sentence-tts");
@@ -325,7 +332,9 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                             new java.util.concurrent.CopyOnWriteArrayList<>();
                     StringBuilder sentence = new StringBuilder();
                     try {
-                        String reply = ai.respondStreaming(transcript, voiceConfig.systemPrompt, chunk -> {
+                        String reply;
+                        try {
+                            reply = ai.respondStreaming(transcript, villagerPrompt, chunk -> {
                             sentence.append(chunk);
                             int boundary;
                             while ((boundary = sentenceBoundary(sentence)) >= 0) {
@@ -336,7 +345,13 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                                             speakResponseSentence(part, service, session)));
                                 }
                             }
-                        });
+                            });
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            throw new RuntimeException("Voice AI request failed: request interrupted", e);
+                        } catch (Exception e) {
+                            throw new RuntimeException("Voice AI request failed: " + rootMessage(e), e);
+                        }
                         String tail = sentence.toString().trim();
                         if (!tail.isBlank()) {
                             speechJobs.add(speechQueue.submit(() ->
@@ -349,7 +364,15 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                         speechQueue.shutdownNow();
                     }
                 } else {
-                    String reply = ai.respond(transcript, voiceConfig.systemPrompt);
+                    String reply;
+                    try {
+                        reply = ai.respond(transcript, villagerPrompt);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException("Voice AI request failed: request interrupted", e);
+                    } catch (Exception e) {
+                        throw new RuntimeException("Voice AI request failed: " + rootMessage(e), e);
+                    }
                     if (session != voiceSessionGeneration.get()) return;
                     if (reply == null || reply.isBlank()) {
                         throw new IllegalStateException("AI returned an empty reply");
@@ -357,13 +380,19 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                     speakResponseSentence(reply, service, session);
                     if (session == voiceSessionGeneration.get()) voiceConversation.finishSpeaking();
                 }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException("Voice AI request interrupted", e);
             } catch (Exception e) {
-                throw new RuntimeException("Voice AI request failed", e);
+                throw e instanceof RuntimeException runtime ? runtime : new RuntimeException("Voice processing failed: " + rootMessage(e), e);
             }
         });
+    }
+
+    private static String rootMessage(Throwable error) {
+        Throwable current = error;
+        while (current != null) {
+            if (current.getMessage() != null && !current.getMessage().isBlank()) return current.getMessage();
+            current = current.getCause();
+        }
+        return error == null ? "unknown error" : error.getClass().getSimpleName();
     }
 
     private static int sentenceBoundary(StringBuilder text) {
@@ -401,7 +430,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 return;
             }
             if (stream != null) {
-                voicePlayer.playPcmStream(stream, voiceConfig.outputVolume);
+                voicePlayer.playVillagerPcmStream(stream, voiceConfig.outputVolume);
             } else {
                 Path audio = tts.synthesize(text, profile, output);
                 if (audio == null || !Files.isRegularFile(audio)) throw new IllegalStateException("TTS did not produce audio");
@@ -527,6 +556,41 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             return VoiceTemperament.WARM;
         }
     }
+
+
+    private static VillagerSpeaker findNearbyVillager() {
+        Minecraft client = Minecraft.getInstance();
+        if (client.level == null || client.player == null) return null;
+        double radius = Math.min(8.0, Math.max(1.0, voiceConfig.voiceDistance));
+        double radiusSquared = radius * radius;
+        Villager nearest = null;
+        double nearestDistance = radiusSquared;
+        for (Villager villager : client.level.getEntitiesOfClass(
+                Villager.class,
+                client.player.getBoundingBox().inflate(radius),
+                candidate -> candidate.isAlive() && !candidate.isRemoved())) {
+            double distance = villager.distanceToSqr(client.player);
+            if (distance < nearestDistance) {
+                nearest = villager;
+                nearestDistance = distance;
+            }
+        }
+        if (nearest == null) return null;
+        String name = nearest.hasCustomName() && nearest.getCustomName() != null
+                ? nearest.getCustomName().getString() : "aldeano";
+        return new VillagerSpeaker(nearest.getUUID(), name);
+    }
+
+    private static String buildVillagerPrompt(VillagerSpeaker villager) {
+        String base = voiceConfig.systemPrompt == null ? "" : voiceConfig.systemPrompt.trim();
+        return base
+                + " The speaking character is the nearby villager named "" + villager.name()
+                + "". You are that villager, not an AI narrator. Output only the dialogue that this villager would say to the player. "
+                + "Do not prefix the answer with the villager name. Do not describe actions or scenes. "
+                + "Finish every sentence naturally before stopping.";
+    }
+
+    private record VillagerSpeaker(UUID id, String name) {}
 
     private static String speechLanguage() {
         if (voiceConfig == null || voiceConfig.language == null || voiceConfig.language.isBlank()) return "es-ES";
