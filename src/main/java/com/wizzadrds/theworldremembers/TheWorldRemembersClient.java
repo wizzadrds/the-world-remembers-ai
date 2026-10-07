@@ -182,6 +182,11 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     }
 
     private static void processVoice(byte[] pcm) {
+        final long session = voiceSessionGeneration.get();
+        if (pcm == null || pcm.length == 0 || session != voiceSessionGeneration.get()) {
+            voiceConversation.fail();
+            return;
+        }
         var sttCommand = VoiceCommandParser.parse(voiceConfig.sttCommand);
         var ttsCommand = VoiceCommandParser.parse(voiceConfig.ttsCommand);
         if (sttCommand.isEmpty() || ttsCommand.isEmpty()) {
@@ -195,8 +200,10 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
 
         voiceConversation.finishListening(pcm, service, transcript -> {
             try {
+                if (session != voiceSessionGeneration.get()) return;
                 AiChatAdapter ai = createAiAdapter();
                 String reply = ai.respond(transcript, voiceConfig.systemPrompt);
+                if (session != voiceSessionGeneration.get()) return;
                 if (reply == null || reply.isBlank()) {
                     throw new IllegalStateException("AI returned an empty reply");
                 }
@@ -206,6 +213,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 Path output = Minecraft.getInstance().gameDirectory.toPath()
                         .resolve("config")
                         .resolve("the_world_remembers_voice_response_" + UUID.randomUUID() + ".wav");
+                if (session != voiceSessionGeneration.get()) return;
                 voiceConversation.synthesizeAndSpeak(
                         reply, service, profile, output, voicePlayer, voiceConfig.outputVolume, ignored -> {});
             } catch (InterruptedException e) {
