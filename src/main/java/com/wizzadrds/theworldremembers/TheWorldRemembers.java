@@ -535,6 +535,10 @@ public class TheWorldRemembers implements ModInitializer {
         for (UUID id : previous) if (discoveredSet.contains(id)) ids.add(id);
         for (UUID id : discovered) if (!previousSet.contains(id)) ids.add(id);
         VILLAGER_REGISTRY.put(world, ids);
+        // Drop stale per-villager cache entries so long-running worlds do not retain
+        // one danger sample for every villager that has ever existed.
+        java.util.Map<UUID, DangerSample> dangerCache = DANGER_CACHE.get(world);
+        if (dangerCache != null) dangerCache.keySet().removeIf(id -> !discoveredSet.contains(id));
         if (ids.isEmpty()) {
             VILLAGER_CURSORS.put(world, 0);
             SOCIAL_CURSORS.put(world, 0);
