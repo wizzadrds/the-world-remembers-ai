@@ -78,8 +78,8 @@ public final class AudioDeviceManager {
         AudioFormat format = VOICE_FORMAT;
         SourceDataLine line = null;
         try {
-            if (!requested.equalsIgnoreCase(DEFAULT_DEVICE) && findMixer(requested, SourceDataLine.class, format) == null) return false;
             Mixer mixer = findMixer(requested, SourceDataLine.class, format);
+            if (!requested.equalsIgnoreCase(DEFAULT_DEVICE) && mixer == null) return false;
             line = (SourceDataLine) (mixer == null
                     ? AudioSystem.getLine(new DataLine.Info(SourceDataLine.class, format))
                     : mixer.getLine(new DataLine.Info(SourceDataLine.class, format)));
