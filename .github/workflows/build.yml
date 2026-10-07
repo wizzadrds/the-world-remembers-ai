@@ -4,6 +4,7 @@ on:
   push:
     branches: [ main, restore/full-simulation-and-voice-ui ]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,22 +20,44 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Compile and test
         run: gradle build
+      - name: Prepare release artifact
+        shell: bash
+        run: |
+          set -e
+          mkdir -p artifact
+          shopt -s nullglob
+          jars=(build/libs/*.jar)
+          if [ ${#jars[@]} -eq 0 ]; then
+            echo "No JAR was produced by Gradle."
+            find build -maxdepth 3 -type f | sort || true
+            exit 1
+          fi
+          for jar in "${jars[@]}"; do
+            cp "$jar" artifact/
+          done
+          ls -lah artifact/
+
       - name: Upload release candidate JAR
         uses: actions/upload-artifact@v4
         with:
-          name: the-world-remembers-v1.0.0
-          path: build/libs/*.jar
+          name: the-world-remembers-${{ github.sha }}
+          path: artifact/
           if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
 
-      - name: Store test reports on failure
-        if: failure()
+      - name: Store build and test reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports
+          name: build-diagnostics-${{ github.sha }}
           path: |
             **/build/reports/
             **/build/test-results/
             **/build/run/**/*.log
+            server.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Prepare server EULA
         run: |
