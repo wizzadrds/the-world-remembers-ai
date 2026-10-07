@@ -31,6 +31,8 @@ public final class VoiceSettingsScreen extends Screen {
     private Button microphoneTestButton;
     private Button pttKeyButton;
     private Button villagerVoiceTestButton;
+    private Button microphoneStatusButton;
+    private Button outputStatusButton;
 
     private EditBox inputVolume;
     private EditBox outputVolume;
@@ -145,10 +147,8 @@ public final class VoiceSettingsScreen extends Screen {
             boolean ok = AudioDeviceManager.playTestTone(selected, config.outputVolume);
             b.setMessage(Component.literal(ok ? "Test played" : "Test failed — check device"));
         }).bounds(right, top + 138, 150, 20).build());
-        addRenderableWidget(Button.builder(Component.literal(
-                "Mic: " + AudioDeviceManager.describeAvailability(config.microphone, true)), b -> {}).bounds(left, top + 256, 150, 20).build());
-        addRenderableWidget(Button.builder(Component.literal(
-                "Out: " + AudioDeviceManager.describeAvailability(config.outputDevice, false)), b -> {}).bounds(right, top + 256, 150, 20).build());
+        microphoneStatusButton = addStatusButton("Mic: " + AudioDeviceManager.describeAvailability(config.microphone, true), left, top + 256);
+        outputStatusButton = addStatusButton("Out: " + AudioDeviceManager.describeAvailability(config.outputDevice, false), right, top + 256);
         addRenderableWidget(Button.builder(Component.literal("Rescan devices (" + microphones.size() + " mic / " + outputs.size() + " out)"), b -> {
             savePageToConfig();
             refreshDevices();
@@ -201,6 +201,23 @@ public final class VoiceSettingsScreen extends Screen {
         return button;
     }
 
+    private Button addStatusButton(String text, int x, int y) {
+        Button button = Button.builder(Component.literal(text), ignored -> refreshDeviceStatus()).bounds(x, y, 150, 20).build();
+        addRenderableWidget(button);
+        return button;
+    }
+
+    private void refreshDeviceStatus() {
+        if (microphoneStatusButton != null) {
+            microphoneStatusButton.setMessage(Component.literal(
+                    "Mic: " + AudioDeviceManager.describeAvailability(actualDeviceName(microphones.get(microphoneIndex)), true)));
+        }
+        if (outputStatusButton != null) {
+            outputStatusButton.setMessage(Component.literal(
+                    "Out: " + AudioDeviceManager.describeAvailability(actualDeviceName(outputs.get(outputIndex)), false)));
+        }
+    }
+
     private EditBox field(int x, int y, String label, String value) {
         EditBox box = new EditBox(this.font, x, y, 150, 20, Component.literal(label));
         box.setValue(value == null ? "" : value);
@@ -244,12 +261,14 @@ public final class VoiceSettingsScreen extends Screen {
         microphoneIndex = (microphoneIndex + 1) % microphones.size();
         config.microphone = actualDeviceName(microphones.get(microphoneIndex));
         microphoneButton.setMessage(Component.literal("Mic: " + microphones.get(microphoneIndex)));
+        refreshDeviceStatus();
     }
 
     private void cycleOutput() {
         outputIndex = (outputIndex + 1) % outputs.size();
         config.outputDevice = actualDeviceName(outputs.get(outputIndex));
         outputButton.setMessage(Component.literal("Output: " + outputs.get(outputIndex)));
+        refreshDeviceStatus();
     }
 
     private void cycleTemperament() {
@@ -345,6 +364,7 @@ public final class VoiceSettingsScreen extends Screen {
         if (microphoneTestButton != null && TheWorldRemembersClient.microphoneCapturing()) {
             microphoneTestButton.setMessage(Component.literal("Mic level: " + percentLevel()));
         }
+        refreshDeviceStatus();
     }
 
     @Override
