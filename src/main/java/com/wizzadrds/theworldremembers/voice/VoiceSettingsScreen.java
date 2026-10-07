@@ -26,6 +26,7 @@ public final class VoiceSettingsScreen extends Screen {
     private Button temperamentButton;
     private Button villagerVoicesButton;
     private Button pushToTalkButton;
+    private Button providerButton;
 
     private EditBox inputVolume;
     private EditBox outputVolume;
@@ -106,7 +107,7 @@ public final class VoiceSettingsScreen extends Screen {
             config.villagerVoicesEnabled = !config.villagerVoicesEnabled;
             villagerVoicesButton.setMessage(Component.literal("Villager voices: " + (config.villagerVoicesEnabled ? "ON" : "OFF")));
         });
-        addRenderableWidget(Button.builder(Component.literal("Rescan devices"), b -> {
+        addRenderableWidget(Button.builder(Component.literal("Rescan devices (" + microphones.size() + " mic / " + outputs.size() + " out)"), b -> {
             savePageToConfig();
             refreshDevices();
             rebuildPage();
@@ -114,17 +115,21 @@ public final class VoiceSettingsScreen extends Screen {
     }
 
     private void buildAiPage(int left, int right, int top) {
-        apiKey = field(left, top, "API key", config.apiKey);
+        providerButton = addButton("AI provider: " + displayProvider(config.provider), left, top, () -> {
+            config.provider = nextProvider(config.provider);
+            providerButton.setMessage(Component.literal("AI provider: " + displayProvider(config.provider)));
+        });
+        apiKey = field(left, top + 46, "API key", config.apiKey);
         apiKey.setMaxLength(512);
         apiKey.setSuggestion("stored locally in config");
-        model = field(right, top, "AI model", config.model);
-        language = field(left, top + 184, "Speech language", config.language);
-        sttModel = field(left, top + 46, "STT model", config.sttModel);
-        ttsModel = field(right, top + 46, "TTS model", config.ttsModel);
-        ttsVoice = field(left, top + 92, "TTS voice", config.ttsVoice);
-        sttCommand = field(right, top + 92, "STT command", config.sttCommand);
+        model = field(right, top + 46, "AI model", config.model);
+        language = field(left, top + 230, "Speech language", config.language);
+        sttModel = field(left, top + 92, "STT model", config.sttModel);
+        ttsModel = field(right, top + 92, "TTS model", config.ttsModel);
+        ttsVoice = field(left, top + 138, "TTS voice", config.ttsVoice);
+        sttCommand = field(right, top + 138, "STT command", config.sttCommand);
         sttCommand.setSuggestion("local command; final argument is the PCM file");
-        ttsCommand = field(left, top + 138, "TTS command", config.ttsCommand);
+        ttsCommand = field(left, top + 184, "TTS command", config.ttsCommand);
         ttsCommand.setSuggestion("text output language/model/rate are appended");
     }
 
@@ -235,6 +240,17 @@ public final class VoiceSettingsScreen extends Screen {
         } catch (NumberFormatException ignored) {
             return fallback;
         }
+    }
+
+    private static String displayProvider(String provider) {
+        if (provider == null || provider.isBlank()) return "OpenAI";
+        return provider.equalsIgnoreCase("openai-responses") || provider.equalsIgnoreCase("openai") ? "OpenAI" : provider;
+    }
+
+    private static String nextProvider(String provider) {
+        // Only providers implemented by the client are offered here; this avoids presenting
+        // a selectable backend that would later fail at runtime.
+        return "openai".equalsIgnoreCase(provider) || "openai-responses".equalsIgnoreCase(provider) ? "openai" : "openai";
     }
 
     private void close() {
