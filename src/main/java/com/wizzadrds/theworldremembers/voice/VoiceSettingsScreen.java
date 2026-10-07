@@ -142,7 +142,7 @@ public final class VoiceSettingsScreen extends Screen {
         return value.endsWith(suffix) ? value.substring(0, value.length() - suffix.length()) : value;
     }
 
-    private static final int COL_W = 112;
+    private static final int COL_W = 100;
     private static final int GAP = 6;
     private static final int ROW_H = 23;
     private static final int CONTENT_W = COL_W * 2 + GAP;
@@ -164,10 +164,12 @@ public final class VoiceSettingsScreen extends Screen {
         int right = rightColumn();
         int top = contentTop();
 
-        int tabsX = Math.max(6, (this.width - 3 * 86 - 2 * 4) / 2);
-        addRenderableWidget(Button.builder(Component.literal("AUDIO"), b -> switchPage(0)).bounds(tabsX, 32, 86, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("AI & SPEECH"), b -> switchPage(1)).bounds(tabsX + 90, 32, 86, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("VILLAGERS"), b -> switchPage(2)).bounds(tabsX + 180, 32, 86, 20).build());
+        int tabW = 70;
+        int tabGap = 3;
+        int tabsX = Math.max(4, (this.width - 3 * tabW - 2 * tabGap) / 2);
+        addRenderableWidget(Button.builder(Component.literal("AUDIO"), b -> switchPage(0)).bounds(tabsX, 32, tabW, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("AI"), b -> switchPage(1)).bounds(tabsX + tabW + tabGap, 32, tabW, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("VILLAGERS"), b -> switchPage(2)).bounds(tabsX + 2 * (tabW + tabGap), 32, tabW, 20).build());
 
         if (page == 0) buildAudioPage(left, right, top);
         else if (page == 1) buildAiPage(left, right, top);
