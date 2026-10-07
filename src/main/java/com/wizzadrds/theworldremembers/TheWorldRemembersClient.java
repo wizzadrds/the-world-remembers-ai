@@ -205,6 +205,8 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static void speakVillager(VoicePacket payload) {
         if (voiceConfig == null || voiceConfig.ttsCommand == null || voiceConfig.ttsCommand.isBlank()) return;
         if (villagerSpeechExecutor == null) return;
+        if (pendingVillagerSpeech >= 4) return;
+        pendingVillagerSpeech++;
         villagerSpeechExecutor.submit(() -> {
             Path output = null;
             try {
