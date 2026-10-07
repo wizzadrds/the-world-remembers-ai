@@ -84,6 +84,10 @@ public class TheWorldRemembers implements ModInitializer {
     private static final java.util.Map<ServerLevel,Integer> VILLAGE_CURSORS = new java.util.WeakHashMap<>();
     private static final java.util.Map<ServerLevel,java.util.List<UUID>> VILLAGER_REGISTRY = new java.util.WeakHashMap<>();
     private static final java.util.Map<ServerLevel,SchedulerMetrics> SCHEDULER_METRICS = new java.util.WeakHashMap<>();
+    /** Short-lived danger cache: monster spatial queries are expensive and do not need to run every NPC pass. */
+    private static final java.util.Map<ServerLevel,java.util.Map<UUID,DangerSample>> DANGER_CACHE = new java.util.WeakHashMap<>();
+    private static final long DANGER_CACHE_TICKS = 10;
+    private record DangerSample(long gameTime, boolean danger) {}
     private static final double HOME_RADIUS=3.5;
     private static final NpcBehaviorEngine BEHAVIOR_ENGINE = new NpcBehaviorEngine();
 
@@ -408,7 +412,7 @@ public class TheWorldRemembers implements ModInitializer {
         if (!villager.getNavigation().isDone() && !villager.isTrading()) return;
         String role=villager.getVillagerData().toString().toLowerCase(java.util.Locale.ROOT);
         boolean worker=role.contains("farmer")||role.contains("librarian")||role.contains("cleric")||role.contains("armorer")||role.contains("toolsmith")||role.contains("weaponsmith");
-        boolean danger=!world.getEntitiesOfClass(net.minecraft.world.entity.monster.Monster.class,villager.getBoundingBox().inflate(8),m->m.isAlive()).isEmpty();
+        boolean danger=isDangerNearby(world, villager);
         if(danger){NpcHome home=homes.get(villager.getUUID());if(home!=null)villager.getNavigation().moveTo(home.homePos().getX(),home.homePos().getY(),home.homePos().getZ(),1.15);stress.increase(villager.getUUID(),2);return;}
         if(worker && villager.getInventory().getContainerSize()>0 && homeStorage.get(villager.getUUID())!=null){BlockPos storage=homeStorage.get(villager.getUUID());if(villager.blockPosition().distSqr(storage)>4*4)villager.getNavigation().moveTo(storage.getX(),storage.getY(),storage.getZ(),0.8);}
         for (ServerPlayer player : nearbyPlayers) {
@@ -711,6 +715,19 @@ public class TheWorldRemembers implements ModInitializer {
     private static BlockPos findNearbyHomePoi(ServerLevel world,BlockPos pos){return world.getPoiManager().findClosest(type->type.is(net.minecraft.world.entity.ai.village.poi.PoiTypes.HOME),pos,16,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).orElse(null);}
     private static BlockPos findNearbyDoor(ServerLevel world,BlockPos pos){BlockPos best=null;double d=257;for(BlockPos p:BlockPos.betweenClosed(pos.offset(-8,-2,-8),pos.offset(8,4,8)))if(world.getBlockState(p).is(net.minecraft.tags.BlockTags.DOORS)){double x=p.distSqr(pos);if(x<d){d=x;best=p.immutable();}}return best;}
     private static BlockPos findNearestContainer(ServerLevel world,BlockPos center,int radius){BlockPos best=null;double d=Double.MAX_VALUE;for(BlockPos p:BlockPos.betweenClosed(center.offset(-radius,-3,-radius),center.offset(radius,3,radius)))if(world.getBlockEntity(p) instanceof net.minecraft.world.Container){double x=p.distSqr(center);if(x<d){d=x;best=p.immutable();}}return best;}
+
+    private static boolean isDangerNearby(ServerLevel world, Villager villager) {
+        java.util.Map<UUID,DangerSample> cache = DANGER_CACHE.computeIfAbsent(world, ignored -> new java.util.HashMap<>());
+        UUID id = villager.getUUID();
+        long now = world.getGameTime();
+        DangerSample sample = cache.get(id);
+        if (sample != null && now - sample.gameTime() < DANGER_CACHE_TICKS) return sample.danger();
+        boolean danger = !world.getEntitiesOfClass(net.minecraft.world.entity.monster.Monster.class,
+                villager.getBoundingBox().inflate(8),
+                monster -> monster.isAlive()).isEmpty();
+        cache.put(id, new DangerSample(now, danger));
+        return danger;
+    }
 
     private static boolean hasRecentIntrusion(MemoryManager memories,Villager villager,ServerPlayer player,long gameTime){
         return memories.findMostRecentMemory(villager.getUUID(),player.getUUID(),MemoryEventType.PLAYER_ENTERED_NPC_HOME).map(m->gameTime-m.gameTime()<INTRUSION_COOLDOWN).orElse(false);
