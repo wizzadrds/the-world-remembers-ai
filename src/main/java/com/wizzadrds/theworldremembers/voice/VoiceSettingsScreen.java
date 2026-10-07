@@ -27,6 +27,8 @@ public final class VoiceSettingsScreen extends Screen {
     private Button villagerVoicesButton;
     private Button pushToTalkButton;
     private Button providerButton;
+    private Button microphoneTestButton;
+    private Button pttKeyButton;
 
     private EditBox inputVolume;
     private EditBox outputVolume;
@@ -103,6 +105,8 @@ public final class VoiceSettingsScreen extends Screen {
             config.pushToTalkMode = !config.pushToTalkMode;
             pushToTalkButton.setMessage(Component.literal("Push-to-talk: " + (config.pushToTalkMode ? "ON" : "OFF")));
         });
+        pttKeyButton = addButton("PTT key: " + keyName(config.pushToTalkKey), left, top + 184, this::cyclePushToTalkKey);
+        microphoneTestButton = addButton("Test microphone", left, top + 230, this::toggleMicrophoneTest);
         villagerVoicesButton = addButton("Villager voices: " + (config.villagerVoicesEnabled ? "ON" : "OFF"), left, top + 138, () -> {
             config.villagerVoicesEnabled = !config.villagerVoicesEnabled;
             villagerVoicesButton.setMessage(Component.literal("Villager voices: " + (config.villagerVoicesEnabled ? "ON" : "OFF")));
@@ -172,6 +176,32 @@ public final class VoiceSettingsScreen extends Screen {
         rebuildPage();
     }
 
+    private void cyclePushToTalkKey() {
+        int[] keys = {86, 66, 71, 67, 88};
+        int current = 0;
+        for (int i = 0; i < keys.length; i++) if (keys[i] == config.pushToTalkKey) { current = i; break; }
+        config.pushToTalkKey = keys[(current + 1) % keys.length];
+        pttKeyButton.setMessage(Component.literal("PTT key: " + keyName(config.pushToTalkKey)));
+    }
+
+    private void toggleMicrophoneTest() {
+        if (TheWorldRemembersClient.microphoneCapturing()) {
+            TheWorldRemembersClient.stopMicrophoneTest();
+            microphoneTestButton.setMessage(Component.literal("Test microphone"));
+        } else {
+            boolean started = TheWorldRemembersClient.startMicrophoneTest();
+            microphoneTestButton.setMessage(Component.literal(started ? "Mic level: " + percentLevel() : "Mic failed"));
+        }
+    }
+
+    private String percentLevel() {
+        return Math.round(TheWorldRemembersClient.microphoneLevel() * 100.0f) + "%";
+    }
+
+    private static String keyName(int key) {
+        return switch (key) { case 66 -> "B"; case 67 -> "C"; case 71 -> "G"; case 88 -> "X"; default -> "V"; };
+    }
+
     private void cycleMicrophone() {
         microphoneIndex = (microphoneIndex + 1) % microphones.size();
         microphoneButton.setMessage(Component.literal("Mic: " + microphones.get(microphoneIndex)));
@@ -219,6 +249,7 @@ public final class VoiceSettingsScreen extends Screen {
         config.villagerVoicesEnabled = defaults.villagerVoicesEnabled;
         config.villagerVoiceTemperament = defaults.villagerVoiceTemperament;
         config.pushToTalkMode = defaults.pushToTalkMode;
+        config.pushToTalkKey = defaults.pushToTalkKey;
         config.inputVolume = defaults.inputVolume;
         config.outputVolume = defaults.outputVolume;
         config.voiceDistance = defaults.voiceDistance;
@@ -255,6 +286,12 @@ public final class VoiceSettingsScreen extends Screen {
         // Only providers implemented by the client are offered here; this avoids presenting
         // a selectable backend that would later fail at runtime.
         return "openai".equalsIgnoreCase(provider) || "openai-responses".equalsIgnoreCase(provider) ? "openai" : "openai";
+    }
+
+    @Override
+    public void removed() {
+        TheWorldRemembersClient.stopMicrophoneTest();
+        super.removed();
     }
 
     private void close() {
