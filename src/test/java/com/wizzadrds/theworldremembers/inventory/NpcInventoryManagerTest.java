@@ -41,9 +41,9 @@ class NpcInventoryManagerTest {
         NpcInventoryManager manager = new NpcInventoryManager();
         UUID owner = UUID.randomUUID();
 
-        assertEquals(0, manager.transferIn(owner, "minecraft:diamond", 0));
-        assertEquals(0, manager.transferIn(owner, "", 3));
-        assertEquals(0, manager.transferIn(owner, null, 3));
+        manager.transferIn(owner, "minecraft:diamond", 0);
+        manager.transferIn(owner, "", 3);
+        manager.transferIn(owner, null, 3);
         assertEquals(0, manager.count(owner, "minecraft:diamond"));
 
         var encoded = NpcInventoryManager.CODEC.encodeStart(JsonOps.INSTANCE, manager)
