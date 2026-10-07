@@ -39,6 +39,9 @@ import com.wizzadrds.theworldremembers.village.VillageStorageManager;
 import com.wizzadrds.theworldremembers.village.VillageStorage;
 import net.minecraft.world.entity.animal.golem.IronGolem;
 import java.util.UUID;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.WeakHashMap;
 import net.minecraft.tags.PoiTypeTags;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -374,7 +377,7 @@ public class TheWorldRemembers implements ModInitializer {
 
     private static String professionId(Villager villager) {
         return villager.getVillagerData().profession().unwrapKey()
-                .map(key -> key.location().getPath())
+                .map(key -> key.identifier().getPath())
                 .orElse("villager");
     }
 
@@ -798,7 +801,7 @@ public class TheWorldRemembers implements ModInitializer {
                 storage = cached.storage();
             }
             villageStorage.observe(villageId, storage);
-            resources.observe(villageId,new VillageResources(food,0,storage.occupiedSlots(),storage.capacity()));
+            resources.observe(villageId,new VillageResources(food,0,storage.occupiedSlots(),storage.capacitySlots()));
             if (cached == null || now - cached.defenseTime() >= VILLAGE_DEFENSE_SCAN_TICKS) {
                 int golems=world.getEntitiesOfClass(IronGolem.class,new net.minecraft.world.phys.AABB(center).inflate(32),g->g.isAlive()).size();
                 villageDefenseState = new VillageDefense(golems,0,0);
