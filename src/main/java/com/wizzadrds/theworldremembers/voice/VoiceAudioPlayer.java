@@ -19,12 +19,13 @@ public final class VoiceAudioPlayer {
     }
 
     public void play(Path audioFile, float volume) throws Exception {
+        SourceDataLine output = null;
         long generation = playbackGeneration.incrementAndGet();
         closeCurrentLine();
         try (AudioInputStream stream = AudioSystem.getAudioInputStream(audioFile.toFile())) {
             DataLine.Info info = new DataLine.Info(SourceDataLine.class, stream.getFormat());
             var mixer = AudioDeviceManager.findOutputMixer(outputDevice, stream.getFormat());
-            SourceDataLine output = (SourceDataLine) (mixer == null
+            output = (SourceDataLine) (mixer == null
                     ? AudioSystem.getLine(info)
                     : mixer.getLine(info));
             output.open(stream.getFormat());
