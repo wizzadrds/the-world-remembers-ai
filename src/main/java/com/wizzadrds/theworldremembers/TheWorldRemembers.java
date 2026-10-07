@@ -83,8 +83,12 @@ public class TheWorldRemembers implements ModInitializer {
     private static final java.util.Map<ServerLevel,Integer> VILLAGE_CURSORS = new java.util.WeakHashMap<>();
     private static final java.util.Map<ServerLevel,java.util.List<UUID>> VILLAGER_REGISTRY = new java.util.WeakHashMap<>();
     private static final java.util.Map<ServerLevel,SchedulerMetrics> SCHEDULER_METRICS = new java.util.WeakHashMap<>();
+    /** Short-lived danger samples avoid scanning monsters for every NPC every tick. */
+    private static final java.util.Map<ServerLevel,java.util.Map<UUID,DangerSample>> DANGER_CACHE = new java.util.WeakHashMap<>();
     private static final double HOME_RADIUS=3.5;
     private static final NpcBehaviorEngine BEHAVIOR_ENGINE = new NpcBehaviorEngine();
+
+    private record DangerSample(long tick, boolean danger) {}
 
     private static final class SchedulerMetrics {
         long samples;
@@ -400,11 +404,27 @@ public class TheWorldRemembers implements ModInitializer {
             }
         }
     }
+    private static boolean hasNearbyDanger(ServerLevel world, Villager villager) {
+        long tick = world.getGameTime();
+        java.util.Map<UUID,DangerSample> cache = DANGER_CACHE.computeIfAbsent(world, ignored ->
+                new java.util.LinkedHashMap<UUID,DangerSample>(128, 0.75f, true) {
+                    @Override protected boolean removeEldestEntry(java.util.Map.Entry<UUID,DangerSample> eldest) {
+                        return size() > 512;
+                    }
+                });
+        DangerSample cached = cache.get(villager.getUUID());
+        if (cached != null && tick - cached.tick() < 10) return cached.danger();
+        boolean danger = !world.getEntitiesOfClass(net.minecraft.world.entity.monster.Monster.class,
+                villager.getBoundingBox().inflate(8), monster -> monster.isAlive()).isEmpty();
+        cache.put(villager.getUUID(), new DangerSample(tick, danger));
+        return danger;
+    }
+
     private static void applyLiveSocialBehavior(ServerLevel world, Villager villager, RelationshipManager relationships, NpcStressManager stress, NpcBehaviorEngine behavior, NpcHomeManager homes, NpcHomeStorageManager homeStorage, java.util.List<ServerPlayer> nearbyPlayers, PersonalityProfile personality) {
         if (!villager.getNavigation().isDone() && !villager.isTrading()) return;
         String role=villager.getVillagerData().toString().toLowerCase(java.util.Locale.ROOT);
         boolean worker=role.contains("farmer")||role.contains("librarian")||role.contains("cleric")||role.contains("armorer")||role.contains("toolsmith")||role.contains("weaponsmith");
-        boolean danger=!world.getEntitiesOfClass(net.minecraft.world.entity.monster.Monster.class,villager.getBoundingBox().inflate(8),m->m.isAlive()).isEmpty();
+        boolean danger = hasNearbyDanger(world, villager);
         if(danger){NpcHome home=homes.get(villager.getUUID());if(home!=null)villager.getNavigation().moveTo(home.homePos().getX(),home.homePos().getY(),home.homePos().getZ(),1.15);stress.increase(villager.getUUID(),2);return;}
         if(worker && villager.getInventory().getContainerSize()>0 && homeStorage.get(villager.getUUID())!=null){BlockPos storage=homeStorage.get(villager.getUUID());if(villager.blockPosition().distSqr(storage)>4*4)villager.getNavigation().moveTo(storage.getX(),storage.getY(),storage.getZ(),0.8);}
         for (ServerPlayer player : nearbyPlayers) {
