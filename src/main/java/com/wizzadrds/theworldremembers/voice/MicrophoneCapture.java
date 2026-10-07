@@ -119,9 +119,28 @@ public final class MicrophoneCapture implements AutoCloseable {
     public float lastRecordingLevel() { return lastRecordingLevel; }
 
     public static byte[] wavBytes(byte[] pcm, int sampleRate) {
-        return wavBytesInternal(pcm, sampleRate);
+        ByteArrayOutputStream output = new ByteArrayOutputStream(44 + pcm.length);
+        output.writeBytes(wavHeader(pcm.length, sampleRate));
+        output.writeBytes(pcm);
+        return output.toByteArray();
     }
 
+    private static byte[] wavHeader(int pcmLength, int sampleRate) {
+        java.nio.ByteBuffer header = java.nio.ByteBuffer.allocate(44).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+        header.put(new byte[]{'R','I','F','F'});
+        header.putInt(36 + pcmLength);
+        header.put(new byte[]{'W','A','V','E','f','m','t',' '});
+        header.putInt(16);
+        header.putShort((short) 1);
+        header.putShort((short) 1);
+        header.putInt(sampleRate);
+        header.putInt(sampleRate * 2);
+        header.putShort((short) 2);
+        header.putShort((short) 16);
+        header.put(new byte[]{'d','a','t','a'});
+        header.putInt(pcmLength);
+        return header.array();
+    }
 
     private static void applyGain(byte[] pcm, int length, float gain) {
         if (gain == 1.0f) return;
