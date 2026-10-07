@@ -15,13 +15,14 @@ public final class VoiceHud {
         HudElementRegistry.attachElementBefore(
                 VanillaHudElements.CHAT,
                 Identifier.fromNamespaceAndPath("the_world_remembers", "voice_status"),
-                (graphics, delta) -> render(graphics, voiceKey, conversation.state()));
+                (graphics, delta) -> render(graphics, voiceKey, conversation.state(), conversation.lastError()));
     }
 
     private static void render(
             GuiGraphicsExtractor graphics,
             KeyMapping voiceKey,
-            VoiceConversationState state) {
+            VoiceConversationState state,
+            String error) {
         if (!voiceKey.isDown() && state == VoiceConversationState.IDLE) return;
 
         Minecraft client = Minecraft.getInstance();
@@ -42,7 +43,7 @@ public final class VoiceHud {
             case LISTENING -> "Push to talk";
             case PROCESSING -> "Transcribing / thinking";
             case SPEAKING -> "NPC is speaking";
-            case ERROR -> "Check voice settings";
+            case ERROR -> shortenError(error);
             case IDLE -> "Hold V to talk";
         };
 
@@ -55,6 +56,12 @@ public final class VoiceHud {
                 graphics.fill(x + width - 12 - i * 5, y + 25 - i * 3, x + width - 9 - i * 5, y + 29, 0xFFFFFFFF);
             }
         }
+    }
+
+    private static String shortenError(String error) {
+        if (error == null || error.isBlank()) return "Check voice settings";
+        String clean = error.replace('\n', ' ').replace('\r', ' ');
+        return clean.length() > 34 ? clean.substring(0, 34) + "..." : clean;
     }
 
     private static int stateAccent(VoiceConversationState state) {
