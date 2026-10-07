@@ -807,9 +807,30 @@ public class TheWorldRemembers implements ModInitializer {
         cursors.put(world,(start+Math.max(1,processed))%keys.size());
     }
 
-    private static BlockPos findNearbyHomePoi(ServerLevel world,BlockPos pos){return world.getPoiManager().findClosest(type->type.is(net.minecraft.world.entity.ai.village.poi.PoiTypes.HOME),pos,16,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).orElse(null);}
-    private static BlockPos findNearbyDoor(ServerLevel world,BlockPos pos){BlockPos best=null;double d=257;for(BlockPos p:BlockPos.betweenClosed(pos.offset(-8,-2,-8),pos.offset(8,4,8)))if(world.getBlockState(p).is(net.minecraft.tags.BlockTags.DOORS)){double x=p.distSqr(pos);if(x<d){d=x;best=p.immutable();}}return best;}
-    private static BlockPos findNearestContainer(ServerLevel world,BlockPos center,int radius){BlockPos best=null;double d=Double.MAX_VALUE;for(BlockPos p:BlockPos.betweenClosed(center.offset(-radius,-3,-radius),center.offset(radius,3,radius)))if(world.getBlockEntity(p) instanceof net.minecraft.world.Container){double x=p.distSqr(center);if(x<d){d=x;best=p.immutable();}}return best;}
+    private static final Map<ServerLevel, Map<Long, BlockPos>> HOME_DOOR_CACHE = new WeakHashMap<>();
+    private static final Map<ServerLevel, Map<Long, BlockPos>> CONTAINER_CACHE = new WeakHashMap<>();
+    private static final long HOME_CACHE_TICKS = 200;
+
+    private static BlockPos findNearbyHomePoi(ServerLevel world,BlockPos pos){
+        return world.getPoiManager().findClosest(type->type.is(net.minecraft.world.entity.ai.village.poi.PoiTypes.HOME),pos,16,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).orElse(null);
+    }
+    private static BlockPos findNearbyDoor(ServerLevel world,BlockPos pos){
+        Map<Long,BlockPos> cache=HOME_DOOR_CACHE.computeIfAbsent(world,ignored->new HashMap<>());
+        long key=blockCacheKey(pos); BlockPos cached=cache.get(key);
+        if(cached!=null && world.getGameTime()%HOME_CACHE_TICKS!=0) return cached;
+        BlockPos best=null;double d=257;
+        for(BlockPos p:BlockPos.betweenClosed(pos.offset(-8,-2,-8),pos.offset(8,4,8))) if(world.getBlockState(p).is(net.minecraft.tags.BlockTags.DOORS)){double x=p.distSqr(pos);if(x<d){d=x;best=p.immutable();}}
+        if(best!=null) cache.put(key,best); return best;
+    }
+    private static BlockPos findNearestContainer(ServerLevel world,BlockPos center,int radius){
+        Map<Long,BlockPos> cache=CONTAINER_CACHE.computeIfAbsent(world,ignored->new HashMap<>());
+        long key=blockCacheKey(center)^((long)radius<<48); BlockPos cached=cache.get(key);
+        if(cached!=null && world.getGameTime()%HOME_CACHE_TICKS!=0 && world.getBlockEntity(cached) instanceof net.minecraft.world.Container) return cached;
+        BlockPos best=null;double d=Double.MAX_VALUE;
+        for(BlockPos p:BlockPos.betweenClosed(center.offset(-radius,-3,-radius),center.offset(radius,3,radius))) if(world.getBlockEntity(p) instanceof net.minecraft.world.Container){double x=p.distSqr(center);if(x<d){d=x;best=p.immutable();}}
+        if(best!=null) cache.put(key,best); return best;
+    }
+    private static long blockCacheKey(BlockPos pos){return (((long)pos.getX()&0x3ffffffL)<<38)|(((long)pos.getZ()&0x3ffffffL)<<12)|(pos.getY()&0xfffL);}
 
     private static boolean isDangerNearby(ServerLevel world, Villager villager) {
         java.util.Map<UUID,DangerSample> cache = DANGER_CACHE.computeIfAbsent(world, ignored -> new java.util.HashMap<>());
