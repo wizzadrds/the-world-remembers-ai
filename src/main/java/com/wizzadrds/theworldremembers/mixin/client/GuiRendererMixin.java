@@ -11,8 +11,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(GuiRenderer.class)
 public abstract class GuiRendererMixin {
     @Inject(method = "enableScissor", at = @At("HEAD"), cancellable = true)
-    private void theWorldRemembers$skipInvalidScissor(ScreenRectangle scissorArea, RenderPass pass, CallbackInfo ci) {
-        if (scissorArea.width() <= 0 || scissorArea.height() <= 0) {
+    private void theWorldRemembers$skipInvalidGuiScissor(ScreenRectangle scissorArea, RenderPass pass, CallbackInfo ci) {
+        if (scissorArea == null || scissorArea.width() <= 0 || scissorArea.height() <= 0) {
             ci.cancel();
         }
     }
