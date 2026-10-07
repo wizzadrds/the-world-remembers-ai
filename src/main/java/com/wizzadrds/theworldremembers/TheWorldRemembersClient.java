@@ -228,16 +228,22 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             voiceConversation.fail();
             return;
         }
-        var sttCommand = VoiceCommandParser.parse(voiceConfig.sttCommand);
-        var ttsCommand = VoiceCommandParser.parse(voiceConfig.ttsCommand);
-        if (sttCommand.isEmpty() || ttsCommand.isEmpty()) {
-            voiceConversation.fail();
-            return;
+        VoiceService service;
+        if ("gemini".equalsIgnoreCase(voiceConfig.provider)) {
+            service = new VoiceService(
+                    new GeminiSttAdapter(voiceConfig.apiKey, voiceConfig.language),
+                    new GeminiTtsAdapter(voiceConfig.apiKey, voiceConfig.ttsModel, voiceConfig.ttsVoice, voiceConfig.ttsInstructions));
+        } else {
+            var sttCommand = VoiceCommandParser.parse(voiceConfig.sttCommand);
+            var ttsCommand = VoiceCommandParser.parse(voiceConfig.ttsCommand);
+            if (sttCommand.isEmpty() || ttsCommand.isEmpty()) {
+                voiceConversation.fail();
+                return;
+            }
+            service = new VoiceService(
+                    new LocalProcessSttAdapter(sttCommand),
+                    new LocalProcessTtsAdapter(ttsCommand));
         }
-
-        var service = new VoiceService(
-                new LocalProcessSttAdapter(sttCommand),
-                new LocalProcessTtsAdapter(ttsCommand));
 
         voiceConversation.finishListening(pcm, service, transcript -> {
             try {
@@ -271,11 +277,12 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static AiChatAdapter createAiAdapter() {
         String provider = voiceConfig.provider == null ? "" : voiceConfig.provider.trim().toLowerCase();
         return switch (provider) {
+            case "gemini" -> new GeminiResponsesAdapter(voiceConfig.apiKey, voiceConfig.model);
             case "", "openai", "openai-responses" ->
                     new OpenAiResponsesAdapter(voiceConfig.apiKey, voiceConfig.model);
             default -> throw new IllegalArgumentException(
                     "Unsupported voice AI provider: " + voiceConfig.provider
-                            + ". Supported providers: openai");
+                            + ". Supported providers: gemini, openai");
         };
     }
 
@@ -293,7 +300,13 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     }
 
     private static void speakVillager(VillagerVoicePacket payload) {
-        if (voiceConfig == null || voiceConfig.ttsCommand == null || voiceConfig.ttsCommand.isBlank()) return;
+        if (voiceConfig == null) return;
+        boolean gemini = "gemini".equalsIgnoreCase(voiceConfig.provider);
+        if (!gemini && (voiceConfig.ttsCommand == null || voiceConfig.ttsCommand.isBlank())) return;
+        if (gemini && (voiceConfig.apiKey == null || voiceConfig.apiKey.isBlank())) {
+            lastVillagerVoiceError = "Gemini API key is missing";
+            return;
+        }
         if (villagerSpeechExecutor == null) return;
         int reserved;
         do {
@@ -305,11 +318,6 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             Path output = null;
             try {
                 if (session != voiceSessionGeneration.get()) return;
-                var command = VoiceCommandParser.parse(voiceConfig.ttsCommand);
-                if (command.isEmpty()) {
-                    lastVillagerVoiceError = "TTS command is empty";
-                    return;
-                }
                 VoiceTemperament temperament = resolveVillagerTemperament(payload.profession());
                 long seed = payload.speaker().getMostSignificantBits() ^ payload.speaker().getLeastSignificantBits();
                 float stablePitch = 0.94f + ((seed & 0xFFL) / 255.0f) * 0.12f;
@@ -321,7 +329,9 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 VoiceProfile profile = new VoiceProfile(speechLanguage(), modelOrVoice, temperament, rate, pitch, expressiveness);
                 output = Minecraft.getInstance().gameDirectory.toPath().resolve("config")
                         .resolve("twr_villager_" + UUID.randomUUID() + ".wav");
-                var tts = new LocalProcessTtsAdapter(command, voiceConfig.ttsInstructions);
+                TtsAdapter tts = gemini
+                        ? new GeminiTtsAdapter(voiceConfig.apiKey, voiceConfig.ttsModel, voiceConfig.ttsVoice, voiceConfig.ttsInstructions)
+                        : new LocalProcessTtsAdapter(VoiceCommandParser.parse(voiceConfig.ttsCommand), voiceConfig.ttsInstructions);
                 Path audio = tts.synthesize(payload.text(), profile, output);
                 if (session != voiceSessionGeneration.get()) return;
                 if (audio != null && Files.isRegularFile(audio)) {
