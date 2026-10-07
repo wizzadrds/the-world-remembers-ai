@@ -829,8 +829,25 @@ public class TheWorldRemembers implements ModInitializer {
     private static final int HOME_CACHE_MAX_ENTRIES = 4096;
     private record BlockCacheEntry(BlockPos position, long checkedAt) {}
 
+    private static final Map<ServerLevel, Map<Long, BlockCacheEntry>> HOME_POI_CACHE = new WeakHashMap<>();
+
     private static BlockPos findNearbyHomePoi(ServerLevel world,BlockPos pos){
-        return world.getPoiManager().findClosest(type->type.is(net.minecraft.world.entity.ai.village.poi.PoiTypes.HOME),pos,16,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).orElse(null);
+        Map<Long,BlockCacheEntry> cache=HOME_POI_CACHE.computeIfAbsent(world,ignored->new HashMap<>());
+        long key=blockCacheKey(pos);
+        long now=world.getGameTime();
+        BlockCacheEntry entry=cache.get(key);
+        if(entry!=null) {
+            long age=now-entry.checkedAt();
+            if(entry.position()==null) {
+                if(age < HOME_MISS_CACHE_TICKS) return null;
+            } else if(age < HOME_CACHE_TICKS) {
+                return entry.position();
+            }
+        }
+        BlockPos result=world.getPoiManager().findClosest(type->type.is(net.minecraft.world.entity.ai.village.poi.PoiTypes.HOME),pos,16,net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY).orElse(null);
+        cache.put(key,new BlockCacheEntry(result,now));
+        trimBlockCache(cache);
+        return result;
     }
     private static BlockPos findNearbyDoor(ServerLevel world,BlockPos pos){
         Map<Long,BlockCacheEntry> cache=HOME_DOOR_CACHE.computeIfAbsent(world,ignored->new HashMap<>());
