@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public final class LocalProcessSttAdapter implements SttAdapter {
     private final List<String> command;
@@ -28,9 +29,31 @@ public final class LocalProcessSttAdapter implements SttAdapter {
                 args.add(file.toString());
             }
             Process process = new ProcessBuilder(args).redirectErrorStream(true).start();
-            String output = new String(process.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-            if (process.waitFor() != 0) throw new IOException("Local STT failed: " + output);
-            return output.trim();
+            var outputBuffer = new java.io.ByteArrayOutputStream();
+            Thread outputReader = Thread.ofVirtual().name("twr-stt-output").start(() -> {
+                try {
+                    process.getInputStream().transferTo(outputBuffer);
+                } catch (IOException ignored) {
+                }
+            });
+            try {
+                if (!process.waitFor(45, TimeUnit.SECONDS)) {
+                    process.destroy();
+                    if (!process.waitFor(2, TimeUnit.SECONDS)) process.destroyForcibly();
+                    throw new IOException("Local STT timed out after 45 seconds");
+                }
+                outputReader.join(1000);
+                String output = outputBuffer.toString(java.nio.charset.StandardCharsets.UTF_8);
+                if (process.exitValue() != 0) throw new IOException("Local STT failed with exit code " + process.exitValue() + ": " + output);
+                return output.trim();
+            } finally {
+                if (process.isAlive()) process.destroyForcibly();
+                try {
+                    outputReader.join(500);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
         } finally {
             Files.deleteIfExists(file);
         }
