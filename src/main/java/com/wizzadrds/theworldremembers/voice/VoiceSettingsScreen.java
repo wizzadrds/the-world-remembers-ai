@@ -31,6 +31,7 @@ public final class VoiceSettingsScreen extends Screen {
     private EditBox outputVolume;
     private EditBox distance;
     private EditBox apiKey;
+    private EditBox language;
     private EditBox model;
     private EditBox sttModel;
     private EditBox ttsModel;
@@ -117,6 +118,7 @@ public final class VoiceSettingsScreen extends Screen {
         apiKey.setMaxLength(512);
         apiKey.setSuggestion("stored locally in config");
         model = field(right, top, "AI model", config.model);
+        language = field(left, top + 184, "Speech language", config.language);
         sttModel = field(left, top + 46, "STT model", config.sttModel);
         ttsModel = field(right, top + 46, "TTS model", config.ttsModel);
         ttsVoice = field(left, top + 92, "TTS voice", config.ttsVoice);
@@ -184,6 +186,7 @@ public final class VoiceSettingsScreen extends Screen {
         if (outputVolume != null) config.outputVolume = bounded(outputVolume.getValue(), config.outputVolume, 0, 2);
         if (distance != null) config.voiceDistance = bounded(distance.getValue(), config.voiceDistance, 1, 128);
         if (apiKey != null) config.apiKey = apiKey.getValue().trim();
+        if (language != null) config.language = language.getValue().trim();
         if (model != null) config.model = model.getValue().trim();
         if (sttModel != null) config.sttModel = sttModel.getValue().trim();
         if (ttsModel != null) config.ttsModel = ttsModel.getValue().trim();
@@ -212,6 +215,7 @@ public final class VoiceSettingsScreen extends Screen {
         config.voiceDistance = defaults.voiceDistance;
         config.provider = defaults.provider;
         config.apiKey = defaults.apiKey;
+        config.language = defaults.language;
         config.model = defaults.model;
         config.sttModel = defaults.sttModel;
         config.sttCommand = defaults.sttCommand;
