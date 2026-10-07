@@ -20,6 +20,7 @@ public final class VoiceClientConfig {
     public float outputVolume = 1.0f;
     public float voiceDistance = 32.0f;
     public String provider = "openai";
+    public String language = "es-ES";
     public String apiKey = "";
     public String model = "";
     public String sttModel = "faster-whisper";
