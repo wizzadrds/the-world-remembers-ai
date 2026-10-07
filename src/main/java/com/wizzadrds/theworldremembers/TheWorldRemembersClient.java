@@ -159,7 +159,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 }
 
                 VoiceProfile profile = new VoiceProfile(
-                        "es-ES", voiceConfig.ttsModel, VoiceTemperament.CALM, 1.0f, 1.0f, 0.5f);
+                        speechLanguage(), voiceConfig.ttsModel, VoiceTemperament.CALM, 1.0f, 1.0f, 0.5f);
                 Path output = Minecraft.getInstance().gameDirectory.toPath()
                         .resolve("config")
                         .resolve("the_world_remembers_voice_response_" + UUID.randomUUID() + ".wav");
@@ -221,7 +221,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 float expressiveness = clampVoice(payload.expressiveness(), 0.0f, 1.0f);
                 String modelOrVoice = voiceConfig.ttsVoice == null || voiceConfig.ttsVoice.isBlank()
                         ? voiceConfig.ttsModel : voiceConfig.ttsVoice;
-                VoiceProfile profile = new VoiceProfile("es-ES", modelOrVoice, temperament, rate, pitch, expressiveness);
+                VoiceProfile profile = new VoiceProfile(speechLanguage(), modelOrVoice, temperament, rate, pitch, expressiveness);
                 output = Minecraft.getInstance().gameDirectory.toPath().resolve("config")
                         .resolve("twr_villager_" + UUID.randomUUID() + ".wav");
                 var tts = new LocalProcessTtsAdapter(command);
@@ -237,6 +237,12 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 }
             }
         });
+    }
+
+    private static String speechLanguage() {
+        if (voiceConfig == null || voiceConfig.language == null || voiceConfig.language.isBlank()) return "es-ES";
+        String language = voiceConfig.language.trim().replace('_', '-');
+        return language.length() > 32 ? language.substring(0, 32) : language;
     }
 
     private static float clampVoice(float value, float min, float max) {
