@@ -154,7 +154,9 @@ También puedes usar un comando antiguo sin placeholders: el mod mantiene el for
 
 Si dejas **TTS model = piper**, el helper usa `TWR_PIPER_MODEL`.
 
-Si rellenas **TTS voice**, el valor se utiliza como identificador/modelo para el perfil del aldeano. Para configuraciones Piper complejas es preferible controlar el modelo mediante `TWR_PIPER_MODEL`.
+Si rellenas **TTS voice**, el valor se utiliza como identificador/modelo para el perfil del aldeano. También puedes poner varios identificadores separados por comas, por ejemplo `voz_a,voz_b,voz_c`: el cliente asigna uno de forma estable a cada aldeano según su UUID, así cada aldeano conserva una identidad de voz entre sesiones.
+
+El paquete de voz del aldeano incluye además su UUID y profesión. El cliente usa esos datos para mantener variaciones estables de tono/ritmo y dar un carácter distinto a granjeros, bibliotecarios, carniceros, etc., sin cambiar la voz configurada globalmente. Para configuraciones Piper complejas es preferible controlar el modelo mediante `TWR_PIPER_MODEL`.
 
 ## 7. Cómo hacer que los aldeanos suenen como aldeanos
 
