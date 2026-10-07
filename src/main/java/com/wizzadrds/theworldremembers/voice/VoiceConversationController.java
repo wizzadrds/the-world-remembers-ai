@@ -21,9 +21,14 @@ public final class VoiceConversationController implements AutoCloseable {
     private volatile Consumer<VoiceConversationState> stateListener = ignored -> {};
     private volatile long sessionGeneration;
     private volatile Future<?> activeTask;
+    private volatile String lastError = "";
 
     public VoiceConversationState state() {
         return state;
+    }
+
+    public String lastError() {
+        return lastError;
     }
 
     public void setStateListener(Consumer<VoiceConversationState> listener) {
@@ -33,13 +38,14 @@ public final class VoiceConversationController implements AutoCloseable {
     public synchronized void beginListening() {
         if (state == VoiceConversationState.IDLE || state == VoiceConversationState.ERROR) {
             sessionGeneration++;
+            lastError = "";
             setState(VoiceConversationState.LISTENING);
         }
     }
 
     public void finishListening(byte[] pcm, VoiceService service, Consumer<String> transcriptConsumer) {
         if (pcm == null || pcm.length == 0 || service == null || transcriptConsumer == null) {
-            fail();
+            fail("No audio was captured");
             return;
         }
         if (state != VoiceConversationState.LISTENING) return;
@@ -52,21 +58,21 @@ public final class VoiceConversationController implements AutoCloseable {
                     String transcript = service.transcribe(pcm);
                     if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
                     if (transcript == null || transcript.isBlank()) {
-                        fail();
+                        fail("Speech transcription returned no text");
                         return;
                     }
                     try {
                         if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
                         transcriptConsumer.accept(transcript);
                     } catch (RuntimeException e) {
-                        if (generation == sessionGeneration && state == VoiceConversationState.PROCESSING) fail();
+                        if (generation == sessionGeneration && state == VoiceConversationState.PROCESSING) fail(messageOf(e));
                     }
                 } catch (Exception e) {
-                    if (generation == sessionGeneration && state == VoiceConversationState.PROCESSING) fail();
+                    if (generation == sessionGeneration && state == VoiceConversationState.PROCESSING) fail(messageOf(e));
                 }
             });
         } catch (RejectedExecutionException e) {
-            if (generation == sessionGeneration && state == VoiceConversationState.PROCESSING) fail();
+            if (generation == sessionGeneration && state == VoiceConversationState.PROCESSING) fail(messageOf(e));
         }
     }
 
@@ -88,7 +94,7 @@ public final class VoiceConversationController implements AutoCloseable {
                     audio = service.synthesize(text, profile, output);
                     if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
                     if (audio == null || !Files.exists(audio)) {
-                        fail();
+                        fail("TTS did not produce an audio file");
                         return;
                     }
                     setState(VoiceConversationState.SPEAKING);
@@ -97,7 +103,7 @@ public final class VoiceConversationController implements AutoCloseable {
                     completed.accept(audio);
                     finishSpeaking();
                 } catch (Exception e) {
-                    if (generation == sessionGeneration) fail();
+                    if (generation == sessionGeneration) fail(messageOf(e));
                 } finally {
                     if (audio != null) {
                         try {
@@ -117,7 +123,23 @@ public final class VoiceConversationController implements AutoCloseable {
     }
 
     public void fail() {
+        fail("Check voice settings");
+    }
+
+    public void fail(String message) {
+        lastError = message == null || message.isBlank() ? "Check voice settings" : message;
         setState(VoiceConversationState.ERROR);
+    }
+
+    private static String messageOf(Throwable error) {
+        Throwable current = error;
+        while (current != null) {
+            if (current.getMessage() != null && !current.getMessage().isBlank()) {
+                return current.getMessage();
+            }
+            current = current.getCause();
+        }
+        return error == null ? "Voice processing failed" : error.getClass().getSimpleName();
     }
 
     public synchronized void reset() {
