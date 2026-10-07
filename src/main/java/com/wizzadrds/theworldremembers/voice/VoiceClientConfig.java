@@ -10,7 +10,10 @@ import java.nio.file.Path;
 public final class VoiceClientConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-    public String microphone = "Default";
+    public String microphone = AudioDeviceManager.DEFAULT_DEVICE;
+    public String outputDevice = AudioDeviceManager.DEFAULT_DEVICE;
+    public boolean villagerVoicesEnabled = true;
+    public String villagerVoiceTemperament = "WARM";
     public int pushToTalkKey = 86;
     public boolean pushToTalkMode = true;
     public float inputVolume = 1.0f;
@@ -23,6 +26,8 @@ public final class VoiceClientConfig {
     public String sttCommand = "";
     public String ttsCommand = "";
     public String ttsModel = "piper";
+    public String ttsVoice = "";
+    public String ttsInstructions = "Speak naturally as a Minecraft villager: short phrases, warm human-like delivery, no announcer voice.";
     public String systemPrompt = "You are a Minecraft NPC. Answer briefly, naturally, and stay in character.";
 
     public static VoiceClientConfig load(Path gameDir) {
