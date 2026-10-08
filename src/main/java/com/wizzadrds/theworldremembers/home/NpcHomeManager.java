@@ -1,8 +1,6 @@
 package com.wizzadrds.theworldremembers.home;
 
 import com.mojang.serialization.Codec;
-
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
@@ -18,7 +16,13 @@ public final class NpcHomeManager extends SavedData {
     public NpcHome get(UUID id){return homes.get(id);}
     public boolean hasHome(UUID id){return homes.containsKey(id);}
     public NpcHome assignIfAbsent(UUID id, net.minecraft.core.BlockPos home, net.minecraft.core.BlockPos bed, net.minecraft.core.BlockPos entrance){
-        NpcHome h=homes.computeIfAbsent(id,k->new NpcHome(id,home,bed,entrance));setDirty();return h;
+        NpcHome h=homes.get(id);
+        if(h==null){
+            h=new NpcHome(id,home,bed,entrance);
+            homes.put(id,h);
+            setDirty();
+        }
+        return h;
     }
     public void assignFamilyHome(UUID member, UUID familyMember){
         NpcHome familyHome=homes.get(familyMember);
