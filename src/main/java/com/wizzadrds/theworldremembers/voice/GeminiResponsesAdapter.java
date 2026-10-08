@@ -45,7 +45,7 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
                 .build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new IOException("Gemini request failed: HTTP " + response.statusCode() + " - " + response.body());
+            throw geminiHttpError(response.statusCode(), response.body());
         }
         return extractText(response.body());
     }
@@ -73,8 +73,7 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
                 client.send(request, HttpResponse.BodyHandlers.ofInputStream());
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             try (java.io.InputStream stream = response.body()) {
-                throw new IOException("Gemini request failed: HTTP " + response.statusCode() + " - "
-                        + new String(stream.readAllBytes(), StandardCharsets.UTF_8));
+                throw geminiHttpError(response.statusCode(), new String(stream.readAllBytes(), StandardCharsets.UTF_8));
             }
         }
 
@@ -102,6 +101,24 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
         }
         if (full.toString().isBlank()) throw new IOException("Gemini streaming response did not contain output text");
         return full.toString().trim();
+    }
+
+
+    private static IOException geminiHttpError(int status, String body) {
+        String message = body == null ? "" : body.trim();
+        try {
+            JsonObject root = JsonParser.parseString(message).getAsJsonObject();
+            JsonObject error = root.getAsJsonObject("error");
+            if (error != null && error.has("message")) {
+                String detail = error.get("message").getAsString();
+                String code = error.has("code") ? error.get("code").getAsString() : "";
+                return new IOException("Gemini request failed: HTTP " + status + " - "
+                        + (code.isBlank() ? detail : code + ": " + detail));
+            }
+        } catch (RuntimeException ignored) {
+        }
+        if (message.length() > 2000) message = message.substring(0, 2000);
+        return new IOException("Gemini request failed: HTTP " + status + " - " + message);
     }
 
     static String extractText(String json) throws IOException {
