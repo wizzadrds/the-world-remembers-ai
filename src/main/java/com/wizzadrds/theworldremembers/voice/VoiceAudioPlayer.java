@@ -42,68 +42,16 @@ public final class VoiceAudioPlayer {
     public void playVillager(Path audioFile, float volume) throws Exception {
         if (audioFile == null) throw new IllegalArgumentException("Villager audio file is null");
         try (AudioInputStream stream = AudioSystem.getAudioInputStream(audioFile.toFile())) {
-            AudioFormat source = stream.getFormat();
-            if (source.getSampleSizeInBits() != 16 || source.getChannels() != 1 || source.isBigEndian()) {
-                AudioFormat target = new AudioFormat(
-                        AudioFormat.Encoding.PCM_SIGNED,
-                        source.getSampleRate(), 16, 1, 2, source.getSampleRate(), false);
-                try (AudioInputStream converted = AudioSystem.getAudioInputStream(target, stream)) {
-                    byte[] pcm = converted.readAllBytes();
-                    playStream(new java.io.ByteArrayInputStream(modulateVillager(pcm)),
-                            target, volume);
-                }
-            } else {
-                byte[] pcm = stream.readAllBytes();
-                playStream(new java.io.ByteArrayInputStream(modulateVillager(pcm)),
-                        source, volume);
-            }
+            playStream(stream, stream.getFormat(), volume);
         }
     }
 
     public void playVillagerPcmStream(InputStream stream, float volume) throws Exception {
         if (stream == null) throw new IllegalArgumentException("Villager audio stream is null");
-        byte[] pcm;
         try (InputStream input = stream) {
-            pcm = input.readAllBytes();
+            AudioFormat format = new AudioFormat(40000.0f, 16, 1, true, false);
+            playStream(input, format, volume);
         }
-        if (pcm.length == 0) throw new IllegalStateException("Villager TTS returned no audio");
-        pcm = modulateVillager(pcm);
-        // Reinterpreting the same samples at a slightly higher playback rate gives the
-        // characteristic short, raised villager delivery without changing the TTS text.
-        AudioFormat format = new AudioFormat(27000.0f, 16, 1, true, false);
-        playStream(new java.io.ByteArrayInputStream(pcm), format, volume);
-    }
-
-    private static byte[] modulateVillager(byte[] pcm) {
-        int sampleCount = pcm.length / 2;
-        byte[] result = new byte[sampleCount * 2];
-        double low = 0.0;
-        double high = 0.0;
-        double previous = 0.0;
-        for (int i = 0; i < sampleCount; i++) {
-            int lo = pcm[i * 2] & 0xFF;
-            int hi = pcm[i * 2 + 1];
-            short raw = (short) ((hi << 8) | lo);
-            double x = raw / 32768.0;
-
-            // Mild band shaping: remove rumble, keep the nasal speech band, soften the top.
-            low += 0.18 * (x - low);
-            high = x - low;
-            double nasal = low + high * 1.18;
-            nasal = Math.max(-1.0, Math.min(1.0, nasal * 1.35));
-
-            // Gentle saturation/compression gives the compact, buzzy NPC character.
-            double compressed = Math.tanh(nasal * 1.7) / Math.tanh(1.7);
-            double attack = 0.985 * previous + 0.015 * compressed;
-            previous = attack;
-
-            // Very small periodic throat modulation; intentionally subtle so Spanish remains intelligible.
-            double tremolo = 0.985 + 0.015 * Math.sin(i * 2.0 * Math.PI * 7.0 / 24000.0);
-            int sample = (int) Math.round(Math.max(-1.0, Math.min(1.0, attack * tremolo)) * 32767.0);
-            result[i * 2] = (byte) sample;
-            result[i * 2 + 1] = (byte) (sample >> 8);
-        }
-        return result;
     }
 
     private void playStream(InputStream stream, AudioFormat format, float volume) throws Exception {
