@@ -51,6 +51,7 @@ public final class VoiceSettingsScreen extends Screen {
     private EditBox sttCommand;
     private EditBox ttsCommand;
     private EditBox ttsInstructions;
+    private EditBox villagerTtsCommand;
     private EditBox systemPrompt;
 
     public VoiceSettingsScreen(Screen parent, VoiceClientConfig config) {
@@ -280,8 +281,13 @@ public final class VoiceSettingsScreen extends Screen {
         ttsInstructions = field(left, top + row * rowHeight(), "Speaking style", config.ttsInstructions);
         systemPrompt = field(right, top + row++ * rowHeight(), "AI rules", config.systemPrompt);
 
+        villagerTtsCommand = field(left, top + row * rowHeight(), "Villager TTS command", config.villagerTtsCommand);
+        villagerTtsCommand.setSuggestion("python tools/voice/tts_rvc_villager.py {text} {output} ...");
+        row++;
+
         addRenderableWidget(Button.builder(Component.literal("Villager defaults"), b -> {
-            ttsInstructions.setValue("Minecraft Villager voice. Not narrator/audiobook. Low, muffled, nasal, throaty, slightly gravelly, closed-mouth resonance, compressed tone, short choppy bursts and uneven pauses. Keep a recognizable hmm/hrmm timbre while making Spanish understandable. Only speak the villager's dialogue.");
+            ttsInstructions.setValue("Speak only the villager dialogue. Keep Spanish natural and conversational; VillagerTITAN supplies the villager timbre.");
+            villagerTtsCommand.setValue("python tools/voice/tts_rvc_villager.py {text} {output} {language} {model} {rate} {pitch} {expressiveness}");
             systemPrompt.setValue("You are one specific Minecraft villager speaking directly to the player. Reply only with the words this villager would actually say. Never narrate actions, scenes, emotions, or third-person events.");
             b.setMessage(Component.literal("Defaults applied"));
         }).bounds(left, top + row * rowHeight(), COL_W, 20).build());
@@ -333,7 +339,8 @@ public final class VoiceSettingsScreen extends Screen {
             case "AI model" -> "Online AI model used to generate dialogue. Gemini example: gemini-3.8-flash.";
             case "STT model" -> "Speech-to-text model. Gemini example: gemini-3.5-transcribe.";
             case "TTS model" -> "Text-to-speech model. Gemini example: gemini-3.8-flash-tts.";
-            case "TTS voice" -> "Gemini voice name. Algenib is gravelly and suits a rough villager style.";
+            case "TTS voice" -> "Online TTS voice name. Used when the dedicated villager TTS command is empty.";
+            case "Villager TTS command" -> "Dedicated local villager TTS pipeline. It can run RVC independently of the AI provider.";
             case "API key (Google Gemini)" -> "Paste your Google AI Studio Gemini API key here. It is saved in Minecraft config, not in the world.";
             case "Local STT command" -> "Optional local speech-to-text command. Use {pcm} where the PCM file path should go.";
             case "Local TTS command" -> "Optional local text-to-speech command. Use {text}, {output}, {language}, {model}, {rate}, {pitch}, {expressiveness}.";
@@ -358,6 +365,7 @@ public final class VoiceSettingsScreen extends Screen {
             case "STT model" -> "gemini-3.5-transcribe";
             case "TTS model" -> "gemini-3.8-flash-tts";
             case "TTS voice" -> "Algenib";
+            case "Villager TTS command" -> "python tools/voice/tts_rvc_villager.py {text} {output} ...";
             case "Input volume" -> "0-2";
             case "Output volume" -> "0-2";
             case "Range (blocks)" -> "1-64";
@@ -458,6 +466,7 @@ public final class VoiceSettingsScreen extends Screen {
         if (sttCommand != null) config.sttCommand = sttCommand.getValue().trim();
         if (ttsCommand != null) config.ttsCommand = ttsCommand.getValue().trim();
         if (ttsInstructions != null) config.ttsInstructions = ttsInstructions.getValue().trim();
+        if (villagerTtsCommand != null) config.villagerTtsCommand = villagerTtsCommand.getValue().trim();
         if (systemPrompt != null) config.systemPrompt = systemPrompt.getValue().trim();
     }
 
@@ -493,6 +502,7 @@ public final class VoiceSettingsScreen extends Screen {
         config.ttsModel = defaults.ttsModel;
         config.ttsVoice = defaults.ttsVoice;
         config.ttsInstructions = defaults.ttsInstructions;
+        config.villagerTtsCommand = defaults.villagerTtsCommand;
         config.systemPrompt = defaults.systemPrompt;
         refreshDevices();
         rebuildPage();
