@@ -2,7 +2,6 @@ package com.wizzadrds.theworldremembers.age;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
@@ -33,7 +32,21 @@ public final class NpcAgeManager extends SavedData {
     private static final SavedDataType<NpcAgeManager> TYPE = new SavedDataType<>(net.minecraft.resources.Identifier.fromNamespaceAndPath("the_world_remembers", "npc_ages"), NpcAgeManager::new, CODEC, null);
     public static NpcAgeManager get(MinecraftServer server) { ServerLevel level = server.getLevel(ServerLevel.OVERWORLD); return level == null ? new NpcAgeManager() : level.getDataStorage().computeIfAbsent(TYPE); }
     public NpcAge get(UUID npcId) { return ages.get(npcId); }
-    public NpcAge assignIfAbsent(UUID npcId, int years) { NpcAge age = ages.computeIfAbsent(npcId, id -> new NpcAge(id, years)); lastAgeTick.putIfAbsent(npcId, 0L); setDirty(); return age; }
+    public NpcAge assignIfAbsent(UUID npcId, int years) {
+        NpcAge age = ages.get(npcId);
+        boolean changed = false;
+        if (age == null) {
+            age = new NpcAge(npcId, years);
+            ages.put(npcId, age);
+            changed = true;
+        }
+        if (!lastAgeTick.containsKey(npcId)) {
+            lastAgeTick.put(npcId, 0L);
+            changed = true;
+        }
+        if (changed) setDirty();
+        return age;
+    }
     public boolean hasAge(UUID npcId) { return ages.containsKey(npcId); }
     public boolean advanceIfDue(UUID npcId, long gameTime) {
         NpcAge age = ages.get(npcId);
