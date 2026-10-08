@@ -375,6 +375,7 @@ public final class VoiceSettingsScreen extends Screen {
 
     private EditBox field(int x, int y, String label, String value) {
         EditBox box = new EditBox(this.font, x, y, COL_W, 20, Component.literal(label));
+        box.setMaxLength(4096);
         box.setValue(value == null ? "" : value);
         box.setHint(Component.literal(shortHint(label)));
         box.setTooltip(Tooltip.create(Component.literal(fieldHelp(label))));
