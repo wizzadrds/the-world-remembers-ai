@@ -18,6 +18,7 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
     private final HttpClient client = HttpClient.newHttpClient();
     private final String apiKey;
     private final String model;
+    private static final String CAPACITY_FALLBACK_MODEL = "gemini-3.7-flash";
 
     public GeminiResponsesAdapter(String apiKey, String model) {
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("Gemini API key is required");
@@ -44,6 +45,9 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
                 .POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8))
                 .build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        if (response.statusCode() == 503 && model.equals("gemini-3.8-flash")) {
+            return respondWithModel(userText, systemPrompt, CAPACITY_FALLBACK_MODEL);
+        }
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             throw geminiHttpError(response.statusCode(), response.body());
         }
@@ -71,6 +75,12 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
 
         HttpResponse<java.io.InputStream> response =
                 client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        if (response.statusCode() == 503 && model.equals("gemini-3.8-flash")) {
+            try (java.io.InputStream stream = response.body()) {
+                stream.readAllBytes();
+            }
+            return respondStreamingWithModel(userText, systemPrompt, chunkConsumer, CAPACITY_FALLBACK_MODEL);
+        }
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             try (java.io.InputStream stream = response.body()) {
                 throw geminiHttpError(response.statusCode(), new String(stream.readAllBytes(), StandardCharsets.UTF_8));
@@ -97,6 +107,75 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
                 if (chunk.isBlank()) continue;
                 full.append(chunk);
                 chunkConsumer.accept(chunk);
+            }
+        }
+        if (full.toString().isBlank()) throw new IOException("Gemini streaming response did not contain output text");
+        return full.toString().trim();
+    }
+
+
+
+    private String respondWithModel(String userText, String systemPrompt, String fallbackModel)
+            throws IOException, InterruptedException {
+        JsonObject body = new JsonObject();
+        body.addProperty("model", fallbackModel);
+        body.addProperty("input", userText == null ? "" : userText);
+        if (systemPrompt != null && !systemPrompt.isBlank()) body.addProperty("system_instruction", systemPrompt);
+        JsonObject generationConfig = new JsonObject();
+        generationConfig.addProperty("thinking_level", "low");
+        body.add("generation_config", generationConfig);
+        HttpRequest request = HttpRequest.newBuilder(URI.create("https://generativelanguage.googleapis.com/v1beta/interactions"))
+                .header("x-goog-api-key", apiKey)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8))
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw geminiHttpError(response.statusCode(), response.body());
+        }
+        return extractText(response.body());
+    }
+
+    private String respondStreamingWithModel(String userText, String systemPrompt, Consumer<String> chunkConsumer, String fallbackModel)
+            throws IOException, InterruptedException {
+        JsonObject body = new JsonObject();
+        body.addProperty("model", fallbackModel);
+        body.addProperty("input", userText == null ? "" : userText);
+        if (systemPrompt != null && !systemPrompt.isBlank()) body.addProperty("system_instruction", systemPrompt);
+        JsonObject generationConfig = new JsonObject();
+        generationConfig.addProperty("thinking_level", "low");
+        body.add("generation_config", generationConfig);
+        body.addProperty("stream", true);
+        HttpRequest request = HttpRequest.newBuilder(URI.create("https://generativelanguage.googleapis.com/v1beta/interactions"))
+                .header("x-goog-api-key", apiKey)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8))
+                .build();
+        HttpResponse<java.io.InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            try (java.io.InputStream stream = response.body()) {
+                throw geminiHttpError(response.statusCode(), new String(stream.readAllBytes(), StandardCharsets.UTF_8));
+            }
+        }
+        StringBuilder full = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(response.body(), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (!line.startsWith("data:")) continue;
+                String data = line.substring(5).trim();
+                if (data.isEmpty() || "[DONE]".equals(data)) continue;
+                try {
+                    JsonObject event = JsonParser.parseString(data).getAsJsonObject();
+                    if (!"step.delta".equals(event.get("event_type").getAsString())) continue;
+                    JsonObject delta = event.getAsJsonObject("delta");
+                    if (delta == null || !"text".equals(delta.get("type").getAsString()) || !delta.has("text")) continue;
+                    String chunk = delta.get("text").getAsString();
+                    if (!chunk.isBlank()) {
+                        full.append(chunk);
+                        chunkConsumer.accept(chunk);
+                    }
+                } catch (RuntimeException ignored) {
+                }
             }
         }
         if (full.toString().isBlank()) throw new IOException("Gemini streaming response did not contain output text");
