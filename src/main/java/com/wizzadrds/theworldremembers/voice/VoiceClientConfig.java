@@ -10,7 +10,7 @@ import java.nio.file.Path;
 public final class VoiceClientConfig {
     private static final String DEFAULT_TTS_INSTRUCTIONS =
             "Speak only the villager's exact dialogue. No narration, no stage directions, no scene description, no assistant wording. "
-                    + "The game applies a dedicated Minecraft-villager voice modulator after TTS: nasal, compressed, rough, pitch-shifted, clipped NPC speech.";
+                    + "Keep Spanish natural, conversational and concise. The configured villager voice pipeline supplies the NPC timbre.";
     private static final String DEFAULT_SYSTEM_PROMPT =
             "You are the specific Minecraft villager the player is standing near and speaking to. "
                     + "Reply only with that villager's spoken dialogue. Never narrate actions, emotions, scenes, or third-person events. "
