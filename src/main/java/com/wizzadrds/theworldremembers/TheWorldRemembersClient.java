@@ -610,19 +610,24 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         if (nearest == null) return null;
         String name = nearest.hasCustomName() && nearest.getCustomName() != null
                 ? nearest.getCustomName().getString() : "aldeano";
-        return new VillagerSpeaker(nearest.getUUID(), name);
+        String profession = nearest.getVillagerData().profession().unwrapKey()
+                .map(key -> key.identifier().getPath()).orElse("villager");
+        return new VillagerSpeaker(nearest.getUUID(), name, profession);
     }
 
     private static String buildVillagerPrompt(VillagerSpeaker villager) {
         String base = voiceConfig.systemPrompt == null ? "" : voiceConfig.systemPrompt.trim();
         return base
                 + " The speaking character is the nearby villager named \"" + villager.name()
-                + "\". You are that villager, not an AI narrator. Output only the dialogue that this villager would say to the player. "
+                + "\". Their Minecraft profession is \"" + villager.profession() + "\". "
+                + "You are that specific villager, not an AI narrator or a generic villager. "
+                + "Use the profession only when it naturally affects what this villager would know, do, or say. "
+                + "Output only the dialogue that this villager would say to the player. "
                 + "Do not prefix the answer with the villager name. Do not describe actions or scenes. "
                 + "Finish every sentence naturally before stopping.";
     }
 
-    private record VillagerSpeaker(UUID id, String name) {}
+    private record VillagerSpeaker(UUID id, String name, String profession) {}
 
     private static String speechLanguage() {
         if (voiceConfig == null || voiceConfig.language == null || voiceConfig.language.isBlank()) return "es-ES";
