@@ -76,9 +76,7 @@ public final class VoiceClientConfig {
         else sttCommand = sttCommand.trim();
         if (ttsCommand == null) ttsCommand = "";
         else ttsCommand = ttsCommand.trim();
-        if (ttsInstructions == null || ttsInstructions.isBlank()
-                || ttsInstructions.startsWith("Minecraft Villager voice.")
-                || ttsInstructions.startsWith("Use a low, muffled, nasal")) {
+        if (ttsInstructions == null || ttsInstructions.isBlank()) {
             ttsInstructions = DEFAULT_TTS_INSTRUCTIONS;
         }
         if (systemPrompt == null || systemPrompt.isBlank()
