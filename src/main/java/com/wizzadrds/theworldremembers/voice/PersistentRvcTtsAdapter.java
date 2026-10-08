@@ -6,6 +6,8 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.Base64;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Future;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Keeps one VillagerTITAN RVC process alive so the checkpoint is loaded once per
@@ -48,7 +50,26 @@ public final class PersistentRvcTtsAdapter implements TtsAdapter {
             stdin.newLine();
             stdin.flush();
 
-            String response = stdout.readLine();
+            java.util.concurrent.ExecutorService readerExecutor = java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+                Thread thread = new Thread(r, "twr-rvc-response-reader");
+                thread.setDaemon(true);
+                return thread;
+            });
+            String response;
+            try {
+                Future<String> responseFuture = readerExecutor.submit(stdout::readLine);
+                response = responseFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            } catch (java.util.concurrent.TimeoutException ex) {
+                closeQuietly();
+                throw new IOException("VillagerTITAN worker timed out after " + REQUEST_TIMEOUT_SECONDS + " seconds", ex);
+            } catch (ExecutionException ex) {
+                closeQuietly();
+                Throwable cause = ex.getCause();
+                if (cause instanceof IOException io) throw io;
+                throw new IOException("VillagerTITAN worker response failed", cause);
+            } finally {
+                readerExecutor.shutdownNow();
+            }
             if (response == null) {
                 throw new IOException("VillagerTITAN worker exited unexpectedly");
             }
