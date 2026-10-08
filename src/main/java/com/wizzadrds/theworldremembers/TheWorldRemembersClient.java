@@ -421,9 +421,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 .resolve("config")
                 .resolve("the_world_remembers_voice_response_" + UUID.randomUUID() + ".wav");
         try {
-            TtsAdapter tts = "gemini".equalsIgnoreCase(voiceConfig.provider)
-                    ? new GeminiTtsAdapter(voiceConfig.apiKey, voiceConfig.ttsModel, voiceConfig.ttsVoice, voiceConfig.ttsInstructions)
-                    : new LocalProcessTtsAdapter(VoiceCommandParser.parse(voiceConfig.ttsCommand), voiceConfig.ttsInstructions);
+            TtsAdapter tts = createVillagerTtsAdapter();
             InputStream stream = tts.synthesizeStream(text, profile);
             if (session != voiceSessionGeneration.get()) {
                 if (stream != null) stream.close();
@@ -434,7 +432,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             } else {
                 Path audio = tts.synthesize(text, profile, output);
                 if (audio == null || !Files.isRegularFile(audio)) throw new IllegalStateException("TTS did not produce audio");
-                voicePlayer.playVillager(audio, voiceConfig.outputVolume);
+                playVillagerAudio(audio, voiceConfig.outputVolume);
             }
         } catch (Exception e) {
             if (session == voiceSessionGeneration.get()) throw new RuntimeException("Voice TTS failed", e);
@@ -472,8 +470,9 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
 
     private static void speakVillager(VillagerVoicePacket payload) {
         if (voiceConfig == null) return;
-        boolean gemini = "gemini".equalsIgnoreCase(voiceConfig.provider);
-        if (!gemini && (voiceConfig.ttsCommand == null || voiceConfig.ttsCommand.isBlank())) return;
+        boolean localVillagerTts = hasVillagerTtsCommand();
+        boolean gemini = "gemini".equalsIgnoreCase(voiceConfig.provider) && !localVillagerTts;
+        if (!gemini && !localVillagerTts && (voiceConfig.ttsCommand == null || voiceConfig.ttsCommand.isBlank())) return;
         if (gemini && (voiceConfig.apiKey == null || voiceConfig.apiKey.isBlank())) {
             lastVillagerVoiceError = "Gemini API key is missing";
             return;
@@ -500,9 +499,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 VoiceProfile profile = new VoiceProfile(speechLanguage(), modelOrVoice, temperament, rate, pitch, expressiveness);
                 output = Minecraft.getInstance().gameDirectory.toPath().resolve("config")
                         .resolve("twr_villager_" + UUID.randomUUID() + ".wav");
-                TtsAdapter tts = gemini
-                        ? new GeminiTtsAdapter(voiceConfig.apiKey, voiceConfig.ttsModel, voiceConfig.ttsVoice, voiceConfig.ttsInstructions)
-                        : new LocalProcessTtsAdapter(VoiceCommandParser.parse(voiceConfig.ttsCommand), voiceConfig.ttsInstructions);
+                TtsAdapter tts = createVillagerTtsAdapter();
                 InputStream streamedAudio = tts.synthesizeStream(payload.text(), profile);
                 if (session != voiceSessionGeneration.get()) {
                     if (streamedAudio != null) streamedAudio.close();
@@ -517,7 +514,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                     if (session != voiceSessionGeneration.get()) return;
                     if (audio != null && Files.isRegularFile(audio)) {
                         lastVillagerVoiceError = "";
-                        voicePlayer.playVillager(audio, volume);
+                        playVillagerAudio(audio, volume);
                     } else {
                         lastVillagerVoiceError = "TTS did not produce a WAV file";
                     }
@@ -532,6 +529,41 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 pendingVillagerSpeech.updateAndGet(value -> Math.max(0, value - 1));
             }
         });
+    }
+
+    private static boolean hasVillagerTtsCommand() {
+        return voiceConfig != null && voiceConfig.villagerTtsCommand != null
+                && !voiceConfig.villagerTtsCommand.isBlank();
+    }
+
+    private static boolean isRvcVillagerPipeline() {
+        return hasVillagerTtsCommand()
+                && voiceConfig.villagerTtsCommand.toLowerCase(java.util.Locale.ROOT)
+                        .contains("tts_rvc_villager");
+    }
+
+    private static TtsAdapter createVillagerTtsAdapter() {
+        if (hasVillagerTtsCommand()) {
+            return new LocalProcessTtsAdapter(
+                    VoiceCommandParser.parse(voiceConfig.villagerTtsCommand),
+                    voiceConfig.ttsInstructions);
+        }
+        if ("gemini".equalsIgnoreCase(voiceConfig.provider)) {
+            return new GeminiTtsAdapter(
+                    voiceConfig.apiKey, voiceConfig.ttsModel, voiceConfig.ttsVoice, voiceConfig.ttsInstructions);
+        }
+        return new LocalProcessTtsAdapter(
+                VoiceCommandParser.parse(voiceConfig.ttsCommand), voiceConfig.ttsInstructions);
+    }
+
+    private static void playVillagerAudio(Path audio, float volume) throws Exception {
+        if (isRvcVillagerPipeline()) {
+            // VillagerTITAN already converted the speaker identity. Applying the legacy
+            // post-DSP a second time would blur consonants and introduce artificial aliasing.
+            voicePlayer.play(audio, volume);
+        } else {
+            voicePlayer.playVillager(audio, volume);
+        }
     }
 
     private static String selectVillagerVoice(UUID speaker) {
