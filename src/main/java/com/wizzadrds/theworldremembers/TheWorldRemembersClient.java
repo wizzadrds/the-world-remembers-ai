@@ -54,6 +54,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static final AtomicLong voiceSessionGeneration = new AtomicLong();
     private static volatile String lastVillagerVoiceError = "";
     private static volatile UUID conversationVillagerId;
+    private static volatile TtsAdapter villagerTtsAdapter;
 
     public static VoicePacket lastVoice() { return lastVoice; }
     public static VoiceClientConfig voiceConfig() { return voiceConfig; }
@@ -622,11 +623,14 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
 
     private static TtsAdapter createVillagerTtsAdapter() {
         if (hasVillagerTtsCommand()) {
+            TtsAdapter cached = villagerTtsAdapter;
+            if (cached != null) return cached;
             java.util.List<String> command = VoiceCommandParser.parse(resolveVillagerTtsCommand());
-            if (isRvcVillagerPipeline()) {
-                return new PersistentRvcTtsAdapter(command);
-            }
-            return new LocalProcessTtsAdapter(command, voiceConfig.ttsInstructions);
+            TtsAdapter created = isRvcVillagerPipeline()
+                    ? new PersistentRvcTtsAdapter(command)
+                    : new LocalProcessTtsAdapter(command, voiceConfig.ttsInstructions);
+            villagerTtsAdapter = created;
+            return created;
         }
         if ("gemini".equalsIgnoreCase(voiceConfig.provider)) {
             return new GeminiTtsAdapter(
