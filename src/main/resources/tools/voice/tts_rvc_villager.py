@@ -93,6 +93,10 @@ def run_worker(
 ) -> int:
     os.chdir(rvc_root)
     sys.path.insert(0, str(rvc_root))
+    os.environ["weight_root"] = str(model.parent)
+    os.environ.setdefault("index_root", str(rvc_root / "logs"))
+    os.environ.setdefault("outside_index_root", str(rvc_root / "assets" / "indices"))
+    os.environ.setdefault("rmvpe_root", str(rvc_root / "assets" / "rmvpe"))
     from configs.config import Config
     from infer.vc.modules import VC
 
