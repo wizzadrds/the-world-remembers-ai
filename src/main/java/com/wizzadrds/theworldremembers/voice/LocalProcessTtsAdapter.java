@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 public final class LocalProcessTtsAdapter implements TtsAdapter {
     private final List<String> command;
     private final String instructions;
-    private static final long PROCESS_TIMEOUT_SECONDS = 45;
+    private static final long PROCESS_TIMEOUT_SECONDS = 120;
 
     public LocalProcessTtsAdapter(List<String> command) {
         this(command, "");
