@@ -35,8 +35,8 @@ public final class VoiceClientConfig {
     public String ttsCommand = "";
     public String ttsModel = "gemini-3.8-flash-tts";
     public String ttsVoice = "Algenib";
-    public String ttsInstructions = "Speak the villager's exact dialogue clearly and naturally. Do not narrate actions, describe scenes, add stage directions, or say what the villager is doing. The game applies a dedicated Minecraft-villager voice modulator after TTS: nasal, compressed, slightly rough, pitch-shifted, clipped NPC-like speech.";
-    public String systemPrompt = "You are one specific Minecraft villager speaking directly to the player. Reply only with the words this villager would actually say. Never narrate actions, emotions, scene descriptions, or third-person events. Keep it brief, conversational, and in character. Do not say what you are doing; just speak.";
+    public String ttsInstructions = DEFAULT_TTS_INSTRUCTIONS;
+    public String systemPrompt = DEFAULT_SYSTEM_PROMPT; just speak.";
 
     public static VoiceClientConfig load(Path gameDir) {
         Path file = file(gameDir);
@@ -74,8 +74,10 @@ public final class VoiceClientConfig {
         else sttCommand = sttCommand.trim();
         if (ttsCommand == null) ttsCommand = "";
         else ttsCommand = ttsCommand.trim();
-        if (ttsInstructions == null || ttsInstructions.isBlank()) {
-            ttsInstructions = "Speak the villager's exact dialogue clearly and naturally. Do not narrate actions, describe scenes, add stage directions, or say what the villager is doing. The game applies a dedicated Minecraft-villager voice modulator after TTS: nasal, compressed, slightly rough, pitch-shifted, clipped NPC-like speech.";
+        if (ttsInstructions == null || ttsInstructions.isBlank()
+                || ttsInstructions.startsWith("Minecraft Villager voice.")
+                || ttsInstructions.startsWith("Use a low, muffled, nasal")) {
+            ttsInstructions = DEFAULT_TTS_INSTRUCTIONS;
         }
         if (systemPrompt == null || systemPrompt.isBlank()) {
             systemPrompt = "You are one specific Minecraft villager speaking directly to the player. Reply only with the words this villager would actually say. Never narrate actions, emotions, scene descriptions, or third-person events. Keep it brief, conversational, and in character. Do not say what you are doing; just speak.";
