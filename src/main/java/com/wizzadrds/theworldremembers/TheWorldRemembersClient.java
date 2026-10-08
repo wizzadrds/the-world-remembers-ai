@@ -546,25 +546,75 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static String resolveVillagerTtsCommand() {
         if (!hasVillagerTtsCommand()) return "";
         String command = voiceConfig.villagerTtsCommand.trim();
-        // The default command is a repository-relative script path. Minecraft's
-        // working directory is the game directory, so resolve that path against
-        // the mod/repository root when the script exists there.
         java.util.List<String> args = VoiceCommandParser.parse(command);
-        if (args.isEmpty()) return command;
+        if (args.size() < 2) return command;
+
         String script = args.get(1);
-        if (args.size() >= 2 && (script.endsWith(".py") || script.endsWith(".pyc"))) {
-            Path gameDir = Minecraft.getInstance().gameDirectory.toPath().toAbsolutePath();
-            Path candidate = gameDir.resolve(script).normalize();
-            if (!Files.isRegularFile(candidate)) {
-                Path repoCandidate = Paths.get(System.getProperty("user.dir", "."))
-                        .resolve(script).toAbsolutePath().normalize();
-                if (Files.isRegularFile(repoCandidate)) {
-                    args.set(1, repoCandidate.toString());
-                    return String.join(" ", args.stream().map(TheWorldRemembersClient::quoteCommandArg).toList());
+        if (!(script.endsWith(".py") || script.endsWith(".pyc"))) return command;
+
+        Path gameDir = Minecraft.getInstance().gameDirectory.toPath().toAbsolutePath().normalize();
+        Path candidate = gameDir.resolve(script).normalize();
+        if (Files.isRegularFile(candidate)) {
+            args.set(1, candidate.toString());
+            return joinCommandArgs(args);
+        }
+
+        Path installed = installBundledVillagerTtsScript(gameDir);
+        if (installed != null && Files.isRegularFile(installed)) {
+            args.set(1, installed.toString());
+            return joinCommandArgs(args);
+        }
+
+        Path repoCandidate = findRepositoryScript(script, gameDir);
+        if (repoCandidate != null) {
+            args.set(1, repoCandidate.toString());
+            return joinCommandArgs(args);
+        }
+
+        return command;
+    }
+
+    private static Path installBundledVillagerTtsScript(Path gameDir) {
+        Path target = gameDir.resolve("the_world_remembers").resolve("tools").resolve("voice").resolve("tts_rvc_villager.py");
+        try {
+            Files.createDirectories(target.getParent());
+            try (InputStream input = TheWorldRemembersClient.class.getClassLoader()
+                    .getResourceAsStream("tools/voice/tts_rvc_villager.py")) {
+                if (input == null) return null;
+                Files.copy(input, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+            return target;
+        } catch (Exception e) {
+            LOGGER.warn("[TWR Voice] Could not install bundled VillagerTITAN TTS script: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private static Path findRepositoryScript(String script, Path gameDir) {
+        java.util.List<Path> roots = new java.util.ArrayList<>();
+        String configuredRoot = System.getenv("TWR_PROJECT_ROOT");
+        if (configuredRoot != null && !configuredRoot.isBlank()) {
+            roots.add(Paths.get(configuredRoot).toAbsolutePath().normalize());
+        }
+        roots.add(Paths.get(System.getProperty("user.dir", ".")).toAbsolutePath().normalize());
+        roots.add(gameDir);
+
+        for (Path root : roots) {
+            Path current = root;
+            for (int depth = 0; depth < 8 && current != null; depth++, current = current.getParent()) {
+                Path candidate = current.resolve(script).normalize();
+                if (Files.isRegularFile(candidate)) return candidate;
+                if ("tools/voice/tts_rvc_villager.py".equals(script.replace('\\\\', '/'))) {
+                    Path repoScript = current.resolve("tools").resolve("voice").resolve("tts_rvc_villager.py").normalize();
+                    if (Files.isRegularFile(repoScript)) return repoScript;
                 }
             }
         }
-        return command;
+        return null;
+    }
+
+    private static String joinCommandArgs(java.util.List<String> args) {
+        return String.join(" ", args.stream().map(TheWorldRemembersClient::quoteCommandArg).toList());
     }
 
     private static String quoteCommandArg(String arg) {
