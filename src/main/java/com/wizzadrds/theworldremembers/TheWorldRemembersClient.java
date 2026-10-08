@@ -10,6 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -542,6 +543,34 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 && !voiceConfig.villagerTtsCommand.isBlank();
     }
 
+    private static String resolveVillagerTtsCommand() {
+        if (!hasVillagerTtsCommand()) return "";
+        String command = voiceConfig.villagerTtsCommand.trim();
+        // The default command is a repository-relative script path. Minecraft's
+        // working directory is the game directory, so resolve that path against
+        // the mod/repository root when the script exists there.
+        java.util.List<String> args = VoiceCommandParser.parse(command);
+        if (args.isEmpty()) return command;
+        String script = args.get(1);
+        if (args.size() >= 2 && (script.endsWith(".py") || script.endsWith(".pyc"))) {
+            Path gameDir = Minecraft.getInstance().gameDirectory.toPath().toAbsolutePath();
+            Path candidate = gameDir.resolve(script).normalize();
+            if (!Files.isRegularFile(candidate)) {
+                Path repoCandidate = Paths.get(System.getProperty("user.dir", "."))
+                        .resolve(script).toAbsolutePath().normalize();
+                if (Files.isRegularFile(repoCandidate)) {
+                    args.set(1, repoCandidate.toString());
+                    return String.join(" ", args.stream().map(TheWorldRemembersClient::quoteCommandArg).toList());
+                }
+            }
+        }
+        return command;
+    }
+
+    private static String quoteCommandArg(String arg) {
+        return arg.contains(" ") ? "\"" + arg.replace("\"", "\\\"") + "\"" : arg;
+    }
+
     private static boolean isRvcVillagerPipeline() {
         return hasVillagerTtsCommand()
                 && voiceConfig.villagerTtsCommand.toLowerCase(java.util.Locale.ROOT)
@@ -551,7 +580,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static TtsAdapter createVillagerTtsAdapter() {
         if (hasVillagerTtsCommand()) {
             return new LocalProcessTtsAdapter(
-                    VoiceCommandParser.parse(voiceConfig.villagerTtsCommand),
+                    VoiceCommandParser.parse(resolveVillagerTtsCommand()),
                     voiceConfig.ttsInstructions);
         }
         if ("gemini".equalsIgnoreCase(voiceConfig.provider)) {
