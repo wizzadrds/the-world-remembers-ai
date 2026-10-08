@@ -5,6 +5,8 @@ Bundled with the mod so Minecraft does not depend on shell environment variables
 
 from __future__ import annotations
 
+import base64
+import json
 import math
 import os
 import subprocess
@@ -55,12 +57,97 @@ def pitch_to_semitones(pitch: float) -> int:
     return max(-12, min(12, round(12.0 * math.log2(pitch))))
 
 
+def _piper_to_source(text: str, source: Path, piper: Path, piper_model: Path, length_scale: float) -> None:
+    piper_command = [
+        str(piper), "--model", str(piper_model),
+        "--output_file", str(source), "--length_scale", str(length_scale),
+    ]
+    try:
+        piper_proc = subprocess.run(
+            piper_command, input=text, text=True, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, check=False,
+        )
+    except OSError as exc:
+        raise SystemExit(f"Piper could not start: {exc}") from exc
+    if piper_proc.returncode != 0:
+        raise SystemExit(f"Piper failed with exit code {piper_proc.returncode}.\n{piper_proc.stdout or ''}")
+    if not source.is_file() or source.stat().st_size == 0:
+        raise SystemExit("Piper produced no source WAV")
+
+
+def _write_rvc_audio(path: Path, audio, sample_rate: int) -> None:
+    import soundfile as sf
+    path.parent.mkdir(parents=True, exist_ok=True)
+    sf.write(str(path), audio, sample_rate)
+
+
+def run_worker(
+    rvc_root: Path,
+    model: Path,
+    piper_model: Path,
+    piper: Path,
+    speaker: int,
+    f0_method: str,
+    index_rate: float,
+    protect: float,
+) -> int:
+    os.chdir(rvc_root)
+    sys.path.insert(0, str(rvc_root))
+    from configs.config import Config
+    from infer.vc.modules import VC
+
+    original_argv = sys.argv[:]
+    sys.argv = [sys.argv[0]]
+    try:
+        config = Config()
+    finally:
+        sys.argv = original_argv
+
+    print(f"[VillagerTITAN worker] loading {model.name}", file=sys.stderr, flush=True)
+    vc = VC(config)
+    vc.get_vc(model.name)
+    print("[VillagerTITAN worker] ready", file=sys.stderr, flush=True)
+
+    for raw in sys.stdin:
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            request = json.loads(raw)
+            text = base64.b64decode(request["text"]).decode("utf-8").strip()
+            output = Path(request["output"]).expanduser().resolve()
+            rate = float(request.get("rate", 1.0))
+            pitch = float(request.get("pitch", 1.0))
+            if not text:
+                raise ValueError("Villager TTS text is empty")
+
+            pitch_shift = max(-12, min(12, int(round(
+                pitch_to_semitones(pitch) + int(os.environ.get("TWR_RVC_PITCH", "0"))
+            ))))
+            length_scale = max(0.55, min(1.6, 1.0 / max(0.5, min(2.0, rate))))
+            with tempfile.TemporaryDirectory(prefix="twr-villagertitan-worker-") as temp_dir:
+                source = Path(temp_dir) / "source.wav"
+                _piper_to_source(text, source, piper, piper_model, length_scale)
+                status, result = vc.vc_single(
+                    speaker, str(source), pitch_shift, f0_method, "",
+                    index_rate, 40000, 1.0, protect,
+                )
+                if not result or result[0] is None or result[1] is None:
+                    raise RuntimeError(str(status or "RVC produced no audio"))
+                _write_rvc_audio(output, result[1], result[0])
+
+            print(json.dumps({"ok": True, "output": str(output)}, ensure_ascii=False), flush=True)
+        except Exception as exc:
+            print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False), flush=True)
+    return 0
+
+
 def main() -> int:
-    if len(sys.argv) < 3:
+    if "--worker" not in sys.argv[1:] and len(sys.argv) < 3:
         raise SystemExit("usage: tts_rvc_villager.py <text> <output.wav> [language] [model] [rate] [pitch] [expressiveness]")
 
-    text = sys.argv[1].strip()
-    output = Path(sys.argv[2]).expanduser().resolve()
+    text = sys.argv[1].strip() if "--worker" not in sys.argv[1:] else ""
+    output = Path(sys.argv[2]).expanduser().resolve() if "--worker" not in sys.argv[1:] else Path(".").resolve()
     if not text:
         raise SystemExit("Villager TTS text is empty")
 
@@ -88,6 +175,13 @@ def main() -> int:
         raise SystemExit(f"RVC Python not found: {python}")
     if not piper.is_file() and str(piper).lower() != "piper":
         raise SystemExit(f"Piper executable not found: {piper}")
+
+    if "--worker" in sys.argv[1:]:
+        speaker = int(os.environ.get("TWR_RVC_SPEAKER", "0").strip() or "0")
+        f0_method = os.environ.get("TWR_RVC_F0_METHOD", "rmvpe").strip() or "rmvpe"
+        index_rate = max(0.0, min(1.0, float(os.environ.get("TWR_RVC_INDEX_RATE", "0"))))
+        protect = max(0.0, min(0.5, float(os.environ.get("TWR_RVC_PROTECT", "0.5"))))
+        return run_worker(rvc_root, model, piper_model, piper, speaker, f0_method, index_rate, protect)
 
     output.parent.mkdir(parents=True, exist_ok=True)
     speaker = os.environ.get("TWR_RVC_SPEAKER", "0").strip() or "0"
