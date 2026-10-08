@@ -10,11 +10,11 @@ import java.nio.file.Path;
 public final class VoiceClientConfig {
     private static final String DEFAULT_TTS_INSTRUCTIONS =
             "Speak only the villager's exact dialogue. No narration, no stage directions, no scene description, no assistant wording. "
-                    + "Keep Spanish natural, conversational and concise. Do not add "hmm", "hrrm", grunts, or artificial villager vocalizations. The configured villager voice pipeline supplies the NPC timbre.";
+                    + "Keep Spanish natural, conversational and concise. Do not add \"hmm\", \"hrrm\", grunts, or artificial villager vocalizations. The configured villager voice pipeline supplies the NPC timbre.";
     private static final String DEFAULT_SYSTEM_PROMPT =
             "You are the specific Minecraft villager the player is standing near and speaking to. "
                     + "Reply only with that villager's spoken dialogue. Never narrate actions, emotions, scenes, or third-person events. "
-                    + "Never answer as a generic AI. Do not add "hmm", "hrrm", grunts, or other artificial vocalizations. Keep the reply brief, conversational, and in character.";
+                    + "Never answer as a generic AI. Do not add \"hmm\", \"hrrm\", grunts, or other artificial vocalizations. Keep the reply brief, conversational, and in character.";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     public String microphone = AudioDeviceManager.DEFAULT_DEVICE;
@@ -76,6 +76,8 @@ public final class VoiceClientConfig {
         else sttCommand = sttCommand.trim();
         if (ttsCommand == null) ttsCommand = "";
         else ttsCommand = ttsCommand.trim();
+        if (villagerTtsCommand == null) villagerTtsCommand = "";
+        else villagerTtsCommand = villagerTtsCommand.trim();
         if (ttsInstructions == null || ttsInstructions.isBlank()) {
             ttsInstructions = DEFAULT_TTS_INSTRUCTIONS;
         }
