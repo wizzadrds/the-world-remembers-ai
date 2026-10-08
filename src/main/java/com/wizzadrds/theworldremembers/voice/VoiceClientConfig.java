@@ -36,6 +36,8 @@ public final class VoiceClientConfig {
     public String ttsModel = "gemini-3.8-flash-tts";
     public String ttsVoice = "Algenib";
     public String ttsInstructions = DEFAULT_TTS_INSTRUCTIONS;
+    /** Optional local villager-only TTS pipeline. Used independently of the AI provider. */
+    public String villagerTtsCommand = "";
     public String systemPrompt = DEFAULT_SYSTEM_PROMPT;
 
     public static VoiceClientConfig load(Path gameDir) {
