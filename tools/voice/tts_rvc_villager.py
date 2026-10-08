@@ -133,8 +133,18 @@ def run_worker(
                 source = Path(temp_dir) / "source.wav"
                 _piper_to_source(text, source, piper, piper_model, length_scale)
                 status, result = vc.vc_single(
-                    speaker, str(source), pitch_shift, f0_method, "",
-                    index_rate, 40000, 1.0, protect,
+                    speaker,
+                    str(source),
+                    pitch_shift,
+                    "",
+                    f0_method,
+                    "",
+                    "",
+                    index_rate,
+                    3,
+                    40000,
+                    1.0,
+                    protect,
                 )
                 if not result or result[0] is None or result[1] is None:
                     raise RuntimeError(str(status or "RVC produced no audio"))
