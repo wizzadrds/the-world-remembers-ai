@@ -19,8 +19,11 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.npc.villager.Villager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class TheWorldRemembersClient implements ClientModInitializer {
+    private static final Logger LOGGER = LoggerFactory.getLogger("The World Remembers");
     private static final KeyMapping.Category CATEGORY =
             KeyMapping.Category.register(net.minecraft.resources.Identifier.fromNamespaceAndPath("the_world_remembers", "chronicles"));
     private static final KeyMapping CHRONICLE_KEY =
@@ -381,6 +384,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                     if (session == voiceSessionGeneration.get()) voiceConversation.finishSpeaking();
                 }
             } catch (Exception e) {
+                LOGGER.error("[TWR Voice] Voice processing failed: {}", rootMessage(e), e);
                 throw e instanceof RuntimeException runtime ? runtime : new RuntimeException("Voice processing failed: " + rootMessage(e), e);
             }
         });
@@ -520,7 +524,9 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                     }
                 }
             } catch (Exception e) {
-                lastVillagerVoiceError = e.getClass().getSimpleName() + ": " + (e.getMessage() == null ? "TTS failed" : e.getMessage());
+                String detail = rootMessage(e);
+                lastVillagerVoiceError = e.getClass().getSimpleName() + ": " + detail;
+                LOGGER.error("[TWR Voice] Villager TTS failed: {}", detail, e);
                 // Local TTS is optional: a missing/broken adapter must never stop gameplay.
             } finally {
                 if (output != null) {
