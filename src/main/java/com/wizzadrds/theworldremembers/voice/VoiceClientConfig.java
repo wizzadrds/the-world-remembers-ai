@@ -15,6 +15,8 @@ public final class VoiceClientConfig {
             "You are the specific Minecraft villager the player is standing near and speaking to. "
                     + "Reply only with that villager's spoken dialogue. Never narrate actions, emotions, scenes, or third-person events. "
                     + "Never answer as a generic AI. Do not add \"hmm\", \"hrrm\", grunts, or other artificial vocalizations. Keep the reply brief, conversational, and in character.";
+    private static final String DEFAULT_VILLAGER_TTS_COMMAND =
+            "python tools/voice/tts_rvc_villager.py {text} {output} {language} {model} {rate} {pitch} {expressiveness}";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     public String microphone = AudioDeviceManager.DEFAULT_DEVICE;
@@ -36,8 +38,8 @@ public final class VoiceClientConfig {
     public String ttsModel = "gemini-3.8-flash-tts";
     public String ttsVoice = "Algenib";
     public String ttsInstructions = DEFAULT_TTS_INSTRUCTIONS;
-    /** Optional local villager-only TTS pipeline. Used independently of the AI provider. */
-    public String villagerTtsCommand = "";
+    /** Local villager-only TTS pipeline: Piper Spanish source -> VillagerTITAN RVC. */
+    public String villagerTtsCommand = DEFAULT_VILLAGER_TTS_COMMAND;
     public String systemPrompt = DEFAULT_SYSTEM_PROMPT;
 
     public static VoiceClientConfig load(Path gameDir) {
@@ -48,7 +50,6 @@ public final class VoiceClientConfig {
                 if (config != null) return config.normalized();
             }
         } catch (Exception ignored) {
-            // Preserve the broken file for diagnosis instead of silently overwriting it.
             backupCorruptConfig(file);
         }
         return new VoiceClientConfig();
@@ -76,13 +77,10 @@ public final class VoiceClientConfig {
         else sttCommand = sttCommand.trim();
         if (ttsCommand == null) ttsCommand = "";
         else ttsCommand = ttsCommand.trim();
-        if (villagerTtsCommand == null) villagerTtsCommand = "";
+        if (villagerTtsCommand == null || villagerTtsCommand.isBlank()) villagerTtsCommand = DEFAULT_VILLAGER_TTS_COMMAND;
         else villagerTtsCommand = villagerTtsCommand.trim();
-        if (ttsInstructions == null || ttsInstructions.isBlank()) {
-            ttsInstructions = DEFAULT_TTS_INSTRUCTIONS;
-        }
-        if (systemPrompt == null || systemPrompt.isBlank()
-                || systemPrompt.startsWith("You are one specific Minecraft villager")) {
+        if (ttsInstructions == null || ttsInstructions.isBlank()) ttsInstructions = DEFAULT_TTS_INSTRUCTIONS;
+        if (systemPrompt == null || systemPrompt.isBlank() || systemPrompt.startsWith("You are one specific Minecraft villager")) {
             systemPrompt = DEFAULT_SYSTEM_PROMPT;
         }
         return this;
@@ -106,10 +104,7 @@ public final class VoiceClientConfig {
         } catch (IOException ignored) {
             return false;
         } finally {
-            try {
-                Files.deleteIfExists(temp);
-            } catch (IOException ignored) {
-            }
+            try { Files.deleteIfExists(temp); } catch (IOException ignored) {}
         }
         try {
             VoiceClientConfig persisted = load(gameDir);
@@ -132,8 +127,7 @@ public final class VoiceClientConfig {
                 backup = candidate;
             }
             Files.move(file, backup, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException ignored) {
-        }
+        } catch (IOException ignored) {}
     }
 
     private static Path file(Path gameDir) {
