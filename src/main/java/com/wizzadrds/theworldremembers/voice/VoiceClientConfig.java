@@ -8,6 +8,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class VoiceClientConfig {
+    private static final String DEFAULT_TTS_INSTRUCTIONS =
+            "Speak only the villager's exact dialogue. No narration, no stage directions, no scene description, no assistant wording. "
+                    + "The game applies a dedicated Minecraft-villager voice modulator after TTS: nasal, compressed, rough, pitch-shifted, clipped NPC speech.";
+    private static final String DEFAULT_SYSTEM_PROMPT =
+            "You are the specific Minecraft villager the player is standing near and speaking to. "
+                    + "Reply only with that villager's spoken dialogue. Never narrate actions, emotions, scenes, or third-person events. "
+                    + "Never answer as a generic AI. Keep the reply brief, conversational, and in character.";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     public String microphone = AudioDeviceManager.DEFAULT_DEVICE;
