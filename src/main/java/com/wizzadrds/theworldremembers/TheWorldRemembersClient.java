@@ -546,7 +546,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static String resolveVillagerTtsCommand() {
         if (!hasVillagerTtsCommand()) return "";
         String command = voiceConfig.villagerTtsCommand.trim();
-        java.util.List<String> args = VoiceCommandParser.parse(command);
+        java.util.List<String> args = new java.util.ArrayList<>(VoiceCommandParser.parse(command));
         if (args.size() < 2) return command;
 
         String script = args.get(1);
