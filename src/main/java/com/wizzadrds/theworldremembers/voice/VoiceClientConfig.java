@@ -79,8 +79,9 @@ public final class VoiceClientConfig {
                 || ttsInstructions.startsWith("Use a low, muffled, nasal")) {
             ttsInstructions = DEFAULT_TTS_INSTRUCTIONS;
         }
-        if (systemPrompt == null || systemPrompt.isBlank()) {
-            systemPrompt = "You are one specific Minecraft villager speaking directly to the player. Reply only with the words this villager would actually say. Never narrate actions, emotions, scene descriptions, or third-person events. Keep it brief, conversational, and in character. Do not say what you are doing; just speak.";
+        if (systemPrompt == null || systemPrompt.isBlank()
+                || systemPrompt.startsWith("You are one specific Minecraft villager")) {
+            systemPrompt = DEFAULT_SYSTEM_PROMPT;
         }
         return this;
     }
