@@ -53,6 +53,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     /** Changes whenever the connected world/session changes, invalidating old TTS jobs. */
     private static final AtomicLong voiceSessionGeneration = new AtomicLong();
     private static volatile String lastVillagerVoiceError = "";
+    private static volatile UUID conversationVillagerId;
 
     public static VoicePacket lastVoice() { return lastVoice; }
     public static VoiceClientConfig voiceConfig() { return voiceConfig; }
@@ -295,6 +296,8 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             voiceConversation.fail("Acércate a un aldeano para hablar con él.");
             return;
         }
+        conversationVillagerId = villager.villager().getUUID();
+        sendVillagerConversationFocus(conversationVillagerId, true);
         if (pcm != null && pcm.length > 0) {
             byte[] recordingCopy = pcm.clone();
             Thread.ofVirtual().name("twr-voice-recording-save").start(() -> saveMicrophoneRecording(recordingCopy));
@@ -338,7 +341,10 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                     }
                     if (reply == null || reply.isBlank()) throw new IllegalStateException("AI returned an empty reply");
                     speakResponseSentence(reply.trim(), service, session);
-                    if (session == voiceSessionGeneration.get()) voiceConversation.finishSpeaking();
+                    if (session == voiceSessionGeneration.get()) {
+                        finishVillagerConversationFocus();
+                        voiceConversation.finishSpeaking();
+                    }
                 } else {
                     String reply;
                     try {
@@ -357,10 +363,25 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                     if (session == voiceSessionGeneration.get()) voiceConversation.finishSpeaking();
                 }
             } catch (Exception e) {
+                finishVillagerConversationFocus();
                 LOGGER.error("[TWR Voice] Voice processing failed: {}", rootMessage(e), e);
                 throw e instanceof RuntimeException runtime ? runtime : new RuntimeException("Voice processing failed: " + rootMessage(e), e);
             }
         });
+    }
+
+    private static void sendVillagerConversationFocus(UUID villagerId, boolean active) {
+        if (villagerId == null) return;
+        Minecraft client = Minecraft.getInstance();
+        if (client.getConnection() != null && ClientPlayNetworking.canSend(VillagerConversationFocusPacket.TYPE)) {
+            ClientPlayNetworking.send(new VillagerConversationFocusPacket(villagerId, active));
+        }
+    }
+
+    private static void finishVillagerConversationFocus() {
+        UUID id = conversationVillagerId;
+        conversationVillagerId = null;
+        sendVillagerConversationFocus(id, false);
     }
 
     private static String rootMessage(Throwable error) {
