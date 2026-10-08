@@ -297,7 +297,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             voiceConversation.fail("Acércate a un aldeano para hablar con él.");
             return;
         }
-        conversationVillagerId = villager.villager().getUUID();
+        conversationVillagerId = villager.id();
         sendVillagerConversationFocus(conversationVillagerId, true);
         if (pcm != null && pcm.length > 0) {
             byte[] recordingCopy = pcm.clone();
