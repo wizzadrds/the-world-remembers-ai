@@ -6,7 +6,7 @@ Minecraft Java mod focused on persistent memory, relationships, emergent NPC beh
 
 ## Status
 
-**Current milestone:** v1.0.0 integration complete — release artifact/tag pending final publication
+**Current milestone:** Reality pass in progress — Phase 6 is not considered complete until live gameplay and final CI validation pass
 
 ## Core pillars
 
@@ -15,7 +15,7 @@ Minecraft Java mod focused on persistent memory, relationships, emergent NPC beh
 - Relationships: trust, fear, gratitude and resentment evolve from remembered events. **[Phase 3 complete]**
 - Behavior: NPCs decide whether to talk, continue, leave, work or ignore. **[Phase 4 complete]**
 - Families: parents, siblings, spouses, shared homes and inherited history persist across generations. **[Phase 5 complete — v0.5.0-alpha]**
-- Society: villages, resources, defense, landmarks, migration and shared storage persist. **[Phase 6 complete]**
+- Society: villages, resources, defense, landmarks, migration and shared storage are under active live validation. **[Phase 6 incomplete]**
 - Rumors: NPCs distinguish direct, reported and rumored knowledge, with persistent conversations and grounded dialogue. **[Phase 7 complete]**
 - Voice: local-first STT/TTS adapters, deterministic scheduling, spatial delivery and state-driven speech. **[Phase 8 complete]**
 - Chronicles: a read-only world-history browser for timeline, people, relationships, families and villages. **[Phase 9 complete]**
