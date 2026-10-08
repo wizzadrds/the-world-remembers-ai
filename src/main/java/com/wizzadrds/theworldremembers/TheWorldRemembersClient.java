@@ -622,9 +622,11 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
 
     private static TtsAdapter createVillagerTtsAdapter() {
         if (hasVillagerTtsCommand()) {
-            return new LocalProcessTtsAdapter(
-                    VoiceCommandParser.parse(resolveVillagerTtsCommand()),
-                    voiceConfig.ttsInstructions);
+            java.util.List<String> command = VoiceCommandParser.parse(resolveVillagerTtsCommand());
+            if (isRvcVillagerPipeline()) {
+                return new PersistentRvcTtsAdapter(command);
+            }
+            return new LocalProcessTtsAdapter(command, voiceConfig.ttsInstructions);
         }
         if ("gemini".equalsIgnoreCase(voiceConfig.provider)) {
             return new GeminiTtsAdapter(
