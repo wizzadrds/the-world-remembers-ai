@@ -604,7 +604,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             for (int depth = 0; depth < 8 && current != null; depth++, current = current.getParent()) {
                 Path candidate = current.resolve(script).normalize();
                 if (Files.isRegularFile(candidate)) return candidate;
-                if ("tools/voice/tts_rvc_villager.py".equals(script.replace('\', '/'))) {
+                if ("tools/voice/tts_rvc_villager.py".equals(script.replace('\\', '/'))) {
                     Path repoScript = current.resolve("tools").resolve("voice").resolve("tts_rvc_villager.py").normalize();
                     if (Files.isRegularFile(repoScript)) return repoScript;
                 }
