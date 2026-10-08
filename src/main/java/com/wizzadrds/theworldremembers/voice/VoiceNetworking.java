@@ -2,6 +2,7 @@ package com.wizzadrds.theworldremembers.voice;
 
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.npc.villager.Villager;
@@ -29,6 +30,24 @@ public final class VoiceNetworking {
         PayloadTypeRegistry.clientboundPlay().register(VoiceAudioPacket.TYPE, VoiceAudioPacket.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(VoiceAudioPacket.TYPE, VoiceAudioPacket.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(VillagerConversationFocusPacket.TYPE, VillagerConversationFocusPacket.CODEC);
+
+        // Keep an explicitly focused villager stopped and facing the player every server tick.
+        // The client sends the focus-on packet before STT/AI/TTS and the focus-off packet only
+        // after playback finishes, so the villager cannot resume its normal goals mid-reply.
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            for (var entry : VOICE_FOCUS.entrySet()) {
+                ServerPlayer player = server.getPlayerList().getPlayer(entry.getKey());
+                FocusState focus = entry.getValue();
+                if (player == null || focus.villager == null || server.isStopped()) continue;
+                Villager villager = player.level().getEntity(focus.villager) instanceof Villager v ? v : null;
+                if (villager != null && villager.isAlive() && villager.distanceToSqr(player) <= 12.0 * 12.0
+                        && focus.untilTick > player.level().getGameTime()) {
+                    holdVillagerFocus(player, villager);
+                } else if (focus.untilTick <= player.level().getGameTime()) {
+                    focus.villager = null;
+                }
+            }
+        });
 
         // A disconnected player must not leave rate-limit state behind forever.
         ServerPlayConnectionEvents.DISCONNECT.register((listener, server) -> {
@@ -126,8 +145,8 @@ public final class VoiceNetworking {
         }
         if (nearest == null) return;
 
-        // Do not rewrite villager AI: just interrupt the current path briefly and make the
-        // villager look at the speaking player. Normal goals can resume as soon as voice focus expires.
+        // Interrupt the current path and make the villager look at the speaking player.
+        // Explicit conversation focus is refreshed every server tick until TTS playback ends.
         nearest.getNavigation().stop();
         nearest.getLookControl().setLookAt(player, 30.0f, 30.0f);
         focus.villager = nearest.getUUID();
