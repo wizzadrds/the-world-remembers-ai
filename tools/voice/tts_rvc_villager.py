@@ -29,9 +29,16 @@ def env_path(name: str, default: Path | None = None, required: bool = True) -> P
 
 def run_checked(command: list[str], label: str, cwd: Path | None = None) -> None:
     try:
+        # Minecraft on Windows may launch us with a legacy cp1252/charmap
+        # console. RVC emits Unicode diagnostics (for example 【...】), so
+        # force UTF-8 for the child process and decode its output as UTF-8.
+        child_env = os.environ.copy()
+        child_env["PYTHONUTF8"] = "1"
+        child_env["PYTHONIOENCODING"] = "utf-8"
         completed = subprocess.run(
-            command, check=False, text=True, stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT, cwd=str(cwd) if cwd else None,
+            command, check=False, text=True, encoding="utf-8", errors="replace",
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            cwd=str(cwd) if cwd else None, env=child_env,
         )
     except OSError as exc:
         raise SystemExit(f"{label} could not start: {exc}") from exc
