@@ -16,7 +16,7 @@ VillagerTITAN RVC v2
 Minecraft audio output
 ~~~
 
-This is deliberately different from the old Java-only DSP. When the dedicated RVC pipeline is active, the client plays the RVC result directly so the old post-processing does not blur the converted voice.
+This is deliberately different from the old Java-only DSP. When the dedicated RVC pipeline is active, the client plays the RVC result directly so the old post-processing does not blur the converted voice. The dialogue itself stays normal Spanish speech: the mod does not add artificial "hmm", "hrrm", grunts, or other villager vocalizations. VillagerTITAN is responsible for the villager timbre.
 
 ## Model
 
