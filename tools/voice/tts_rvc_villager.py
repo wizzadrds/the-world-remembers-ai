@@ -115,16 +115,6 @@ def main() -> int:
 
         # Human source voice. RVC changes the speaker identity while preserving
         # the linguistic content and prosody as much as the target model allows.
-        run_checked(
-            [
-                piper,
-                "--model", str(piper_model),
-                "--output_file", str(source),
-                "--length_scale", str(length_scale),
-            ],
-            "Piper",
-        ) if False else None
-
         try:
             piper_proc = subprocess.run(
                 [
