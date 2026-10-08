@@ -160,9 +160,10 @@ def main() -> int:
     if "--worker" not in sys.argv[1:] and len(sys.argv) < 3:
         raise SystemExit("usage: tts_rvc_villager.py <text> <output.wav> [language] [model] [rate] [pitch] [expressiveness]")
 
-    text = sys.argv[1].strip() if "--worker" not in sys.argv[1:] else ""
-    output = Path(sys.argv[2]).expanduser().resolve() if "--worker" not in sys.argv[1:] else Path(".").resolve()
-    if not text:
+    worker_mode = "--worker" in sys.argv[1:]
+    text = sys.argv[1].strip() if not worker_mode else ""
+    output = Path(sys.argv[2]).expanduser().resolve() if not worker_mode else Path(".").resolve()
+    if not worker_mode and not text:
         raise SystemExit("Villager TTS text is empty")
 
     rate = float(sys.argv[5]) if len(sys.argv) > 5 else 1.0
