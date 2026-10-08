@@ -327,46 +327,18 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 AiChatAdapter ai = createAiAdapter();
                 String villagerPrompt = buildVillagerPrompt(villager);
                 if ("gemini".equalsIgnoreCase(voiceConfig.provider)) {
-                    java.util.concurrent.ExecutorService speechQueue = Executors.newSingleThreadExecutor(r -> {
-                        Thread thread = new Thread(r, "twr-voice-sentence-tts");
-                        thread.setDaemon(true);
-                        return thread;
-                    });
-                    java.util.List<java.util.concurrent.Future<?>> speechJobs =
-                            new java.util.concurrent.CopyOnWriteArrayList<>();
-                    StringBuilder sentence = new StringBuilder();
+                    String reply;
                     try {
-                        String reply;
-                        try {
-                            reply = ai.respondStreaming(transcript, villagerPrompt, chunk -> {
-                            sentence.append(chunk);
-                            int boundary;
-                            while ((boundary = sentenceBoundary(sentence)) >= 0) {
-                                String part = sentence.substring(0, boundary + 1).trim();
-                                sentence.delete(0, boundary + 1);
-                                if (!part.isBlank()) {
-                                    speechJobs.add(speechQueue.submit(() ->
-                                            speakResponseSentence(part, service, session)));
-                                }
-                            }
-                            });
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            throw new RuntimeException("Voice AI request failed: request interrupted", e);
-                        } catch (Exception e) {
-                            throw new RuntimeException("Voice AI request failed: " + rootMessage(e), e);
-                        }
-                        String tail = sentence.toString().trim();
-                        if (!tail.isBlank()) {
-                            speechJobs.add(speechQueue.submit(() ->
-                                    speakResponseSentence(tail, service, session)));
-                        }
-                        for (java.util.concurrent.Future<?> job : speechJobs) job.get();
-                        if (reply == null || reply.isBlank()) throw new IllegalStateException("AI returned an empty reply");
-                        if (session == voiceSessionGeneration.get()) voiceConversation.finishSpeaking();
-                    } finally {
-                        speechQueue.shutdownNow();
+                        reply = ai.respondStreaming(transcript, villagerPrompt, ignored -> {});
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException("Voice AI request failed: request interrupted", ex);
+                    } catch (Exception ex) {
+                        throw new RuntimeException("Voice AI request failed: " + rootMessage(ex), ex);
                     }
+                    if (reply == null || reply.isBlank()) throw new IllegalStateException("AI returned an empty reply");
+                    speakResponseSentence(reply.trim(), service, session);
+                    if (session == voiceSessionGeneration.get()) voiceConversation.finishSpeaking();
                 } else {
                     String reply;
                     try {
