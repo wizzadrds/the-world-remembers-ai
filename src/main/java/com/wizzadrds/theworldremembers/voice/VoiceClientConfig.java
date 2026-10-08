@@ -36,7 +36,7 @@ public final class VoiceClientConfig {
     public String ttsModel = "gemini-3.8-flash-tts";
     public String ttsVoice = "Algenib";
     public String ttsInstructions = DEFAULT_TTS_INSTRUCTIONS;
-    public String systemPrompt = DEFAULT_SYSTEM_PROMPT; just speak.";
+    public String systemPrompt = DEFAULT_SYSTEM_PROMPT;
 
     public static VoiceClientConfig load(Path gameDir) {
         Path file = file(gameDir);
