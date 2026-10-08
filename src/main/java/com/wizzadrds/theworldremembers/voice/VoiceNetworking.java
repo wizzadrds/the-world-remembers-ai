@@ -28,12 +28,30 @@ public final class VoiceNetworking {
         PayloadTypeRegistry.clientboundPlay().register(VillagerVoicePacket.TYPE, VillagerVoicePacket.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(VoiceAudioPacket.TYPE, VoiceAudioPacket.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(VoiceAudioPacket.TYPE, VoiceAudioPacket.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(VillagerConversationFocusPacket.TYPE, VillagerConversationFocusPacket.CODEC);
 
         // A disconnected player must not leave rate-limit state behind forever.
         ServerPlayConnectionEvents.DISCONNECT.register((listener, server) -> {
             UUID playerId = listener.getPlayer().getUUID();
             RATE_LIMITS.remove(playerId);
             VOICE_FOCUS.remove(playerId);
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(VillagerConversationFocusPacket.TYPE, (payload, context) -> {
+            ServerPlayer sender = context.player();
+            context.server().execute(() -> {
+                Villager villager = sender.level().getEntity(payload.villager()) instanceof Villager v ? v : null;
+                if (villager == null || !villager.isAlive() || villager.distanceToSqr(sender) > 12.0 * 12.0) return;
+                FocusState focus = VOICE_FOCUS.computeIfAbsent(sender.getUUID(), ignored -> new FocusState());
+                if (payload.active()) {
+                    focus.villager = villager.getUUID();
+                    focus.untilTick = Long.MAX_VALUE;
+                    focus.nextRefreshTick = 0;
+                    holdVillagerFocus(sender, villager);
+                } else if (villager.getUUID().equals(focus.villager)) {
+                    focus.untilTick = sender.level().getGameTime();
+                }
+            });
         });
 
         ServerPlayNetworking.registerGlobalReceiver(VoiceAudioPacket.TYPE, (payload, context) -> {
@@ -85,6 +103,13 @@ public final class VoiceNetworking {
     private static void keepNearestVillagerAttentive(ServerPlayer player, long now) {
         UUID playerId = player.getUUID();
         FocusState focus = VOICE_FOCUS.computeIfAbsent(playerId, ignored -> new FocusState());
+        if (focus.villager != null && now < focus.untilTick) {
+            Villager focused = player.level().getEntity(focus.villager) instanceof Villager v ? v : null;
+            if (focused != null && focused.isAlive()) {
+                holdVillagerFocus(player, focused);
+                return;
+            }
+        }
         if (now < focus.nextRefreshTick) return;
         focus.nextRefreshTick = now + VOICE_FOCUS_REFRESH_TICKS;
 
@@ -113,6 +138,11 @@ public final class VoiceNetworking {
         private UUID villager;
         private long nextRefreshTick;
         private long untilTick;
+    }
+
+    private static void holdVillagerFocus(ServerPlayer player, Villager villager) {
+        villager.getNavigation().stop();
+        villager.getLookControl().setLookAt(player, 30.0f, 30.0f);
     }
 
     private static final class RateState {
