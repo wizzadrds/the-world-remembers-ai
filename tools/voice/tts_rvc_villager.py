@@ -68,11 +68,11 @@ def _piper_to_source(text: str, source: Path, piper: Path, piper_model: Path, le
             stderr=subprocess.STDOUT, check=False,
         )
     except OSError as exc:
-        raise SystemExit(f"Piper could not start: {exc}") from exc
+        raise RuntimeError(f"Piper could not start: {exc}") from exc
     if piper_proc.returncode != 0:
-        raise SystemExit(f"Piper failed with exit code {piper_proc.returncode}.\n{piper_proc.stdout or ''}")
+        raise RuntimeError(f"Piper failed with exit code {piper_proc.returncode}.\n{piper_proc.stdout or ''}")
     if not source.is_file() or source.stat().st_size == 0:
-        raise SystemExit("Piper produced no source WAV")
+        raise RuntimeError("Piper produced no source WAV")
 
 
 def _write_rvc_audio(path: Path, audio, sample_rate: int) -> None:
@@ -151,8 +151,8 @@ def run_worker(
                 _write_rvc_audio(output, result[1], result[0])
 
             print(json.dumps({"ok": True, "output": str(output)}, ensure_ascii=False), flush=True)
-        except Exception as exc:
-            print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False), flush=True)
+        except BaseException as exc:
+            print(json.dumps({"ok": False, "error": f"{type(exc).__name__}: {exc}"}, ensure_ascii=False), flush=True)
     return 0
 
 
@@ -185,7 +185,7 @@ def main() -> int:
     if not model.is_file():
         raise SystemExit(f"RVC model not found: {model}")
     if not piper_model.is_file():
-        raise SystemExit(f"Piper model not found: {piper}")
+        raise SystemExit(f"Piper model not found: {piper_model}")
     if not python.is_file():
         raise SystemExit(f"RVC Python not found: {python}")
     if not piper.is_file() and str(piper).lower() != "piper":
