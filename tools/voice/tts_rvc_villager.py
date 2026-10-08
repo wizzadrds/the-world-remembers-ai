@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Generate Spanish Piper speech and convert it through VillagerTITAN RVC."""
+"""Generate Spanish Piper speech and convert it through VillagerTITAN RVC.
+
+Bundled with the mod so Minecraft does not depend on shell environment variables."""
 
 from __future__ import annotations
 
