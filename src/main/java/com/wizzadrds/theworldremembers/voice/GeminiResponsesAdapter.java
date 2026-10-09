@@ -63,7 +63,7 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
         body.addProperty("input", userText == null ? "" : userText);
         if (systemPrompt != null && !systemPrompt.isBlank()) body.addProperty("system_instruction", systemPrompt);
         JsonObject generationConfig = new JsonObject();
-        generationConfig.addProperty("thinking_level", "low");
+        generationConfig.addProperty("thinking_level", thinkingLevelFor(model));
         body.add("generation_config", generationConfig);
         body.addProperty("stream", true);
 
@@ -75,7 +75,7 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
 
         HttpResponse<java.io.InputStream> response =
                 client.send(request, HttpResponse.BodyHandlers.ofInputStream());
-        if ((response.statusCode() == 503 || response.statusCode() == 429) && model.equals("gemini-3.8-flash")) {
+        if ((response.statusCode() == 503 || response.statusCode() == 429) && !model.equals(CAPACITY_FALLBACK_MODEL)) {
             try (java.io.InputStream stream = response.body()) {
                 stream.readAllBytes();
             }
@@ -122,7 +122,7 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
         body.addProperty("input", userText == null ? "" : userText);
         if (systemPrompt != null && !systemPrompt.isBlank()) body.addProperty("system_instruction", systemPrompt);
         JsonObject generationConfig = new JsonObject();
-        generationConfig.addProperty("thinking_level", "low");
+        generationConfig.addProperty("thinking_level", thinkingLevelFor(fallbackModel));
         body.add("generation_config", generationConfig);
         HttpRequest request = HttpRequest.newBuilder(URI.create("https://generativelanguage.googleapis.com/v1beta/interactions"))
                 .header("x-goog-api-key", apiKey)
@@ -143,7 +143,7 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
         body.addProperty("input", userText == null ? "" : userText);
         if (systemPrompt != null && !systemPrompt.isBlank()) body.addProperty("system_instruction", systemPrompt);
         JsonObject generationConfig = new JsonObject();
-        generationConfig.addProperty("thinking_level", "low");
+        generationConfig.addProperty("thinking_level", thinkingLevelFor(fallbackModel));
         body.add("generation_config", generationConfig);
         body.addProperty("stream", true);
         HttpRequest request = HttpRequest.newBuilder(URI.create("https://generativelanguage.googleapis.com/v1beta/interactions"))
