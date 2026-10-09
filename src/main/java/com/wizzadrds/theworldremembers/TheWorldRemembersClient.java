@@ -356,20 +356,28 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                     new LocalProcessTtsAdapter(ttsCommand));
         }
 
+        final long voiceRequestStartedNanos = System.nanoTime();
         voiceConversation.finishListening(pcm, service, transcript -> {
             try {
+                LOGGER.info("[TWR Voice] Speech recognized after {} ms", (System.nanoTime() - voiceRequestStartedNanos) / 1_000_000L);
                 if (session != voiceSessionGeneration.get()) return;
                 AiChatAdapter ai = createAiAdapter();
                 String villagerPrompt = buildVillagerPrompt(villager);
                 if ("gemini".equalsIgnoreCase(voiceConfig.provider)) {
                     StringBuilder pendingSpeech = new StringBuilder();
                     List<CompletableFuture<Void>> speechJobs = new ArrayList<>();
+                    long aiStartedNanos = System.nanoTime();
+                    boolean[] firstAiChunkLogged = {false};
                     String reply;
                     try {
                         // Start RVC synthesis as soon as the first complete sentence arrives,
                         // rather than waiting for Gemini to finish the entire answer.
                         reply = ai.respondStreaming(transcript, villagerPrompt, chunk -> {
                             if (session != voiceSessionGeneration.get()) return;
+                            if (!firstAiChunkLogged[0] && !chunk.isBlank()) {
+                                firstAiChunkLogged[0] = true;
+                                LOGGER.info("[TWR Voice] First AI text arrived after {} ms", (System.nanoTime() - aiStartedNanos) / 1_000_000L);
+                            }
                             pendingSpeech.append(chunk);
                             int boundary;
                             while ((boundary = sentenceBoundary(pendingSpeech)) >= 0) {
@@ -483,11 +491,13 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         // Convert the next chunk while the previous WAV plays. Playback remains serial.
         CompletableFuture<Path> synthesized = CompletableFuture.supplyAsync(() -> {
             if (session != voiceSessionGeneration.get()) return null;
+            long synthesisStartedNanos = System.nanoTime();
             try {
                 TtsAdapter tts = createVillagerTtsAdapter();
                 Path audio = tts.synthesize(cleaned, profile, output);
                 if (audio == null || !Files.isRegularFile(audio) || Files.size(audio) < 44)
                     throw new IllegalStateException("VillagerTITAN produced an empty or invalid WAV");
+                LOGGER.info("[TWR Voice] VillagerTITAN synthesized {} characters in {} ms", cleaned.length(), (System.nanoTime() - synthesisStartedNanos) / 1_000_000L);
                 return audio;
             } catch (Exception e) { throw new java.util.concurrent.CompletionException(e); }
         }, synthesis);
