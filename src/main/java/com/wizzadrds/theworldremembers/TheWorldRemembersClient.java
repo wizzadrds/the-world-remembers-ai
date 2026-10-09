@@ -368,15 +368,17 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 if (session != voiceSessionGeneration.get()) return;
                 AiChatAdapter ai = createAiAdapter();
                 String villagerPrompt = buildVillagerPrompt(villager);
-                if ("gemini".equalsIgnoreCase(voiceConfig.provider)) {
+                if ("gemini".equalsIgnoreCase(voiceConfig.provider)
+                        || "openai".equalsIgnoreCase(voiceConfig.provider)
+                        || "openai-responses".equalsIgnoreCase(voiceConfig.provider)) {
                     StringBuilder pendingSpeech = new StringBuilder();
                     List<CompletableFuture<Void>> speechJobs = new ArrayList<>();
                     long aiStartedNanos = System.nanoTime();
                     boolean[] firstAiChunkLogged = {false};
                     String reply;
                     try {
-                        // Start RVC synthesis as soon as the first complete sentence arrives,
-                        // rather than waiting for Gemini to finish the entire answer.
+                        // Start speech synthesis as soon as the first complete sentence arrives,
+                        // rather than waiting for the provider to finish the entire answer.
                         reply = ai.respondStreaming(transcript, villagerPrompt, chunk -> {
                             if (session != voiceSessionGeneration.get()) return;
                             if (!firstAiChunkLogged[0] && !chunk.isBlank()) {
