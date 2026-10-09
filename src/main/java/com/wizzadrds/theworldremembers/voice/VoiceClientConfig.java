@@ -108,9 +108,9 @@ public final class VoiceClientConfig {
         if (villagerTtsCommand == null) villagerTtsCommand = "";
         else {
             villagerTtsCommand = villagerTtsCommand.trim();
-            // The previous out-of-box command required users to install Python, Piper and RVC.
-            // Migrate only that old default to cloud TTS; custom local commands remain untouched.
-            if (villagerTtsCommand.equals(LEGACY_DEFAULT_VILLAGER_TTS_COMMAND)) villagerTtsCommand = "";
+            // Preserve an existing VillagerTITAN setup: silently migrating this command
+            // to cloud TTS changes the villager's identity to a generic synthesized voice.
+            // Fresh installs still default to cloud TTS; existing users keep their chosen pipeline.
         }
         if (ttsInstructions == null || ttsInstructions.isBlank() || ttsInstructions.equals(LEGACY_DEFAULT_TTS_INSTRUCTIONS)
                 || ttsInstructions.equals(LEGACY_DEFAULT_TTS_INSTRUCTIONS_ES)) {
