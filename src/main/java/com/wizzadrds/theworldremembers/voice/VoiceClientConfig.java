@@ -39,8 +39,9 @@ public final class VoiceClientConfig {
                     + "Contesta directamente con una o dos frases conectadas, normalmente de 10 a 16 palabras en total, sin alargar por alargar. "
                     + "Usa vocabulario sencillo, adulto y natural. Adapta el contenido a tu profesión solo si viene al caso; no inventes datos. "
                     + "Devuelve únicamente el diálogo hablado, sin narración, acciones, nombres, sonidos, gruñidos, muletillas, repeticiones ni explicaciones. Debe sonar como una intervención continua y natural, no como palabras aisladas. Termina la frase completa y no añadas nada más.";
-    private static final String DEFAULT_VILLAGER_TTS_COMMAND =
+    private static final String LEGACY_DEFAULT_VILLAGER_TTS_COMMAND =
             "python tools/voice/tts_rvc_villager.py {text} {output} {language} {model} {rate} {pitch} {expressiveness}";
+    private static final String DEFAULT_VILLAGER_TTS_COMMAND = "";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     public String microphone = AudioDeviceManager.DEFAULT_DEVICE;
@@ -104,8 +105,13 @@ public final class VoiceClientConfig {
         else sttCommand = sttCommand.trim();
         if (ttsCommand == null) ttsCommand = "";
         else ttsCommand = ttsCommand.trim();
-        if (villagerTtsCommand == null || villagerTtsCommand.isBlank()) villagerTtsCommand = DEFAULT_VILLAGER_TTS_COMMAND;
-        else villagerTtsCommand = villagerTtsCommand.trim();
+        if (villagerTtsCommand == null) villagerTtsCommand = "";
+        else {
+            villagerTtsCommand = villagerTtsCommand.trim();
+            // The previous out-of-box command required users to install Python, Piper and RVC.
+            // Migrate only that old default to cloud TTS; custom local commands remain untouched.
+            if (villagerTtsCommand.equals(LEGACY_DEFAULT_VILLAGER_TTS_COMMAND)) villagerTtsCommand = "";
+        }
         if (ttsInstructions == null || ttsInstructions.isBlank() || ttsInstructions.equals(LEGACY_DEFAULT_TTS_INSTRUCTIONS)
                 || ttsInstructions.equals(LEGACY_DEFAULT_TTS_INSTRUCTIONS_ES)) {
             ttsInstructions = DEFAULT_TTS_INSTRUCTIONS;
