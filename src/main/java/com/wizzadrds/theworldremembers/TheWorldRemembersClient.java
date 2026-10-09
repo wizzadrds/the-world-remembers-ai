@@ -459,8 +459,13 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
             if (c == '\n' || c == '…' || c == '.' || c == '!' || c == '?') {
-                // Accumulate tiny fragments rather than converting "Sí." alone.
-                if (i < 24 && c != '\n') continue;
+                // RVC often smears consonants on short clips. Keep collecting until
+                // we have a useful phrase, not merely a punctuation token.
+                if (c != '\n') {
+                    String candidate = text.substring(0, i + 1).trim();
+                    int words = candidate.isEmpty() ? 0 : candidate.split("\\s+").length;
+                    if (i < 40 || words < 6) continue;
+                }
                 if (c == '.' && i > 0 && i + 1 < text.length()
                         && Character.isDigit(text.charAt(i - 1))
                         && Character.isDigit(text.charAt(i + 1))) continue;
