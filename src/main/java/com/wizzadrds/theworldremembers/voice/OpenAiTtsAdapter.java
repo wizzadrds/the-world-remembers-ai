@@ -23,8 +23,8 @@ public final class OpenAiTtsAdapter implements TtsAdapter {
     public OpenAiTtsAdapter(String apiKey, String model, String defaultVoice, String instructions) {
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("OpenAI API key is required");
         this.apiKey = apiKey.trim();
-        this.model = model == null || model.isBlank() ? "gpt-4o-mini-tts" : model.trim();
-        this.defaultVoice = defaultVoice == null || defaultVoice.isBlank() ? "alloy" : defaultVoice.trim();
+        this.model = model == null || model.isBlank() || model.toLowerCase(Locale.ROOT).startsWith("gemini") ? "gpt-4o-mini-tts" : model.trim();
+        this.defaultVoice = normalizeVoice(defaultVoice);
         this.instructions = instructions == null ? "" : instructions.trim();
     }
 
@@ -57,9 +57,18 @@ public final class OpenAiTtsAdapter implements TtsAdapter {
         return response.body();
     }
 
+    private static String normalizeVoice(String value) {
+        if (value == null || value.isBlank()) return "alloy";
+        String voice = value.trim().toLowerCase(Locale.ROOT);
+        if (voice.equals("algenib") || voice.equals("kore")) return "alloy";
+        return switch (voice) {
+            case "alloy", "ash", "ballad", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer", "verse", "marin", "cedar" -> voice;
+            default -> "alloy";
+        };
+    }
+
     private HttpRequest request(String text, VoiceProfile profile, String format) {
-        String voice = profile != null && profile.modelId() != null && !profile.modelId().isBlank()
-                ? profile.modelId().trim() : defaultVoice;
+        String voice = normalizeVoice(profile != null ? profile.modelId() : defaultVoice);
         JsonObject body = new JsonObject();
         body.addProperty("model", model);
         body.addProperty("voice", voice.toLowerCase(Locale.ROOT));
