@@ -623,7 +623,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 float volume = Math.max(0.0f, Math.min(2.0f, voiceConfig.outputVolume));
                 if (streamedAudio != null) {
                     lastVillagerVoiceError = "";
-                    voicePlayer.playVillagerPcmStream(streamedAudio, volume);
+                    voicePlayer.playPcmStream(streamedAudio, volume);
                 } else {
                     Path audio = tts.synthesize(payload.text(), profile, output);
                     if (session != voiceSessionGeneration.get()) return;
