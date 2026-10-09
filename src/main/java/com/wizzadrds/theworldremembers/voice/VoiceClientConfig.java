@@ -15,6 +15,11 @@ public final class VoiceClientConfig {
             "Speak the exact words written in natural, correct Spanish. Use standard grammar, natural word order, correct verb conjugations, and ordinary vocabulary. "
                     + "Do not insert filler words, random words, repetitions, false starts, or words that do not belong in the sentence. "
                     + "No narration, stage directions, sound effects, grunts, or artificial villager noises. The voice model provides the villager sound.";
+    private static final String PREVIOUS_DEFAULT_TTS_INSTRUCTIONS =
+            "Speak the exact words written in natural, correct Spanish, as one connected utterance with natural rhythm. "
+                    + "Keep normal continuity between words; do not add dramatic pauses, false starts, ellipses, repetitions, or extra words. "
+                    + "Use standard grammar, natural word order, correct verb conjugations, and ordinary vocabulary. "
+                    + "No narration, stage directions, sound effects, grunts, or artificial villager noises. The voice model provides the villager sound.";
     private static final String DEFAULT_TTS_INSTRUCTIONS =
             "Speak Spanish briskly as one continuous, connected utterance, with natural conversational pacing. "
                     + "Do not pause between individual words. In particular, say short phrases like 'Me llamo Mateo' smoothly, not as separate words. "
@@ -114,7 +119,8 @@ public final class VoiceClientConfig {
             // Fresh installs still default to cloud TTS; existing users keep their chosen pipeline.
         }
         if (ttsInstructions == null || ttsInstructions.isBlank() || ttsInstructions.equals(LEGACY_DEFAULT_TTS_INSTRUCTIONS)
-                || ttsInstructions.equals(LEGACY_DEFAULT_TTS_INSTRUCTIONS_ES)) {
+                || ttsInstructions.equals(LEGACY_DEFAULT_TTS_INSTRUCTIONS_ES)
+                || ttsInstructions.equals(PREVIOUS_DEFAULT_TTS_INSTRUCTIONS)) {
             ttsInstructions = DEFAULT_TTS_INSTRUCTIONS;
         }
         if (systemPrompt == null || systemPrompt.isBlank() || systemPrompt.equals(LEGACY_DEFAULT_SYSTEM_PROMPT)
