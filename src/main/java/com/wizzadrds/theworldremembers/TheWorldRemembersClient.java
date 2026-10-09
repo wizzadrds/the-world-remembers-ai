@@ -464,7 +464,9 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 if (c != '\n') {
                     String candidate = text.substring(0, i + 1).trim();
                     int words = candidate.isEmpty() ? 0 : candidate.split("\\s+").length;
-                    if (i < 40 || words < 6) continue;
+                    // The prompt now requests short, grammatical replies; let those
+                    // complete sentences start synthesis without waiting for 40+ chars.
+                    if (i < 27 || words < 5) continue;
                 }
                 if (c == '.' && i > 0 && i + 1 < text.length()
                         && Character.isDigit(text.charAt(i - 1))
@@ -490,7 +492,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         }
         String responseVoice = voiceConfig.ttsVoice == null || voiceConfig.ttsVoice.isBlank()
                 ? voiceConfig.ttsModel : voiceConfig.ttsVoice.trim();
-        VoiceProfile profile = new VoiceProfile(speechLanguage(), responseVoice, VoiceTemperament.CALM, 1.0f, 1.0f, 0.5f);
+        VoiceProfile profile = new VoiceProfile(speechLanguage(), responseVoice, VoiceTemperament.CALM, 1.2f, 1.0f, 0.5f);
         Path output = Minecraft.getInstance().gameDirectory.toPath().resolve("config")
                 .resolve("the_world_remembers_voice_response_" + UUID.randomUUID() + ".wav");
         // Convert the next chunk while the previous WAV plays. Playback remains serial.
@@ -809,9 +811,12 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 + "Use the profession only when it naturally affects what this villager would know, do, or say. "
                 + "Output only the dialogue that this villager would say to the player. "
                 + "Do not prefix the answer with the villager name. Do not describe actions or scenes. "
-                + "Reply in clear, natural Spanish. Keep the default reply to one short sentence of 8–14 words; only give more detail when asked. "
-                + "Output spoken dialogue only: no sound effects, vocalizations, fake villager grunts, phonetic noises, stage directions, repeated words, or unfinished trailing fragments. "
-                + "Use ordinary punctuation, complete the thought, and stop immediately after the final word.";
+                + "Speak in fluent, grammatically correct, natural Spanish, like an articulate adult. Correct word order, agreement, and verb conjugation are mandatory. "
+                + "Never insert random or misplaced words, awkward literal translations, broken fragments, childish phrasing, or unnatural filler. "
+                + "Answer the player's actual question directly in one complete sentence, ideally 5–9 words; use up to 12 if needed for correct grammar and clear meaning. "
+                + "Use simple everyday vocabulary, but form a proper sentence. Do not force the profession into unrelated answers or invent facts. "
+                + "Output only spoken dialogue: no narration, action descriptions, names, sound effects, grunts, phonetic noises, filler, repetitions, or unfinished trailing fragments. "
+                + "Use normal Spanish punctuation, finish the thought, and stop immediately after the final word.";
     }
 
     private record VillagerSpeaker(UUID id, String name, String profession) {}
