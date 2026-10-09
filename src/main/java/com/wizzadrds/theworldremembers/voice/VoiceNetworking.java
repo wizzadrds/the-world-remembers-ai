@@ -30,6 +30,7 @@ public final class VoiceNetworking {
         PayloadTypeRegistry.clientboundPlay().register(VoiceAudioPacket.TYPE, VoiceAudioPacket.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(VoiceAudioPacket.TYPE, VoiceAudioPacket.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(VillagerConversationFocusPacket.TYPE, VillagerConversationFocusPacket.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(VillagerNamePacket.TYPE, VillagerNamePacket.CODEC);
 
         // Keep an explicitly focused villager stopped and facing the player every server tick.
         // The client sends the focus-on packet before STT/AI/TTS and the focus-off packet only
@@ -54,6 +55,21 @@ public final class VoiceNetworking {
             UUID playerId = listener.getPlayer().getUUID();
             RATE_LIMITS.remove(playerId);
             VOICE_FOCUS.remove(playerId);
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(VillagerNamePacket.TYPE, (payload, context) -> {
+            ServerPlayer sender = context.player();
+            String rawName = payload.name() == null ? "" : payload.name().trim();
+            String name = rawName.replaceAll("[^\\p{L}\\p{M}'’ -]", "").replaceAll("\\s+", " ");
+            if (name.isBlank() || name.length() > 24) return;
+            context.server().execute(() -> {
+                Villager villager = sender.level().getEntity(payload.villager()) instanceof Villager v ? v : null;
+                if (villager == null || !villager.isAlive() || villager.distanceToSqr(sender) > 12.0 * 12.0) return;
+                if (villager.hasCustomName() && villager.getCustomName() != null
+                        && !villager.getCustomName().getString().equalsIgnoreCase(name)) return;
+                villager.setCustomName(net.minecraft.network.chat.Component.literal(name));
+                villager.setCustomNameVisible(true);
+            });
         });
 
         ServerPlayNetworking.registerGlobalReceiver(VillagerConversationFocusPacket.TYPE, (payload, context) -> {
