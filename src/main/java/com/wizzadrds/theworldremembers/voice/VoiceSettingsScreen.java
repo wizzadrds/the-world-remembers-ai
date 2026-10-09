@@ -246,9 +246,9 @@ public final class VoiceSettingsScreen extends Screen {
         ttsModel = field(right, top + row++ * rowHeight(), "TTS model", config.ttsModel);
 
         ttsVoice = field(left, top + row * rowHeight(), "TTS voice", config.ttsVoice);
-        apiKey = field(right, top + row++ * rowHeight(), "API key (Google Gemini)", config.apiKey);
+        apiKey = field(right, top + row++ * rowHeight(), "API key (Gemini / OpenAI)", config.apiKey);
         apiKey.setMaxLength(512);
-        apiKey.setSuggestion("Paste your Gemini API key here");
+        apiKey.setSuggestion("Paste the key for the selected provider");
 
         sttCommand = field(left, top + row * rowHeight(), "Local STT command", config.sttCommand);
         sttCommand.setSuggestion("Optional: command + {pcm}");
@@ -257,10 +257,17 @@ public final class VoiceSettingsScreen extends Screen {
 
         addRenderableWidget(Button.builder(Component.literal("Recommended defaults"), b -> {
             language.setValue("es-ES");
-            model.setValue("gemini-3.8-flash");
-            sttModel.setValue("gemini-3.5-transcribe");
-            ttsModel.setValue("gemini-3.8-flash-tts");
-            ttsVoice.setValue("Algenib");
+            if ("gemini".equalsIgnoreCase(config.provider)) {
+                model.setValue("gemini-3.5-flash-lite");
+                sttModel.setValue("gemini-3.5-transcribe");
+                ttsModel.setValue("gemini-3.8-flash-tts");
+                ttsVoice.setValue("Algenib");
+            } else {
+                model.setValue("gpt-4o-mini");
+                sttModel.setValue("gpt-4o-mini-transcribe");
+                ttsModel.setValue("gpt-4o-mini-tts");
+                ttsVoice.setValue("alloy");
+            }
             sttCommand.setValue("");
             ttsCommand.setValue("");
             b.setMessage(Component.literal("Defaults applied"));
@@ -286,8 +293,8 @@ public final class VoiceSettingsScreen extends Screen {
         row++;
 
         addRenderableWidget(Button.builder(Component.literal("Villager defaults"), b -> {
-            ttsInstructions.setValue("Speak only the villager dialogue. Keep Spanish natural and conversational; VillagerTITAN supplies the villager timbre.");
-            villagerTtsCommand.setValue("python tools/voice/tts_rvc_villager.py {text} {output} {language} {model} {rate} {pitch} {expressiveness}");
+            ttsInstructions.setValue("Speak only the villager dialogue. Keep Spanish natural, grammatical and conversational, with continuous rhythm.");
+            villagerTtsCommand.setValue("");
             systemPrompt.setValue("You are one specific Minecraft villager speaking directly to the player. Reply only with the words this villager would actually say. Never narrate actions, scenes, emotions, or third-person events.");
             b.setMessage(Component.literal("Defaults applied"));
         }).bounds(left, top + row * rowHeight(), COL_W, 20).build());
@@ -340,8 +347,8 @@ public final class VoiceSettingsScreen extends Screen {
             case "STT model" -> "Speech-to-text model. Gemini example: gemini-3.5-transcribe.";
             case "TTS model" -> "Text-to-speech model. Gemini example: gemini-3.8-flash-tts.";
             case "TTS voice" -> "Online TTS voice name. Used when the dedicated villager TTS command is empty.";
-            case "Villager TTS command" -> "Dedicated local villager TTS pipeline. It can run RVC independently of the AI provider.";
-            case "API key (Google Gemini)" -> "Paste your Google AI Studio Gemini API key here. It is saved in Minecraft config, not in the world.";
+            case "Villager TTS command" -> "Optional advanced local voice override. Leave empty to use cloud TTS from the selected provider; local RVC requires separate models and dependencies.";
+            case "API key (Gemini / OpenAI)" -> "Paste the API key for the selected provider. It is saved in Minecraft config, not in the world.";
             case "Local STT command" -> "Optional local speech-to-text command. Use {pcm} where the PCM file path should go.";
             case "Local TTS command" -> "Optional local text-to-speech command. Use {text}, {output}, {language}, {model}, {rate}, {pitch}, {expressiveness}.";
             case "Speaking style" -> "Instructions controlling how the villager voice sounds. Full text is kept; the field scrolls horizontally.";
@@ -355,7 +362,7 @@ public final class VoiceSettingsScreen extends Screen {
 
     private String shortHint(String label) {
         return switch (label) {
-            case "API key (Google Gemini)" -> "Gemini API key";
+            case "API key (Gemini / OpenAI)" -> "Provider API key";
             case "Local STT command" -> "{pcm}";
             case "Local TTS command" -> "{text} {output}";
             case "Speaking style" -> "Enter voice style...";
