@@ -5,6 +5,9 @@ import com.wizzadrds.theworldremembers.voice.*;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -48,6 +51,8 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static int voiceSequence;
     private static int audioDevicePollTicks;
     private static ExecutorService villagerSpeechExecutor;
+    /** Serial queue for response sentences; lets Gemini keep streaming while RVC works. */
+    private static ExecutorService responseSpeechExecutor;
     private static String appliedOutputDevice;
     private static final AtomicInteger pendingVillagerSpeech = new AtomicInteger();
     /** Changes whenever the connected world/session changes, invalidating old TTS jobs. */
@@ -102,6 +107,11 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         voicePlayer.setOutputDevice(voiceConfig.outputDevice);
         villagerSpeechExecutor = Executors.newFixedThreadPool(2, r -> {
             Thread thread = new Thread(r, "twr-villager-voice");
+            thread.setDaemon(true);
+            return thread;
+        });
+        responseSpeechExecutor = Executors.newSingleThreadExecutor(r -> {
+            Thread thread = new Thread(r, "twr-villager-response-voice");
             thread.setDaemon(true);
             return thread;
         });
@@ -347,6 +357,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 String villagerPrompt = buildVillagerPrompt(villager);
                 if ("gemini".equalsIgnoreCase(voiceConfig.provider)) {
                     StringBuilder pendingSpeech = new StringBuilder();
+                    List<CompletableFuture<Void>> speechJobs = new ArrayList<>();
                     String reply;
                     try {
                         // Start RVC synthesis as soon as the first complete sentence arrives,
@@ -358,7 +369,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                             while ((boundary = sentenceBoundary(pendingSpeech)) >= 0) {
                                 String sentence = pendingSpeech.substring(0, boundary + 1).trim();
                                 pendingSpeech.delete(0, boundary + 1);
-                                if (!sentence.isBlank()) speakResponseSentence(sentence, service, session);
+                                if (!sentence.isBlank()) queueResponseSentence(speechJobs, sentence, service, session);
                                 int leading = 0;
                                 while (leading < pendingSpeech.length() && Character.isWhitespace(pendingSpeech.charAt(leading))) leading++;
                                 if (leading > 0) pendingSpeech.delete(0, leading);
@@ -372,8 +383,12 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                     }
                     if (reply == null || reply.isBlank()) throw new IllegalStateException("AI returned an empty reply");
                     if (session == voiceSessionGeneration.get() && !pendingSpeech.toString().isBlank()) {
-                        speakResponseSentence(pendingSpeech.toString().trim(), service, session);
+                        queueResponseSentence(speechJobs, pendingSpeech.toString().trim(), service, session);
                     }
+                    // Wait only after Gemini has finished streaming. RVC conversion and
+                    // playback now overlap with generation of later sentences instead of
+                    // blocking the network stream after every punctuation mark.
+                    for (CompletableFuture<Void> speechJob : speechJobs) speechJob.join();
                     if (session == voiceSessionGeneration.get()) {
                         finishVillagerConversationFocus();
                         voiceConversation.finishSpeaking();
@@ -440,6 +455,16 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             }
         }
         return -1;
+    }
+
+    private static void queueResponseSentence(List<CompletableFuture<Void>> jobs, String text, VoiceService service, long session) {
+        if (session != voiceSessionGeneration.get() || text == null || text.isBlank()) return;
+        ExecutorService executor = responseSpeechExecutor;
+        if (executor == null) {
+            speakResponseSentence(text, service, session);
+            return;
+        }
+        jobs.add(CompletableFuture.runAsync(() -> speakResponseSentence(text, service, session), executor));
     }
 
     private static void speakResponseSentence(String text, VoiceService service, long session) {
