@@ -28,7 +28,7 @@ public final class VillagerDialogueMemory {
     private static final int CONTEXT_TURNS = 6;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Pattern NAME_PATTERN = Pattern.compile(
-            "(?iu)\\b(?:me llamo|mi nombre es|puedes llamarme|llámame|soy)\\s+"
+            "(?iu)\\b(?:me llamo|mi nombre es|puedes llamarme|llámame)\\s+"
                     + "(?!(?:un|una|el|la|aldeano|aldeana|vecino|vecina)\\b)"
                     + "([\\p{L}][\\p{L}'’-]{1,23})\\b");
     private static final Map<String, Entry> ENTRIES = new LinkedHashMap<>();
