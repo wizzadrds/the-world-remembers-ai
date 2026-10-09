@@ -331,9 +331,24 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 AiChatAdapter ai = createAiAdapter();
                 String villagerPrompt = buildVillagerPrompt(villager);
                 if ("gemini".equalsIgnoreCase(voiceConfig.provider)) {
+                    StringBuilder pendingSpeech = new StringBuilder();
                     String reply;
                     try {
-                        reply = ai.respondStreaming(transcript, villagerPrompt, ignored -> {});
+                        // Start RVC synthesis as soon as the first complete sentence arrives,
+                        // rather than waiting for Gemini to finish the entire answer.
+                        reply = ai.respondStreaming(transcript, villagerPrompt, chunk -> {
+                            if (session != voiceSessionGeneration.get()) return;
+                            pendingSpeech.append(chunk);
+                            int boundary;
+                            while ((boundary = sentenceBoundary(pendingSpeech)) >= 0) {
+                                String sentence = pendingSpeech.substring(0, boundary + 1).trim();
+                                pendingSpeech.delete(0, boundary + 1);
+                                if (!sentence.isBlank()) speakResponseSentence(sentence, service, session);
+                                int leading = 0;
+                                while (leading < pendingSpeech.length() && Character.isWhitespace(pendingSpeech.charAt(leading))) leading++;
+                                if (leading > 0) pendingSpeech.delete(0, leading);
+                            }
+                        });
                     } catch (InterruptedException ex) {
                         Thread.currentThread().interrupt();
                         throw new RuntimeException("Voice AI request failed: request interrupted", ex);
@@ -341,7 +356,9 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                         throw new RuntimeException("Voice AI request failed: " + rootMessage(ex), ex);
                     }
                     if (reply == null || reply.isBlank()) throw new IllegalStateException("AI returned an empty reply");
-                    speakResponseSentence(reply.trim(), service, session);
+                    if (session == voiceSessionGeneration.get() && !pendingSpeech.toString().isBlank()) {
+                        speakResponseSentence(pendingSpeech.toString().trim(), service, session);
+                    }
                     if (session == voiceSessionGeneration.get()) {
                         finishVillagerConversationFocus();
                         voiceConversation.finishSpeaking();
@@ -708,6 +725,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 + "Use the profession only when it naturally affects what this villager would know, do, or say. "
                 + "Output only the dialogue that this villager would say to the player. "
                 + "Do not prefix the answer with the villager name. Do not describe actions or scenes. "
+                + "Keep replies brief by default: one natural sentence of about 10–20 words, unless the player asks for detail. "
                 + "Finish every sentence naturally before stopping.";
     }
 
