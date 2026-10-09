@@ -8,13 +8,25 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class VoiceClientConfig {
-    private static final String DEFAULT_TTS_INSTRUCTIONS =
+    private static final String LEGACY_DEFAULT_TTS_INSTRUCTIONS =
             "Speak only the villager's exact dialogue. No narration, no stage directions, no scene description, no assistant wording. "
                     + "Keep Spanish natural, conversational and concise. Do not add \"hmm\", \"hrrm\", grunts, or artificial villager vocalizations. The configured villager voice pipeline supplies the NPC timbre.";
-    private static final String DEFAULT_SYSTEM_PROMPT =
+    private static final String DEFAULT_TTS_INSTRUCTIONS =
+            "Speak the exact words written in natural, correct Spanish. Use standard grammar, natural word order, correct verb conjugations, and ordinary vocabulary. "
+                    + "Do not insert filler words, random words, repetitions, false starts, or words that do not belong in the sentence. "
+                    + "No narration, stage directions, sound effects, grunts, or artificial villager noises. The voice model provides the villager sound.";
+    private static final String LEGACY_DEFAULT_SYSTEM_PROMPT =
             "You are the specific Minecraft villager the player is standing near and speaking to. "
                     + "Reply only with that villager's spoken dialogue. Never narrate actions, emotions, scenes, or third-person events. "
                     + "Never answer as a generic AI. Do not add \"hmm\", \"hrrm\", grunts, or other artificial vocalizations. Keep the reply brief, conversational, and in character.";
+    private static final String DEFAULT_SYSTEM_PROMPT =
+            "Eres un aldeano concreto de Minecraft hablando cara a cara con el jugador. Responde siempre en español natural y correcto. "
+                    + "La prioridad absoluta es que cada frase esté bien construida: orden normal de las palabras, concordancia, verbos bien conjugados y sentido claro. "
+                    + "No improvises palabras sueltas ni metas palabras donde no encajan. No uses frases telegráficas, traducciones literales ni expresiones raras. "
+                    + "Contesta directamente a lo que te preguntan con una sola frase breve de 5 a 9 palabras. Si hace falta, usa hasta 12 palabras para que la frase sea correcta y completa. "
+                    + "Usa vocabulario sencillo pero adulto, natural y variado; no hables como un niño ni como alguien que no sabe expresarse. "
+                    + "Adapta el contenido a tu profesión solo si viene al caso. Si no sabes algo, dilo con naturalidad; no inventes datos. "
+                    + "Devuelve únicamente el diálogo hablado, sin narración, acciones, nombres, sonidos, gruñidos, muletillas, repeticiones ni explicaciones. Termina la frase completa y no añadas nada más.";
     private static final String DEFAULT_VILLAGER_TTS_COMMAND =
             "python tools/voice/tts_rvc_villager.py {text} {output} {language} {model} {rate} {pitch} {expressiveness}";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -82,8 +94,11 @@ public final class VoiceClientConfig {
         else ttsCommand = ttsCommand.trim();
         if (villagerTtsCommand == null || villagerTtsCommand.isBlank()) villagerTtsCommand = DEFAULT_VILLAGER_TTS_COMMAND;
         else villagerTtsCommand = villagerTtsCommand.trim();
-        if (ttsInstructions == null || ttsInstructions.isBlank()) ttsInstructions = DEFAULT_TTS_INSTRUCTIONS;
-        if (systemPrompt == null || systemPrompt.isBlank() || systemPrompt.startsWith("You are one specific Minecraft villager")) {
+        if (ttsInstructions == null || ttsInstructions.isBlank() || ttsInstructions.equals(LEGACY_DEFAULT_TTS_INSTRUCTIONS)) {
+            ttsInstructions = DEFAULT_TTS_INSTRUCTIONS;
+        }
+        if (systemPrompt == null || systemPrompt.isBlank() || systemPrompt.equals(LEGACY_DEFAULT_SYSTEM_PROMPT)
+                || systemPrompt.startsWith("You are one specific Minecraft villager")) {
             systemPrompt = DEFAULT_SYSTEM_PROMPT;
         }
         return this;
