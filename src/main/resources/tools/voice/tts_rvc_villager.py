@@ -229,14 +229,14 @@ def main() -> int:
         speaker = int(os.environ.get("TWR_RVC_SPEAKER", "0").strip() or "0")
         f0_method = os.environ.get("TWR_RVC_F0_METHOD", "rmvpe").strip() or "rmvpe"
         index_rate = max(0.0, min(1.0, float(os.environ.get("TWR_RVC_INDEX_RATE", "0"))))
-        protect = max(0.0, min(0.5, float(os.environ.get("TWR_RVC_PROTECT", "0.5"))))
+        protect = max(0.0, min(0.5, float(os.environ.get("TWR_RVC_PROTECT", "0.33"))))
         return run_worker(rvc_root, model, piper_model, piper, speaker, f0_method, index_rate, protect)
 
     output.parent.mkdir(parents=True, exist_ok=True)
     speaker = os.environ.get("TWR_RVC_SPEAKER", "0").strip() or "0"
     f0_method = os.environ.get("TWR_RVC_F0_METHOD", "rmvpe").strip() or "rmvpe"
     index_rate = max(0.0, min(1.0, float(os.environ.get("TWR_RVC_INDEX_RATE", "0"))))
-    protect = max(0.0, min(0.5, float(os.environ.get("TWR_RVC_PROTECT", "0.5"))))
+    protect = max(0.0, min(0.5, float(os.environ.get("TWR_RVC_PROTECT", "0.33"))))
     extra_pitch = int(os.environ.get("TWR_RVC_PITCH", "0"))
     pitch_shift = max(-12, min(12, extra_pitch + pitch_to_semitones(pitch)))
     length_scale = max(0.55, min(1.6, 1.0 / max(0.5, min(2.0, rate))))
