@@ -47,10 +47,10 @@ public final class OpenAiResponsesAdapter implements AiChatAdapter {
     public String respondStreaming(String userText, String systemPrompt, Consumer<String> chunkConsumer)
             throws IOException, InterruptedException {
         String body = "{"
-            + "\\"model\\":\\"" + json(model) + "\\","
-            + "\\"instructions\\":\\"" + json(systemPrompt == null ? "" : systemPrompt) + "\\","
-            + "\\"input\\":\\"" + json(userText) + "\\","
-            + "\\"stream\\":true"
+            + "\"model\":\"" + json(model) + "\","
+            + "\"instructions\":\"" + json(systemPrompt == null ? "" : systemPrompt) + "\","
+            + "\"input\":\"" + json(userText) + "\","
+            + "\"stream\":true"
             + "}";
         HttpRequest request = HttpRequest.newBuilder(URI.create("https://api.openai.com/v1/responses"))
             .header("Authorization", "Bearer " + apiKey)
