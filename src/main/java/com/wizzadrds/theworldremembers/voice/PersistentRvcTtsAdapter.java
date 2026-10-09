@@ -83,6 +83,13 @@ public final class PersistentRvcTtsAdapter implements TtsAdapter {
         }
     }
 
+    /** Starts and loads RVC in the background before the first player utterance. */
+    public void warmUp() throws IOException, InterruptedException {
+        synchronized (lock) {
+            ensureStarted();
+        }
+    }
+
     private void ensureStarted() throws IOException, InterruptedException {
         if (process != null && process.isAlive() && stdout != null) return;
 
