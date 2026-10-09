@@ -544,7 +544,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         }
         String responseVoice = voiceConfig.ttsVoice == null || voiceConfig.ttsVoice.isBlank()
                 ? voiceConfig.ttsModel : voiceConfig.ttsVoice.trim();
-        VoiceProfile profile = new VoiceProfile(speechLanguage(), responseVoice, VoiceTemperament.CALM, 1.2f, 1.0f, 0.5f);
+        VoiceProfile profile = new VoiceProfile(speechLanguage(), responseVoice, VoiceTemperament.CALM, 1.35f, 1.0f, 0.5f);
         Path output = Minecraft.getInstance().gameDirectory.toPath().resolve("config")
                 .resolve("the_world_remembers_voice_response_" + UUID.randomUUID() + ".wav");
         // Convert the next chunk while the previous WAV plays. Playback remains serial.
@@ -578,7 +578,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         if (session != voiceSessionGeneration.get() || text == null || text.isBlank()) return;
         String responseVoice = voiceConfig.ttsVoice == null || voiceConfig.ttsVoice.isBlank()
                 ? voiceConfig.ttsModel : voiceConfig.ttsVoice.trim();
-        VoiceProfile profile = new VoiceProfile(speechLanguage(), responseVoice, VoiceTemperament.CALM, 1.0f, 1.0f, 0.5f);
+        VoiceProfile profile = new VoiceProfile(speechLanguage(), responseVoice, VoiceTemperament.CALM, 1.15f, 1.0f, 0.5f);
         Path output = Minecraft.getInstance().gameDirectory.toPath().resolve("config")
                 .resolve("the_world_remembers_voice_response_" + UUID.randomUUID() + ".wav");
         try {
