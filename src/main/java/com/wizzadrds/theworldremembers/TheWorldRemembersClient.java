@@ -458,15 +458,13 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static int sentenceBoundary(StringBuilder text) {
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
-            if (c == '\n' || c == '…' || c == '.' || c == '!' || c == '?') {
-                // RVC often smears consonants on short clips. Keep collecting until
-                // we have a useful phrase, not merely a punctuation token.
+            if (c == '\n' || c == '.' || c == '!' || c == '?') {
+                // Do not split at ellipses: they create dramatic gaps and tiny RVC clips.
+                // Wait for a complete, substantial phrase so speech stays connected.
                 if (c != '\n') {
                     String candidate = text.substring(0, i + 1).trim();
                     int words = candidate.isEmpty() ? 0 : candidate.split("\\s+").length;
-                    // The prompt now requests short, grammatical replies; let those
-                    // complete sentences start synthesis without waiting for 40+ chars.
-                    if (i < 27 || words < 5) continue;
+                    if (i < 42 || words < 7) continue;
                 }
                 if (c == '.' && i > 0 && i + 1 < text.length()
                         && Character.isDigit(text.charAt(i - 1))
@@ -479,7 +477,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
 
     private static void queueResponseSentence(List<CompletableFuture<Void>> jobs, String text, VoiceService service, long session) {
         if (session != voiceSessionGeneration.get() || text == null || text.isBlank()) return;
-        String cleaned = text.replaceAll("\\s+", " ").trim();
+        String cleaned = text.replace('…', ' ').replaceAll("\\.{2,}", " ").replaceAll("\\s+", " ").trim();
         long spokenCharacters = cleaned.codePoints().filter(Character::isLetterOrDigit).count();
         // Ignore punctuation and tiny one- or two-letter tails: they can become RVC noise.
         if (spokenCharacters < 3) return;
@@ -813,10 +811,11 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 + "Do not prefix the answer with the villager name. Do not describe actions or scenes. "
                 + "Speak in fluent, grammatically correct, natural Spanish, like an articulate adult. Correct word order, agreement, and verb conjugation are mandatory. "
                 + "Never insert random or misplaced words, awkward literal translations, broken fragments, childish phrasing, or unnatural filler. "
-                + "Answer the player's actual question directly in one complete sentence, ideally 5–9 words; use up to 12 if needed for correct grammar and clear meaning. "
+                + "Answer the player's actual question in one or two complete, connected sentences, usually 10–16 words total. Do not make the answer unnaturally short. "
+                + "Never use ellipses (... or …), one-word fragments, or a full stop after every few words. Use ordinary Spanish punctuation and natural word order. "
                 + "Use simple everyday vocabulary, but form a proper sentence. Do not force the profession into unrelated answers or invent facts. "
                 + "Output only spoken dialogue: no narration, action descriptions, names, sound effects, grunts, phonetic noises, filler, repetitions, or unfinished trailing fragments. "
-                + "Use normal Spanish punctuation, finish the thought, and stop immediately after the final word.";
+                + "The dialogue must read aloud as one flowing utterance, with normal rhythm and no artificial pauses between words. Finish the thought and stop after the final word.";
     }
 
     private record VillagerSpeaker(UUID id, String name, String profession) {}
