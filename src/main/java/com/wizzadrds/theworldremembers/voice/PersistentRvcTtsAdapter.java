@@ -84,7 +84,7 @@ public final class PersistentRvcTtsAdapter implements TtsAdapter {
     }
 
     private void ensureStarted() throws IOException, InterruptedException {
-        if (process != null && process.isAlive()) return;
+        if (process != null && process.isAlive() && stdout != null) return;
 
         closeQuietly();
         List<String> workerCommand = new ArrayList<>(command.subList(0, 2));
@@ -93,36 +93,47 @@ public final class PersistentRvcTtsAdapter implements TtsAdapter {
         ProcessBuilder builder = new ProcessBuilder(workerCommand);
         builder.redirectErrorStream(false);
         process = builder.start();
-        stdin = new BufferedWriter(new OutputStreamWriter(process.getOutputStream(), StandardCharsets.UTF_8));
-        stdout = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
+        Process startedProcess = process;
+        stdin = new BufferedWriter(new OutputStreamWriter(startedProcess.getOutputStream(), StandardCharsets.UTF_8));
+        stdout = new BufferedReader(new InputStreamReader(startedProcess.getInputStream(), StandardCharsets.UTF_8));
 
-        Thread err = Thread.ofVirtual().name("twr-rvc-worker-log").start(() -> {
-            try (InputStream input = process.getErrorStream()) {
+        Thread.ofVirtual().name("twr-rvc-worker-log").start(() -> {
+            try (InputStream input = startedProcess.getErrorStream()) {
                 input.transferTo(System.err);
             } catch (IOException ignored) {
             }
         });
 
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(START_TIMEOUT_SECONDS);
-        while (System.nanoTime() < deadline) {
-            if (!process.isAlive()) {
-                throw new IOException("VillagerTITAN worker exited with code " + process.exitValue());
+        java.util.concurrent.ExecutorService startupReader = java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+            Thread thread = new Thread(r, "twr-rvc-startup-reader");
+            thread.setDaemon(true);
+            return thread;
+        });
+        try {
+            Future<String> readyFuture = startupReader.submit(stdout::readLine);
+            String ready;
+            try {
+                ready = readyFuture.get(START_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            } catch (java.util.concurrent.TimeoutException ex) {
+                closeQuietly();
+                throw new IOException("VillagerTITAN worker did not become ready within "
+                        + START_TIMEOUT_SECONDS + " seconds; check the Python/RVC log above", ex);
+            } catch (ExecutionException ex) {
+                closeQuietly();
+                throw new IOException("Could not read VillagerTITAN worker startup response", ex.getCause());
             }
-            if (process.getErrorStream().available() >= 0 && stdout.ready()) {
-                // stdout is reserved for JSON responses; readiness here is not a
-                // reliable startup signal, so wait briefly for the worker marker.
+            if (ready == null) {
+                int exitCode = startedProcess.isAlive() ? -1 : startedProcess.exitValue();
+                closeQuietly();
+                throw new IOException("VillagerTITAN worker exited during startup (exit code " + exitCode
+                        + "); check the Python/RVC log above");
             }
-            Thread.sleep(100);
-            if (process.isAlive() && Files.exists(Path.of(System.getProperty("java.io.tmpdir")))) {
-                // The worker prints its ready marker on stderr. Its process being alive
-                // after model initialization is sufficient; the first request is still
-                // guarded by the request timeout in the Python worker.
-                if (System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(100) >= deadline) break;
-                if (process.isAlive() && process.pid() > 0) {
-                    // leave the actual readiness wait to the first request
-                    break;
-                }
+            if (!ready.contains("\"ready\": true")) {
+                closeQuietly();
+                throw new IOException("Unexpected VillagerTITAN worker startup response: " + ready);
             }
+        } finally {
+            startupReader.shutdownNow();
         }
     }
 
