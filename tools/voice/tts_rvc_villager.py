@@ -111,6 +111,7 @@ def run_worker(
     vc = VC(config)
     vc.get_vc(model.name)
     print("[VillagerTITAN worker] ready", file=sys.stderr, flush=True)
+    print(json.dumps({"ready": True}), flush=True)
 
     for raw in sys.stdin:
         raw = raw.strip()
