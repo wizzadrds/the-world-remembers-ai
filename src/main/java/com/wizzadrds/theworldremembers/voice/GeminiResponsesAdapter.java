@@ -18,12 +18,12 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
     private final HttpClient client = HttpClient.newHttpClient();
     private final String apiKey;
     private final String model;
-    private static final String CAPACITY_FALLBACK_MODEL = "gemini-3.7-flash";
+    private static final String CAPACITY_FALLBACK_MODEL = "gemini-3.1-flash-lite";
 
     public GeminiResponsesAdapter(String apiKey, String model) {
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("Gemini API key is required");
         this.apiKey = apiKey.trim();
-        this.model = model == null || model.isBlank() ? "gemini-3.8-flash" : model.trim();
+        this.model = model == null || model.isBlank() ? "gemini-3.5-flash-lite" : model.trim();
     }
 
     @Override
@@ -36,7 +36,7 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
         // Villager dialogue should answer quickly rather than spend time on deep reasoning.
         // Gemini documents lower thinking levels as the latency-oriented control.
         JsonObject generationConfig = new JsonObject();
-        generationConfig.addProperty("thinking_level", "low");
+        generationConfig.addProperty("thinking_level", thinkingLevelFor(model));
         body.add("generation_config", generationConfig);
 
         HttpRequest request = HttpRequest.newBuilder(URI.create("https://generativelanguage.googleapis.com/v1beta/interactions"))
@@ -45,7 +45,7 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
                 .POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8))
                 .build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-        if ((response.statusCode() == 503 || response.statusCode() == 429) && model.equals("gemini-3.8-flash")) {
+        if ((response.statusCode() == 503 || response.statusCode() == 429) && !model.equals(CAPACITY_FALLBACK_MODEL)) {
             return respondWithModel(userText, systemPrompt, CAPACITY_FALLBACK_MODEL);
         }
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
@@ -183,7 +183,7 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
     }
 
 
-    private static IOException geminiHttpError(int status, String body) {
+    private static String thinkingLevelFor(String model) {\n        return model != null && (model.contains("flash-lite") || model.contains("flash-lite")) ? "minimal" : "low";\n    }\n\n    private static IOException geminiHttpError(int status, String body) {
         String message = body == null ? "" : body.trim();
         try {
             JsonObject root = JsonParser.parseString(message).getAsJsonObject();
