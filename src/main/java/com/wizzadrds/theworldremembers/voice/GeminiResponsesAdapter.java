@@ -45,7 +45,7 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
                 .POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8))
                 .build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-        if (response.statusCode() == 503 && model.equals("gemini-3.8-flash")) {
+        if ((response.statusCode() == 503 || response.statusCode() == 429) && model.equals("gemini-3.8-flash")) {
             return respondWithModel(userText, systemPrompt, CAPACITY_FALLBACK_MODEL);
         }
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
@@ -75,7 +75,7 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
 
         HttpResponse<java.io.InputStream> response =
                 client.send(request, HttpResponse.BodyHandlers.ofInputStream());
-        if (response.statusCode() == 503 && model.equals("gemini-3.8-flash")) {
+        if ((response.statusCode() == 503 || response.statusCode() == 429) && model.equals("gemini-3.8-flash")) {
             try (java.io.InputStream stream = response.body()) {
                 stream.readAllBytes();
             }
