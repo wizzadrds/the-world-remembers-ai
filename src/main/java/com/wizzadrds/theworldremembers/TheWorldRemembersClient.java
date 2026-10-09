@@ -53,6 +53,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static ExecutorService villagerSpeechExecutor;
     /** Serial queue for response sentences; lets Gemini keep streaming while RVC works. */
     private static ExecutorService responseSpeechExecutor;
+    private static ExecutorService responsePlaybackExecutor;
     private static String appliedOutputDevice;
     private static final AtomicInteger pendingVillagerSpeech = new AtomicInteger();
     /** Changes whenever the connected world/session changes, invalidating old TTS jobs. */
@@ -111,7 +112,12 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             return thread;
         });
         responseSpeechExecutor = Executors.newSingleThreadExecutor(r -> {
-            Thread thread = new Thread(r, "twr-villager-response-voice");
+            Thread thread = new Thread(r, "twr-villager-response-synthesis");
+            thread.setDaemon(true);
+            return thread;
+        });
+        responsePlaybackExecutor = Executors.newSingleThreadExecutor(r -> {
+            Thread thread = new Thread(r, "twr-villager-response-playback");
             thread.setDaemon(true);
             return thread;
         });
@@ -445,9 +451,8 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
             if (c == '\n' || c == '…' || c == '.' || c == '!' || c == '?') {
-                // Flush immediately on sentence punctuation. Streaming chunks can split
-                // "Hola." and " ¿Cómo..."; waiting for the next chunk made short replies
-                // sound as if they were cut off.
+                // Accumulate tiny fragments rather than converting "Sí." alone.
+                if (i < 24 && c != '\n') continue;
                 if (c == '.' && i > 0 && i + 1 < text.length()
                         && Character.isDigit(text.charAt(i - 1))
                         && Character.isDigit(text.charAt(i + 1))) continue;
@@ -459,45 +464,66 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
 
     private static void queueResponseSentence(List<CompletableFuture<Void>> jobs, String text, VoiceService service, long session) {
         if (session != voiceSessionGeneration.get() || text == null || text.isBlank()) return;
-        // Never send punctuation-only streaming residue to Piper/RVC; some voice models
-        // turn such fragments into an unintelligible click, grunt, or trailing noise.
-        if (text.codePoints().noneMatch(Character::isLetterOrDigit)) return;
-        ExecutorService executor = responseSpeechExecutor;
-        if (executor == null) {
-            speakResponseSentence(text, service, session);
+        String cleaned = text.replaceAll("\\s+", " ").trim();
+        long spokenCharacters = cleaned.codePoints().filter(Character::isLetterOrDigit).count();
+        // Ignore punctuation and tiny one- or two-letter tails: they can become RVC noise.
+        if (spokenCharacters < 3) return;
+        ExecutorService synthesis = responseSpeechExecutor;
+        ExecutorService playback = responsePlaybackExecutor;
+        if (synthesis == null || playback == null || !isRvcVillagerPipeline()) {
+            if (synthesis == null) speakResponseSentence(cleaned, service, session);
+            else jobs.add(CompletableFuture.runAsync(() -> speakResponseSentence(cleaned, service, session), synthesis));
             return;
         }
-        jobs.add(CompletableFuture.runAsync(() -> speakResponseSentence(text, service, session), executor));
+        String responseVoice = voiceConfig.ttsVoice == null || voiceConfig.ttsVoice.isBlank()
+                ? voiceConfig.ttsModel : voiceConfig.ttsVoice.trim();
+        VoiceProfile profile = new VoiceProfile(speechLanguage(), responseVoice, VoiceTemperament.CALM, 1.0f, 1.0f, 0.5f);
+        Path output = Minecraft.getInstance().gameDirectory.toPath().resolve("config")
+                .resolve("the_world_remembers_voice_response_" + UUID.randomUUID() + ".wav");
+        // Convert the next chunk while the previous WAV plays. Playback remains serial.
+        CompletableFuture<Path> synthesized = CompletableFuture.supplyAsync(() -> {
+            if (session != voiceSessionGeneration.get()) return null;
+            try {
+                TtsAdapter tts = createVillagerTtsAdapter();
+                Path audio = tts.synthesize(cleaned, profile, output);
+                if (audio == null || !Files.isRegularFile(audio) || Files.size(audio) < 44)
+                    throw new IllegalStateException("VillagerTITAN produced an empty or invalid WAV");
+                return audio;
+            } catch (Exception e) { throw new java.util.concurrent.CompletionException(e); }
+        }, synthesis);
+        CompletableFuture<Void> played = synthesized.thenCompose(audio -> {
+            if (audio == null || session != voiceSessionGeneration.get()) {
+                try { Files.deleteIfExists(output); } catch (Exception ignored) {}
+                return CompletableFuture.completedFuture(null);
+            }
+            return CompletableFuture.runAsync(() -> {
+                try { if (session == voiceSessionGeneration.get()) playVillagerAudio(audio, voiceConfig.outputVolume); }
+                catch (Exception e) { throw new java.util.concurrent.CompletionException(e); }
+                finally { try { Files.deleteIfExists(audio); } catch (Exception ignored) {} }
+            }, playback);
+        });
+        jobs.add(played);
     }
 
     private static void speakResponseSentence(String text, VoiceService service, long session) {
         if (session != voiceSessionGeneration.get() || text == null || text.isBlank()) return;
         String responseVoice = voiceConfig.ttsVoice == null || voiceConfig.ttsVoice.isBlank()
                 ? voiceConfig.ttsModel : voiceConfig.ttsVoice.trim();
-        VoiceProfile profile = new VoiceProfile(
-                speechLanguage(), responseVoice, VoiceTemperament.CALM, 1.0f, 1.0f, 0.5f);
-        Path output = Minecraft.getInstance().gameDirectory.toPath()
-                .resolve("config")
+        VoiceProfile profile = new VoiceProfile(speechLanguage(), responseVoice, VoiceTemperament.CALM, 1.0f, 1.0f, 0.5f);
+        Path output = Minecraft.getInstance().gameDirectory.toPath().resolve("config")
                 .resolve("the_world_remembers_voice_response_" + UUID.randomUUID() + ".wav");
         try {
             TtsAdapter tts = createVillagerTtsAdapter();
             InputStream stream = tts.synthesizeStream(text, profile);
-            if (session != voiceSessionGeneration.get()) {
-                if (stream != null) stream.close();
-                return;
-            }
-            if (stream != null) {
-                voicePlayer.playVillagerPcmStream(stream, voiceConfig.outputVolume);
-            } else {
+            if (session != voiceSessionGeneration.get()) { if (stream != null) stream.close(); return; }
+            if (stream != null) voicePlayer.playVillagerPcmStream(stream, voiceConfig.outputVolume);
+            else {
                 Path audio = tts.synthesize(text, profile, output);
                 if (audio == null || !Files.isRegularFile(audio)) throw new IllegalStateException("TTS did not produce audio");
                 playVillagerAudio(audio, voiceConfig.outputVolume);
             }
-        } catch (Exception e) {
-            if (session == voiceSessionGeneration.get()) throw new RuntimeException("Voice TTS failed", e);
-        } finally {
-            try { Files.deleteIfExists(output); } catch (Exception ignored) {}
-        }
+        } catch (Exception e) { if (session == voiceSessionGeneration.get()) throw new RuntimeException("Voice TTS failed", e); }
+        finally { try { Files.deleteIfExists(output); } catch (Exception ignored) {} }
     }
 
     private static AiChatAdapter createAiAdapter() {
@@ -768,8 +794,9 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 + "Use the profession only when it naturally affects what this villager would know, do, or say. "
                 + "Output only the dialogue that this villager would say to the player. "
                 + "Do not prefix the answer with the villager name. Do not describe actions or scenes. "
-                + "Keep replies brief by default: one natural sentence of about 10–20 words, unless the player asks for detail. "
-                + "Finish every sentence naturally before stopping.";
+                + "Reply in clear, natural Spanish. Keep the default reply to one short sentence of 8–14 words; only give more detail when asked. "
+                + "Output spoken dialogue only: no sound effects, vocalizations, fake villager grunts, phonetic noises, stage directions, repeated words, or unfinished trailing fragments. "
+                + "Use ordinary punctuation, complete the thought, and stop immediately after the final word.";
     }
 
     private record VillagerSpeaker(UUID id, String name, String profession) {}
