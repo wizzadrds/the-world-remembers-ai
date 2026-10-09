@@ -465,12 +465,12 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         if (detectedName.isBlank()) return;
         VillagerDialogueMemory.setName(villager.id(), detectedName);
         Minecraft connectedClient = Minecraft.getInstance();
-        if (connectedClient.getConnection() != null
-                && ClientPlayNetworking.canSend(VillagerNamePacket.TYPE)) {
-            ClientPlayNetworking.send(new VillagerNamePacket(villager.id(), detectedName));
-        }
         connectedClient.execute(() -> {
             Minecraft client = Minecraft.getInstance();
+            if (client.getConnection() != null
+                    && ClientPlayNetworking.canSend(VillagerNamePacket.TYPE)) {
+                ClientPlayNetworking.send(new VillagerNamePacket(villager.id(), detectedName));
+            }
             if (client.level == null || client.player == null) return;
             double radius = 64.0;
             for (Villager candidate : client.level.getEntitiesOfClass(
@@ -616,6 +616,9 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
 
     private static void cleanupVoiceSession() {
         voiceSessionGeneration.incrementAndGet();
+        conversationVillagerId = null;
+        serverMemoryContextVillagerId = null;
+        serverVillagerMemoryContext = "";
         voiceKeyWasDown = false;
         microphone.stop();
         autoVoiceActive = false;
