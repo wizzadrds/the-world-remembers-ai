@@ -28,6 +28,7 @@ public final class VoiceNetworking {
         PayloadTypeRegistry.clientboundPlay().register(VoicePacket.TYPE, VoicePacket.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(VillagerVoicePacket.TYPE, VillagerVoicePacket.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(VoiceAudioPacket.TYPE, VoiceAudioPacket.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(VillagerMemoryContextPacket.TYPE, VillagerMemoryContextPacket.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(VoiceAudioPacket.TYPE, VoiceAudioPacket.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(VillagerConversationFocusPacket.TYPE, VillagerConversationFocusPacket.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(VillagerNamePacket.TYPE, VillagerNamePacket.CODEC);
@@ -83,6 +84,7 @@ public final class VoiceNetworking {
                     focus.untilTick = Long.MAX_VALUE;
                     focus.nextRefreshTick = 0;
                     holdVillagerFocus(sender, villager);
+                    sendVillagerMemoryContext(sender, villager);
                 } else if (villager.getUUID().equals(focus.villager)) {
                     focus.untilTick = sender.level().getGameTime();
                 }
@@ -121,6 +123,53 @@ public final class VoiceNetworking {
                 }
             }
         });
+    }
+
+    private static void sendVillagerMemoryContext(ServerPlayer player, Villager villager) {
+        StringBuilder context = new StringBuilder();
+        var server = player.level().getServer();
+        var memories = com.wizzadrds.theworldremembers.memory.MemoryManager.get(server).memoriesOf(villager.getUUID())
+                .stream()
+                .filter(memory -> memory.playerId().equals(player.getUUID())
+                        || (!memory.type().name().startsWith("PLAYER_")
+                            && !memory.type().name().equals("NPC_INHERITED_ITEM")))
+                .sorted(java.util.Comparator.comparingLong(
+                        com.wizzadrds.theworldremembers.memory.Memory::gameTime).reversed())
+                .limit(8)
+                .toList();
+        if (!memories.isEmpty()) {
+            context.append("HECHOS PERSISTENTES DEL MUNDO SOBRE ESTE ALDEANO (son datos reales, no los inventes):");
+            for (var memory : memories) {
+                context.append("\n- ").append(memory.type().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' '));
+                if (memory.playerId().equals(player.getUUID())) context.append(" (relacionado con este jugador)");
+            }
+        }
+        var relationship = com.wizzadrds.theworldremembers.relationship.RelationshipManager
+                .get(server).get(villager.getUUID(), player.getUUID());
+        if (relationship != null) {
+            context.append("\nRelación con el jugador: confianza ").append(relationship.trust())
+                    .append(", gratitud ").append(relationship.gratitude())
+                    .append(", miedo ").append(relationship.fear())
+                    .append(", respeto ").append(relationship.respect())
+                    .append(", afecto ").append(relationship.affection())
+                    .append(", resentimiento ").append(relationship.resentment())
+                    .append(", sospecha ").append(relationship.suspicion()).append(".");
+        }
+        var facts = com.wizzadrds.theworldremembers.rumor.KnowledgeManager.get(server).facts(villager.getUUID());
+        if (!facts.isEmpty()) {
+            context.append("\nConocimientos y rumores del aldeano:");
+            facts.stream().sorted(java.util.Comparator.comparingInt(
+                    com.wizzadrds.theworldremembers.rumor.KnowledgeFact::confidence).reversed())
+                    .limit(6).forEach(fact -> context.append("\n- ")
+                            .append(fact.eventType().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' '))
+                            .append(" (").append(fact.origin().name().toLowerCase(java.util.Locale.ROOT))
+                            .append(", confianza ").append(fact.confidence()).append("%)"));
+        }
+        String bounded = context.toString();
+        if (bounded.length() > 1800) bounded = bounded.substring(0, 1800);
+        if (ServerPlayNetworking.canSend(player, VillagerMemoryContextPacket.TYPE)) {
+            ServerPlayNetworking.send(player, new VillagerMemoryContextPacket(villager.getUUID(), bounded));
+        }
     }
 
     public static void send(ServerPlayer player, VillagerVoicePacket packet) {
