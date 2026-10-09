@@ -13,6 +13,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 DEFAULT_RVC_ROOT = Path(r"C:\RVC")
@@ -59,6 +60,7 @@ def pitch_to_semitones(pitch: float) -> int:
 
 
 def _piper_to_source(text: str, source: Path, piper: Path, piper_model: Path, length_scale: float) -> None:
+    started = time.perf_counter()
     piper_command = [
         str(piper), "--model", str(piper_model),
         "--output_file", str(source), "--length_scale", str(length_scale),
@@ -74,6 +76,7 @@ def _piper_to_source(text: str, source: Path, piper: Path, piper_model: Path, le
         raise RuntimeError(f"Piper failed with exit code {piper_proc.returncode}.\n{piper_proc.stdout or ''}")
     if not source.is_file() or source.stat().st_size == 0:
         raise RuntimeError("Piper produced no source WAV")
+    print(f"[VillagerTITAN timing] Piper: {len(text)} chars in {(time.perf_counter() - started) * 1000:.0f} ms", file=sys.stderr, flush=True)
 
 
 def _write_rvc_audio(path: Path, audio, sample_rate: int) -> None:
@@ -134,6 +137,9 @@ def run_worker(
             with tempfile.TemporaryDirectory(prefix="twr-villagertitan-worker-") as temp_dir:
                 source = Path(temp_dir) / "source.wav"
                 _piper_to_source(text, source, piper, piper_model, length_scale)
+                import soundfile as sf
+                source_info = sf.info(str(source))
+                source_duration = source_info.frames / source_info.samplerate
                 # RVC forks expose different vc_single signatures. Bind by
                 # parameter name instead of passing a version-specific positional list.
                 available = {
@@ -172,7 +178,9 @@ def run_worker(
                         "Unsupported RVC vc_single signature; required parameters: "
                         + ", ".join(missing)
                     )
+                rvc_started = time.perf_counter()
                 status, result = vc.vc_single(**kwargs)
+                print(f"[VillagerTITAN timing] RVC ({f0_method}): {source_duration:.2f}s audio in {(time.perf_counter() - rvc_started) * 1000:.0f} ms", file=sys.stderr, flush=True)
                 if not result or result[0] is None or result[1] is None:
                     raise RuntimeError(str(status or "RVC produced no audio"))
                 _write_rvc_audio(output, result[1], result[0])
