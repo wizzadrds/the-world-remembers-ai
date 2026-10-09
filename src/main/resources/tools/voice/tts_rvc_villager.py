@@ -27,10 +27,10 @@ DEFAULT_RVC_PYTHON = DEFAULT_RVC_ROOT / ".venv" / "Scripts" / "python.exe"
 def normalize_spoken_text(text: str) -> str:
     """Remove literal ellipses/repeated stops that make Piper insert word-length pauses."""
     text = (text or "").replace("…", " ")
-    text = re.sub(r"(?:\\.\\s*){2,}", " ", text)
-    text = re.sub(r"\\s+([,.;!?])", r"\\1", text)
-    text = re.sub(r"([,;:])\\s*([,;:])+", r"\\1", text)
-    return re.sub(r"\\s+", " ", text).strip()
+    text = re.sub(r"(?:\.\s*){2,}", " ", text)
+    text = re.sub(r"\s+([,.;!?])", r"\1", text)
+    text = re.sub(r"([,;:])\s*([,;:])+", r"\1", text)
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def env_path(name: str, default: Path | None = None, required: bool = True) -> Path | None:
