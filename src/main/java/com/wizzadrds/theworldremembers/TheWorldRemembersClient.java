@@ -344,11 +344,16 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             service = new VoiceService(
                     new GeminiSttAdapter(voiceConfig.apiKey, voiceConfig.language),
                     new GeminiTtsAdapter(voiceConfig.apiKey, voiceConfig.ttsModel, voiceConfig.ttsVoice, voiceConfig.ttsInstructions));
+        } else if ("openai".equalsIgnoreCase(voiceConfig.provider)
+                || "openai-responses".equalsIgnoreCase(voiceConfig.provider)) {
+            service = new VoiceService(
+                    new OpenAiSttAdapter(voiceConfig.apiKey, voiceConfig.sttModel, voiceConfig.language),
+                    new OpenAiTtsAdapter(voiceConfig.apiKey, voiceConfig.ttsModel, voiceConfig.ttsVoice, voiceConfig.ttsInstructions));
         } else {
             var sttCommand = VoiceCommandParser.parse(voiceConfig.sttCommand);
             var ttsCommand = VoiceCommandParser.parse(voiceConfig.ttsCommand);
             if (sttCommand.isEmpty() || ttsCommand.isEmpty()) {
-                voiceConversation.fail();
+                voiceConversation.fail("Choose Gemini/OpenAI or configure both local speech commands");
                 return;
             }
             service = new VoiceService(
@@ -546,11 +551,18 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         return switch (provider) {
             case "gemini" -> new GeminiResponsesAdapter(voiceConfig.apiKey, voiceConfig.model);
             case "", "openai", "openai-responses" ->
-                    new OpenAiResponsesAdapter(voiceConfig.apiKey, voiceConfig.model);
+                    new OpenAiResponsesAdapter(voiceConfig.apiKey, openAiModel(voiceConfig.model));
             default -> throw new IllegalArgumentException(
                     "Unsupported voice AI provider: " + voiceConfig.provider
                             + ". Supported providers: gemini, openai");
         };
+    }
+
+    private static String openAiModel(String configured) {
+        if (configured == null || configured.isBlank() || configured.toLowerCase(java.util.Locale.ROOT).startsWith("gemini")) {
+            return "gpt-4o-mini";
+        }
+        return configured.trim();
     }
 
     private static void cleanupVoiceSession() {
@@ -571,10 +583,13 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static void speakVillager(VillagerVoicePacket payload) {
         if (voiceConfig == null) return;
         boolean localVillagerTts = hasVillagerTtsCommand();
-        boolean gemini = "gemini".equalsIgnoreCase(voiceConfig.provider) && !localVillagerTts;
-        if (!gemini && !localVillagerTts && (voiceConfig.ttsCommand == null || voiceConfig.ttsCommand.isBlank())) return;
-        if (gemini && (voiceConfig.apiKey == null || voiceConfig.apiKey.isBlank())) {
-            lastVillagerVoiceError = "Gemini API key is missing";
+        boolean onlineProvider = "gemini".equalsIgnoreCase(voiceConfig.provider)
+                || "openai".equalsIgnoreCase(voiceConfig.provider)
+                || "openai-responses".equalsIgnoreCase(voiceConfig.provider);
+        if (!onlineProvider && !localVillagerTts
+                && (voiceConfig.ttsCommand == null || voiceConfig.ttsCommand.isBlank())) return;
+        if (onlineProvider && (voiceConfig.apiKey == null || voiceConfig.apiKey.isBlank())) {
+            lastVillagerVoiceError = ("gemini".equalsIgnoreCase(voiceConfig.provider) ? "Gemini" : "OpenAI") + " API key is missing";
             return;
         }
         if (villagerSpeechExecutor == null) return;
@@ -735,6 +750,10 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         }
         if ("gemini".equalsIgnoreCase(voiceConfig.provider)) {
             return new GeminiTtsAdapter(
+                    voiceConfig.apiKey, voiceConfig.ttsModel, voiceConfig.ttsVoice, voiceConfig.ttsInstructions);
+        }
+        if ("openai".equalsIgnoreCase(voiceConfig.provider) || "openai-responses".equalsIgnoreCase(voiceConfig.provider)) {
+            return new OpenAiTtsAdapter(
                     voiceConfig.apiKey, voiceConfig.ttsModel, voiceConfig.ttsVoice, voiceConfig.ttsInstructions);
         }
         return new LocalProcessTtsAdapter(
