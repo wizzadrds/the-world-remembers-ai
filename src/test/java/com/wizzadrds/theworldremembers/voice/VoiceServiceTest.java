@@ -11,9 +11,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class VoiceServiceTest {
     @Test
-    void adapterFailureDoesNotEscape() {
-        var s = new VoiceService(p -> { throw new IOException(); }, (t, p, o) -> { throw new IOException(); });
-        assertEquals("", s.transcribe(new byte[0]));
+    void transcriptionFailureIsPreservedAndSynthesisFailureReturnsNull() {
+        var s = new VoiceService(p -> { throw new IOException("STT provider failed"); }, (t, p, o) -> { throw new IOException(); });
+        assertEquals("STT provider failed", assertThrows(IOException.class, () -> s.transcribe(new byte[0])).getMessage());
         assertNull(s.synthesize("x", new VoiceProfile("es", "m", VoiceTemperament.CALM, 1, 1, .5f), Path.of("x.wav")));
     }
 
@@ -100,7 +100,9 @@ class VoiceServiceTest {
                 }
                 return "late";
             }, (t, p, o) -> o);
-            controller.finishListening(new byte[] {1, 2}, service, ignored -> fail("stale transcript delivered"));
+            byte[] audiblePcm = new byte[32000];
+            java.util.Arrays.fill(audiblePcm, (byte) 0x10);
+            controller.finishListening(audiblePcm, service, ignored -> fail("stale transcript delivered"));
             assertTrue(started.await(2, java.util.concurrent.TimeUnit.SECONDS));
             controller.reset();
             assertTrue(interrupted.await(2, java.util.concurrent.TimeUnit.SECONDS));
