@@ -6,7 +6,9 @@ Minecraft Java mod focused on persistent memory, relationships, emergent NPC beh
 
 ## Status
 
-**Local voice guide:** [`docs/LOCAL_VOICE_SETUP_ES.md`](docs/LOCAL_VOICE_SETUP_ES.md)
+**Voice quick start (recommended):** choose Gemini or OpenAI and enter your API key in Minecraft. No Python or terminal setup is required. See [Voice Quick Start (ES)](docs/VOICE_QUICK_START_ES.md).
+
+**Advanced local voice guide:** [`docs/LOCAL_VOICE_SETUP_ES.md`](docs/LOCAL_VOICE_SETUP_ES.md) (optional local engines and custom RVC voices).
 
 **Current milestone:** v1.0.0 integration complete — release artifact/tag pending final publication
 
