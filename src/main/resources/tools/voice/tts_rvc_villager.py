@@ -193,6 +193,13 @@ def main() -> int:
         raise SystemExit(f"Piper executable not found: {piper}")
 
     if "--worker" in sys.argv[1:]:
+        # The launcher may invoke this script with system Python. RVC dependencies
+        # live in the configured RVC virtual environment, so re-exec there before
+        # importing any RVC modules. This prevents a silent worker-startup crash.
+        configured_python = python.resolve()
+        current_python = Path(sys.executable).resolve()
+        if current_python != configured_python:
+            os.execv(str(configured_python), [str(configured_python), str(Path(__file__).resolve()), "--worker"])
         speaker = int(os.environ.get("TWR_RVC_SPEAKER", "0").strip() or "0")
         f0_method = os.environ.get("TWR_RVC_F0_METHOD", "rmvpe").strip() or "rmvpe"
         index_rate = max(0.0, min(1.0, float(os.environ.get("TWR_RVC_INDEX_RATE", "0"))))
