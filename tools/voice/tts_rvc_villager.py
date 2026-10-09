@@ -235,14 +235,16 @@ def main() -> int:
         if os.path.normcase(str(current_python)) != os.path.normcase(str(configured_python)):
             os.execv(str(configured_python), [str(configured_python), str(Path(__file__).resolve()), "--worker"])
         speaker = int(os.environ.get("TWR_RVC_SPEAKER", "0").strip() or "0")
-        f0_method = os.environ.get("TWR_RVC_F0_METHOD", "rmvpe").strip() or "rmvpe"
+        # PM is much faster than RMVPE for short real-time dialogue. Users can set
+    # TWR_RVC_F0_METHOD=rmvpe to prefer pitch accuracy over latency.
+    f0_method = os.environ.get("TWR_RVC_F0_METHOD", "pm").strip() or "pm"
         index_rate = max(0.0, min(1.0, float(os.environ.get("TWR_RVC_INDEX_RATE", "0"))))
         protect = max(0.0, min(0.5, float(os.environ.get("TWR_RVC_PROTECT", "0.33"))))
         return run_worker(rvc_root, model, piper_model, piper, speaker, f0_method, index_rate, protect)
 
     output.parent.mkdir(parents=True, exist_ok=True)
     speaker = os.environ.get("TWR_RVC_SPEAKER", "0").strip() or "0"
-    f0_method = os.environ.get("TWR_RVC_F0_METHOD", "rmvpe").strip() or "rmvpe"
+    f0_method = os.environ.get("TWR_RVC_F0_METHOD", "pm").strip() or "rmvpe"
     index_rate = max(0.0, min(1.0, float(os.environ.get("TWR_RVC_INDEX_RATE", "0"))))
     protect = max(0.0, min(0.5, float(os.environ.get("TWR_RVC_PROTECT", "0.33"))))
     extra_pitch = int(os.environ.get("TWR_RVC_PITCH", "0"))
