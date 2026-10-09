@@ -60,6 +60,8 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static final AtomicLong voiceSessionGeneration = new AtomicLong();
     private static volatile String lastVillagerVoiceError = "";
     private static volatile UUID conversationVillagerId;
+    private static volatile UUID serverMemoryContextVillagerId;
+    private static volatile String serverVillagerMemoryContext = "";
     private static volatile TtsAdapter villagerTtsAdapter;
 
     public static VoicePacket lastVoice() { return lastVoice; }
@@ -150,6 +152,15 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 float attenuation = (float) Math.max(0.0, 1.0 - Math.sqrt(distance) / radius);
                 float gain = Math.max(0.0f, Math.min(2.0f, payload.volume() * voiceConfig.outputVolume * attenuation));
                 voiceStreamPlayer.enqueue(payload.speaker(), payload.sequence(), scalePcm(payload.pcm(), gain));
+            });
+        });
+        ClientPlayNetworking.registerGlobalReceiver(VillagerMemoryContextPacket.TYPE, (payload, context) -> {
+            Minecraft client = context.client();
+            client.execute(() -> {
+                if (payload.villager().equals(conversationVillagerId)) {
+                    serverMemoryContextVillagerId = payload.villager();
+                    serverVillagerMemoryContext = payload.context() == null ? "" : payload.context();
+                }
             });
         });
         ClientPlayNetworking.registerGlobalReceiver(VillagerVoicePacket.TYPE, (payload, context) -> {
@@ -329,6 +340,8 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             return;
         }
         conversationVillagerId = villager.id();
+        serverMemoryContextVillagerId = null;
+        serverVillagerMemoryContext = "";
         sendVillagerConversationFocus(conversationVillagerId, true);
         if (pcm != null && pcm.length > 0) {
             byte[] recordingCopy = pcm.clone();
@@ -441,6 +454,11 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         });
     }
 
+    private static String serverVillagerMemoryContext(UUID villagerId) {
+        return villagerId != null && villagerId.equals(serverMemoryContextVillagerId)
+                ? serverVillagerMemoryContext : "";
+    }
+
     private static void rememberVillagerDialogue(VillagerSpeaker villager, String playerText, String reply) {
         VillagerDialogueMemory.remember(villager.id(), playerText, reply);
         String detectedName = VillagerDialogueMemory.extractVillagerName(reply);
@@ -477,6 +495,8 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
     private static void finishVillagerConversationFocus() {
         UUID id = conversationVillagerId;
         conversationVillagerId = null;
+        serverMemoryContextVillagerId = null;
+        serverVillagerMemoryContext = "";
         sendVillagerConversationFocus(id, false);
     }
 
@@ -875,7 +895,8 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 + "Output only spoken dialogue: no narration, action descriptions, names, sound effects, grunts, phonetic noises, filler, repetitions, or unfinished trailing fragments. "
                 + "The dialogue must read aloud as one flowing utterance, with normal rhythm and no artificial pauses between words. Finish the thought and stop after the final word. "
                 + "If the player asks your name and no name is established, choose one short Spanish name and say it explicitly as 'Me llamo NOMBRE'. Once established, always keep that same name. "
-                + VillagerDialogueMemory.context(villager.id());
+                + VillagerDialogueMemory.context(villager.id())
+                + serverVillagerMemoryContext(villager.id());
     }
 
     private record VillagerSpeaker(UUID id, String name, String profession) {}
