@@ -106,6 +106,21 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             return thread;
         });
 
+        // Load VillagerTITAN while the world initializes, not after the player has
+        // already spoken. This runs off the render thread and is safe to retry on error.
+        if (isRvcVillagerPipeline()) {
+            Thread.ofVirtual().name("twr-rvc-prewarm").start(() -> {
+                try {
+                    TtsAdapter adapter = createVillagerTtsAdapter();
+                    if (adapter instanceof PersistentRvcTtsAdapter rvc) rvc.warmUp();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } catch (Exception e) {
+                    LOGGER.warn("[TWR Voice] VillagerTITAN background warm-up failed: {}", rootMessage(e));
+                }
+            });
+        }
+
         VoiceHud.register(VOICE_KEY, voiceConversation);
         ClientPlayConnectionEvents.DISCONNECT.register((listener, client) -> cleanupVoiceSession());
 
