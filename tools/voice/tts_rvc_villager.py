@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import base64
 import json
+import inspect
 import math
 import os
 import subprocess
@@ -133,20 +134,45 @@ def run_worker(
             with tempfile.TemporaryDirectory(prefix="twr-villagertitan-worker-") as temp_dir:
                 source = Path(temp_dir) / "source.wav"
                 _piper_to_source(text, source, piper, piper_model, length_scale)
-                status, result = vc.vc_single(
-                    speaker,
-                    str(source),
-                    pitch_shift,
-                    "",
-                    f0_method,
-                    "",
-                    "",
-                    index_rate,
-                    3,
-                    40000,
-                    1.0,
-                    protect,
-                )
+                # RVC forks expose different vc_single signatures. Bind by
+                # parameter name instead of passing a version-specific positional list.
+                available = {
+                    "sid": speaker,
+                    "speaker_id": speaker,
+                    "input_audio_path": str(source),
+                    "audio_path": str(source),
+                    "f0_up_key": pitch_shift,
+                    "pitch": pitch_shift,
+                    "f0_file": "",
+                    "f0_method": f0_method,
+                    "file_index": "",
+                    "file_index2": "",
+                    "index_rate": index_rate,
+                    "filter_radius": 3,
+                    "resample_sr": 40000,
+                    "rms_mix_rate": 1.0,
+                    "protect": protect,
+                    "crepe_hop_length": 128,
+                }
+                signature = inspect.signature(vc.vc_single)
+                kwargs = {}
+                missing = []
+                for name, parameter in signature.parameters.items():
+                    if name in ("self", "cls"):
+                        continue
+                    if name in available:
+                        kwargs[name] = available[name]
+                    elif parameter.default is inspect.Parameter.empty and parameter.kind not in (
+                        inspect.Parameter.VAR_POSITIONAL,
+                        inspect.Parameter.VAR_KEYWORD,
+                    ):
+                        missing.append(name)
+                if missing:
+                    raise RuntimeError(
+                        "Unsupported RVC vc_single signature; required parameters: "
+                        + ", ".join(missing)
+                    )
+                status, result = vc.vc_single(**kwargs)
                 if not result or result[0] is None or result[1] is None:
                     raise RuntimeError(str(status or "RVC produced no audio"))
                 _write_rvc_audio(output, result[1], result[0])
