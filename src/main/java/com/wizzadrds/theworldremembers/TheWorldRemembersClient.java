@@ -446,7 +446,12 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
         String detectedName = VillagerDialogueMemory.extractVillagerName(reply);
         if (detectedName.isBlank()) return;
         VillagerDialogueMemory.setName(villager.id(), detectedName);
-        Minecraft.getInstance().execute(() -> {
+        Minecraft connectedClient = Minecraft.getInstance();
+        if (connectedClient.getConnection() != null
+                && ClientPlayNetworking.canSend(VillagerNamePacket.TYPE)) {
+            ClientPlayNetworking.send(new VillagerNamePacket(villager.id(), detectedName));
+        }
+        connectedClient.execute(() -> {
             Minecraft client = Minecraft.getInstance();
             if (client.level == null || client.player == null) return;
             double radius = 64.0;
