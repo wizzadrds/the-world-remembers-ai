@@ -16,10 +16,11 @@ public final class VoiceClientConfig {
                     + "Do not insert filler words, random words, repetitions, false starts, or words that do not belong in the sentence. "
                     + "No narration, stage directions, sound effects, grunts, or artificial villager noises. The voice model provides the villager sound.";
     private static final String DEFAULT_TTS_INSTRUCTIONS =
-            "Speak the exact words written in natural, correct Spanish, as one connected utterance with natural rhythm. "
-                    + "Keep normal continuity between words; do not add dramatic pauses, false starts, ellipses, repetitions, or extra words. "
-                    + "Use standard grammar, natural word order, correct verb conjugations, and ordinary vocabulary. "
-                    + "No narration, stage directions, sound effects, grunts, or artificial villager noises. The voice model provides the villager sound.";
+            "Speak Spanish briskly as one continuous, connected utterance, with natural conversational pacing. "
+                    + "Do not pause between individual words. In particular, say short phrases like 'Me llamo Mateo' smoothly, not as separate words. "
+                    + "Treat commas as brief pauses and use only a normal sentence-ending pause. Never add pauses, ellipses, hesitation, false starts, repetitions, or extra words that are not in the input. "
+                    + "Keep the consonants clear and the rhythm lively, like a Minecraft villager speaking naturally. "
+                    + "Use correct Spanish pronunciation and grammar. No narration, stage directions, sound effects, grunts, or artificial vocalizations.";
     private static final String LEGACY_DEFAULT_SYSTEM_PROMPT =
             "You are the specific Minecraft villager the player is standing near and speaking to. "
                     + "Reply only with that villager's spoken dialogue. Never narrate actions, emotions, scenes, or third-person events. "
