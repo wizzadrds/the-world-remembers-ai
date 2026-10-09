@@ -21,7 +21,7 @@ public final class OpenAiSttAdapter implements SttAdapter {
     public OpenAiSttAdapter(String apiKey, String model, String language) {
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("OpenAI API key is required");
         this.apiKey = apiKey.trim();
-        this.model = model == null || model.isBlank() ? "gpt-4o-mini-transcribe" : model.trim();
+        this.model = model == null || model.isBlank() || model.toLowerCase(java.util.Locale.ROOT).startsWith("gemini") ? "gpt-4o-mini-transcribe" : model.trim();
         this.language = language == null ? "" : language.trim();
     }
 
