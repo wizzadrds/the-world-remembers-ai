@@ -6,6 +6,10 @@ Minecraft Java mod focused on persistent memory, relationships, emergent NPC beh
 
 ## Status
 
+**Voice quick start (recommended):** choose Gemini or OpenAI and enter your API key in Minecraft. No Python or terminal setup is required. See [Voice Quick Start (ES)](docs/VOICE_QUICK_START_ES.md).
+
+**Advanced local voice guide:** [`docs/LOCAL_VOICE_SETUP_ES.md`](docs/LOCAL_VOICE_SETUP_ES.md) (optional local engines and custom RVC voices).
+
 **Current milestone:** v1.0.0 integration complete — release artifact/tag pending final publication
 
 ## Core pillars
@@ -17,7 +21,7 @@ Minecraft Java mod focused on persistent memory, relationships, emergent NPC beh
 - Families: parents, siblings, spouses, shared homes and inherited history persist across generations. **[Phase 5 complete — v0.5.0-alpha]**
 - Society: villages, resources, defense, landmarks, migration and shared storage persist. **[Phase 6 complete]**
 - Rumors: NPCs distinguish direct, reported and rumored knowledge, with persistent conversations and grounded dialogue. **[Phase 7 complete]**
-- Voice: local-first STT/TTS adapters, deterministic scheduling, spatial delivery and state-driven speech. **[Phase 8 complete]**
+- Voice: local-first STT/TTS adapters, selectable microphone/headset devices, spatial delivery, villager voice profiles and state-driven speech. **[Phase 8 complete]**
 - Chronicles: a read-only world-history browser for timeline, people, relationships, families and villages. **[Phase 9 complete]**
 - Dreams: persistent memory, fear, nostalgia and explicitly surreal impossible dreams derived from NPC memories. **[Phase 10 complete — v0.10.0-alpha]**
 
