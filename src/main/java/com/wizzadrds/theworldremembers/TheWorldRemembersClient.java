@@ -459,6 +459,9 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
 
     private static void queueResponseSentence(List<CompletableFuture<Void>> jobs, String text, VoiceService service, long session) {
         if (session != voiceSessionGeneration.get() || text == null || text.isBlank()) return;
+        // Never send punctuation-only streaming residue to Piper/RVC; some voice models
+        // turn such fragments into an unintelligible click, grunt, or trailing noise.
+        if (text.codePoints().noneMatch(Character::isLetterOrDigit)) return;
         ExecutorService executor = responseSpeechExecutor;
         if (executor == null) {
             speakResponseSentence(text, service, session);
