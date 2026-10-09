@@ -10,7 +10,7 @@ public final class VoiceSetupScreen extends Screen {
     private final Screen parent;
 
     public VoiceSetupScreen(Screen parent) {
-        super(Component.literal("Local Voice Setup"));
+        super(Component.literal("Voice Setup"));
         this.parent = parent;
     }
 
@@ -28,18 +28,22 @@ public final class VoiceSetupScreen extends Screen {
 
         int margin = 12;
         int maxWidth = Math.max(120, this.width - margin * 2);
-        graphics.centeredText(this.font, "LOCAL VOICE SETUP", this.width / 2, 10, 0xFFFFFFFF);
+        graphics.centeredText(this.font, "VOICE SETUP — NO INSTALLATION REQUIRED", this.width / 2, 10, 0xFFFFFFFF);
 
         String[] lines = {
-                "1. Local STT: faster-whisper (or another compatible engine).",
-                "2. Local TTS: Piper (or another compatible engine).",
-                "3. Put wrapper commands in AI & Speech.",
-                "4. Select mic/headset in Audio and test with V.",
+                "QUICK START — CLOUD VOICE",
+                "1. Open Voice & AI settings and choose Gemini or OpenAI.",
+                "2. Paste an API key from the provider you selected.",
+                "3. Press Recommended defaults, then save your settings.",
+                "4. Choose your microphone and headset on the Audio page.",
+                "5. Go near a villager and hold V to speak.",
                 "",
-                "STT: <program> <pcm-file>",
-                "TTS: <program> <text> <wav-output> <language> <model> <rate> <pitch> <expressiveness>",
+                "No Python, terminal, local models or extra downloads are needed.",
+                "Cloud speech uses your provider's API and may incur usage charges.",
                 "",
-                "Local TTS needs no API key. API key is only for optional online AI."
+                "ADVANCED: custom local STT/TTS commands are optional.",
+                "VillagerTITAN/RVC is an optional local voice override and requires",
+                "its own compatible Python environment and model files."
         };
 
         int y = 30;
