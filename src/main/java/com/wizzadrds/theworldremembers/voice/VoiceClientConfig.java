@@ -63,7 +63,10 @@ public final class VoiceClientConfig {
         inputVolume = finiteClamp(inputVolume, 0.0f, 2.0f, 1.0f);
         outputVolume = finiteClamp(outputVolume, 0.0f, 2.0f, 1.0f);
         voiceDistance = finiteClamp(voiceDistance, 1.0f, 64.0f, 32.0f);
-        if (provider == null || provider.isBlank()) provider = "gemini";\n        // Migrate the old default model that produced very long first-token delays.\n        if (model == null || model.isBlank() || model.equals("gemini-3.8-flash")) model = "gemini-3.5-flash-lite";\n        else model = model.trim();
+        if (provider == null || provider.isBlank()) provider = "gemini";
+        // Migrate the old default model that produced very long first-token delays.
+        if (model == null || model.isBlank() || model.equals("gemini-3.8-flash")) model = "gemini-3.5-flash-lite";
+        else model = model.trim();
         if (apiKey == null) apiKey = "";
         else apiKey = apiKey.trim();
         if (language == null || language.isBlank()) language = "es-ES";
