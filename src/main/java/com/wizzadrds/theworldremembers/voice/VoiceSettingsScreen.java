@@ -236,6 +236,27 @@ public final class VoiceSettingsScreen extends Screen {
         int row = 0;
         providerButton = addButton("Provider: " + displayProvider(config.provider), left, top + row++ * rowHeight(), () -> {
             config.provider = nextProvider(config.provider);
+            boolean openAi = "openai".equalsIgnoreCase(config.provider);
+            if (model != null && (openAi
+                    ? model.getValue().toLowerCase(java.util.Locale.ROOT).startsWith("gemini")
+                    : model.getValue().startsWith("gpt-"))) {
+                model.setValue(openAi ? "gpt-4o-mini" : "gemini-3.5-flash-lite");
+            }
+            if (sttModel != null && (openAi
+                    ? sttModel.getValue().toLowerCase(java.util.Locale.ROOT).startsWith("gemini")
+                    : sttModel.getValue().startsWith("gpt-"))) {
+                sttModel.setValue(openAi ? "gpt-4o-mini-transcribe" : "gemini-3.5-transcribe");
+            }
+            if (ttsModel != null && (openAi
+                    ? ttsModel.getValue().toLowerCase(java.util.Locale.ROOT).startsWith("gemini")
+                    : ttsModel.getValue().startsWith("gpt-"))) {
+                ttsModel.setValue(openAi ? "gpt-4o-mini-tts" : "gemini-3.8-flash-tts");
+            }
+            if (ttsVoice != null && (openAi
+                    ? ttsVoice.getValue().equalsIgnoreCase("Algenib") || ttsVoice.getValue().equalsIgnoreCase("Kore")
+                    : ttsVoice.getValue().equalsIgnoreCase("alloy"))) {
+                ttsVoice.setValue(openAi ? "alloy" : "Algenib");
+            }
             providerButton.setMessage(Component.literal("Provider: " + displayProvider(config.provider)));
         });
 
