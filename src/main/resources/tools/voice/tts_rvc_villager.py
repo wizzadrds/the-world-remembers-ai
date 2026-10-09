@@ -10,6 +10,7 @@ import json
 import inspect
 import math
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -21,6 +22,15 @@ DEFAULT_RVC_MODEL = Path(r"C:\Voces\VillagerTITAN.pth")
 DEFAULT_PIPER_MODEL = Path(r"C:\Voces\es_ES-mls_9972-low.onnx")
 DEFAULT_PIPER_BIN = Path(r"C:\Users\ismae\AppData\Local\Programs\Python\Python312\Scripts\piper.exe")
 DEFAULT_RVC_PYTHON = DEFAULT_RVC_ROOT / ".venv" / "Scripts" / "python.exe"
+
+
+def normalize_spoken_text(text: str) -> str:
+    """Remove literal ellipses/repeated stops that make Piper insert word-length pauses."""
+    text = (text or "").replace("…", " ")
+    text = re.sub(r"(?:\\.\\s*){2,}", " ", text)
+    text = re.sub(r"\\s+([,.;!?])", r"\\1", text)
+    text = re.sub(r"([,;:])\\s*([,;:])+", r"\\1", text)
+    return re.sub(r"\\s+", " ", text).strip()
 
 
 def env_path(name: str, default: Path | None = None, required: bool = True) -> Path | None:
@@ -123,7 +133,7 @@ def run_worker(
             continue
         try:
             request = json.loads(raw)
-            text = base64.b64decode(request["text"]).decode("utf-8").strip()
+            text = normalize_spoken_text(base64.b64decode(request["text"]).decode("utf-8"))
             output = Path(request["output"]).expanduser().resolve()
             rate = float(request.get("rate", 1.0))
             pitch = float(request.get("pitch", 1.0))
@@ -196,7 +206,7 @@ def main() -> int:
         raise SystemExit("usage: tts_rvc_villager.py <text> <output.wav> [language] [model] [rate] [pitch] [expressiveness]")
 
     worker_mode = "--worker" in sys.argv[1:]
-    text = sys.argv[1].strip() if not worker_mode else ""
+    text = normalize_spoken_text(sys.argv[1]) if not worker_mode else ""
     output = Path(sys.argv[2]).expanduser().resolve() if not worker_mode else Path(".").resolve()
     if not worker_mode and not text:
         raise SystemExit("Villager TTS text is empty")
