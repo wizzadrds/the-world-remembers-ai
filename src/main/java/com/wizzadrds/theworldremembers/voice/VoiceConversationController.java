@@ -50,6 +50,17 @@ public final class VoiceConversationController implements AutoCloseable {
             return;
         }
         if (state != VoiceConversationState.LISTENING) return;
+
+        // Fail fast for an empty/silent capture instead of uploading it and
+        // later reporting the less useful "transcription returned no text".
+        double rms = rmsLevel(pcm);
+        if (pcm.length < 1600 || rms < 0.0015) {
+            fail(String.format(java.util.Locale.ROOT,
+                    "Microphone captured silence or too little audio (%.2f s, RMS %.4f). Check the selected input device and microphone level.",
+                    pcm.length / 32000.0, rms));
+            return;
+        }
+
         setState(VoiceConversationState.PROCESSING);
         final long generation = sessionGeneration;
         try {
@@ -59,7 +70,9 @@ public final class VoiceConversationController implements AutoCloseable {
                     String transcript = service.transcribe(pcm);
                     if (generation != sessionGeneration || state != VoiceConversationState.PROCESSING) return;
                     if (transcript == null || transcript.isBlank()) {
-                        fail("Speech transcription returned no text");
+                        fail(String.format(java.util.Locale.ROOT,
+                                "Speech transcription returned no text (audio %.2f s, RMS %.4f). Check microphone input and STT provider/model.",
+                                pcm.length / 32000.0, rms));
                         return;
                     }
                     try {
@@ -144,6 +157,19 @@ public final class VoiceConversationController implements AutoCloseable {
     public void fail(String message) {
         lastError = message == null || message.isBlank() ? "Check voice settings" : message;
         setState(VoiceConversationState.ERROR);
+    }
+
+    private static double rmsLevel(byte[] pcm) {
+        if (pcm == null || pcm.length < 2) return 0.0;
+        long sum = 0L;
+        int samples = pcm.length / 2;
+        for (int i = 0; i < samples; i++) {
+            int lo = pcm[i * 2] & 0xFF;
+            int hi = pcm[i * 2 + 1];
+            short sample = (short) ((hi << 8) | lo);
+            sum += (long) sample * sample;
+        }
+        return Math.sqrt((double) sum / samples) / 32768.0;
     }
 
     private static String messageOf(Throwable error) {
