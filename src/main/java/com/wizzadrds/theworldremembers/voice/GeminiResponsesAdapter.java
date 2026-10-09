@@ -183,7 +183,11 @@ public final class GeminiResponsesAdapter implements AiChatAdapter {
     }
 
 
-    private static String thinkingLevelFor(String model) {\n        return model != null && (model.contains("flash-lite") || model.contains("flash-lite")) ? "minimal" : "low";\n    }\n\n    private static IOException geminiHttpError(int status, String body) {
+    private static String thinkingLevelFor(String model) {
+        return model != null && model.contains("flash-lite") ? "minimal" : "low";
+    }
+
+    private static IOException geminiHttpError(int status, String body) {
         String message = body == null ? "" : body.trim();
         try {
             JsonObject root = JsonParser.parseString(message).getAsJsonObject();
