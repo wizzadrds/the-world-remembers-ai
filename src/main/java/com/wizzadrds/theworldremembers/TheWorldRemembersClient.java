@@ -401,6 +401,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                         throw new RuntimeException("Voice AI request failed: " + rootMessage(ex), ex);
                     }
                     if (reply == null || reply.isBlank()) throw new IllegalStateException("AI returned an empty reply");
+                    rememberVillagerDialogue(villager, transcript, reply);
                     if (session == voiceSessionGeneration.get() && !pendingSpeech.toString().isBlank()) {
                         queueResponseSentence(speechJobs, pendingSpeech.toString().trim(), service, session);
                     }
@@ -426,6 +427,7 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                     if (reply == null || reply.isBlank()) {
                         throw new IllegalStateException("AI returned an empty reply");
                     }
+                    rememberVillagerDialogue(villager, transcript, reply);
                     speakResponseSentence(reply, service, session);
                     if (session == voiceSessionGeneration.get()) voiceConversation.finishSpeaking();
                 }
@@ -433,6 +435,26 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 finishVillagerConversationFocus();
                 LOGGER.error("[TWR Voice] Voice processing failed: {}", rootMessage(e), e);
                 throw e instanceof RuntimeException runtime ? runtime : new RuntimeException("Voice processing failed: " + rootMessage(e), e);
+            }
+        });
+    }
+
+    private static void rememberVillagerDialogue(VillagerSpeaker villager, String playerText, String reply) {
+        VillagerDialogueMemory.remember(villager.id(), playerText, reply);
+        String detectedName = VillagerDialogueMemory.extractVillagerName(reply);
+        if (detectedName.isBlank()) return;
+        VillagerDialogueMemory.setName(villager.id(), detectedName);
+        Minecraft.getInstance().execute(() -> {
+            Minecraft client = Minecraft.getInstance();
+            if (client.level == null || client.player == null) return;
+            double radius = 64.0;
+            for (Villager candidate : client.level.getEntitiesOfClass(
+                    Villager.class, client.player.getBoundingBox().inflate(radius),
+                    entity -> entity.isAlive() && entity.getUUID().equals(villager.id()))) {
+                candidate.setCustomName(net.minecraft.network.chat.Component.literal(detectedName));
+                candidate.setCustomNameVisible(true);
+                LOGGER.info("[TWR Voice] Villager {} learned/stored the name '{}'", villager.id(), detectedName);
+                break;
             }
         });
     }
@@ -812,8 +834,18 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
             }
         }
         if (nearest == null) return null;
-        String name = nearest.hasCustomName() && nearest.getCustomName() != null
-                ? nearest.getCustomName().getString() : "aldeano";
+        String rememberedName = VillagerDialogueMemory.name(nearest.getUUID());
+        if (!rememberedName.isBlank()) {
+            String currentName = nearest.hasCustomName() && nearest.getCustomName() != null
+                    ? nearest.getCustomName().getString() : "";
+            if (!rememberedName.equals(currentName)) {
+                nearest.setCustomName(net.minecraft.network.chat.Component.literal(rememberedName));
+            }
+            nearest.setCustomNameVisible(true);
+        }
+        String name = !rememberedName.isBlank() ? rememberedName
+                : nearest.hasCustomName() && nearest.getCustomName() != null
+                    ? nearest.getCustomName().getString() : "aldeano";
         String profession = nearest.getVillagerData().profession().unwrapKey()
                 .map(key -> key.identifier().getPath()).orElse("villager");
         return new VillagerSpeaker(nearest.getUUID(), name, profession);
@@ -834,7 +866,9 @@ public final class TheWorldRemembersClient implements ClientModInitializer {
                 + "Never use ellipses (... or …), one-word fragments, or a full stop after every few words. Use ordinary Spanish punctuation and natural word order. "
                 + "Use simple everyday vocabulary, but form a proper sentence. Do not force the profession into unrelated answers or invent facts. "
                 + "Output only spoken dialogue: no narration, action descriptions, names, sound effects, grunts, phonetic noises, filler, repetitions, or unfinished trailing fragments. "
-                + "The dialogue must read aloud as one flowing utterance, with normal rhythm and no artificial pauses between words. Finish the thought and stop after the final word.";
+                + "The dialogue must read aloud as one flowing utterance, with normal rhythm and no artificial pauses between words. Finish the thought and stop after the final word. "
+                + "If the player asks your name and no name is established, choose one short Spanish name and say it explicitly as 'Me llamo NOMBRE'. Once established, always keep that same name. "
+                + VillagerDialogueMemory.context(villager.id());
     }
 
     private record VillagerSpeaker(UUID id, String name, String profession) {}
