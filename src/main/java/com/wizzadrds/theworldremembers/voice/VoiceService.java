@@ -13,15 +13,13 @@ public final class VoiceService {
         this.tts = tts;
     }
 
-    public String transcribe(byte[] pcm) {
-        try {
-            return stt.transcribe(pcm);
-        } catch (IOException e) {
-            return "";
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return "";
-        }
+    /**
+     * Keep transcription failures visible to VoiceConversationController.
+     * Returning an empty string here hid HTTP/API errors and made them look
+     * like a successful transcription that happened to contain no text.
+     */
+    public String transcribe(byte[] pcm) throws IOException, InterruptedException {
+        return stt.transcribe(pcm);
     }
 
     public Path synthesize(String text, VoiceProfile profile, Path output) {
